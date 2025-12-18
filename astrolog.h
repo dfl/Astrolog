@@ -111,49 +111,66 @@
 ** astrolog.as settings file, that correspond to features no longer available.
 */
 
+/* Use #ifndef guards to avoid redefinition warnings when macros are
+** defined via compiler flags (e.g., from CMake or command line).
+*/
+
+#ifndef GRAPH
 #define GRAPH /* Comment out this #define if you don't want any graphics   */
-              /* in the program. This switch allows at least generation of */
+#endif        /* in the program. This switch allows at least generation of */
               /* bitmap files and must be set if any of the more advanced  */
               /* graphics feature additions are also compiled in.          */
 
+#ifndef SWISS
 #define SWISS /* Comment out this #define if you don't want the Swiss      */
-              /* Ephemeris most accurate calculation features and formulas */
+#endif        /* Ephemeris most accurate calculation features and formulas */
               /* to be compiled into the program (as accessed with -b).    */
 
+#ifndef PLACALC
 #define PLACALC /* Comment out this #define if you don't want the Placalc */
-                /* less accurate calculation features and formulas to be  */
+#endif          /* less accurate calculation features and formulas to be  */
                 /* compiled into the program (as accessed with -bp).      */
 
+#ifndef MATRIX
 #define MATRIX /* Comment out this #define if you don't want the Matrix  */
-               /* much less accurate calculation formulas to be compiled */
+#endif         /* much less accurate calculation formulas to be compiled */
                /* into the program (as accessed with -bm).               */
 
+#ifndef PS
 #define PS /* Comment out this #define if you don't want the ability to */
-           /* generate charts in the PostScript graphics format.        */
+#endif     /* generate charts in the PostScript graphics format.        */
 
+#ifndef META
 #define META /* Comment out this #define if you don't want the ability to  */
-             /* generate charts in the MS Windows metafile picture format. */
+#endif       /* generate charts in the MS Windows metafile picture format. */
 
+#ifndef WIRE
 #define WIRE /* Comment out this #define if you don't want the ability to */
-             /* generate charts in the Daedalus wireframe vector format.  */
+#endif       /* generate charts in the Daedalus wireframe vector format.  */
 
+#ifndef ATLAS
 #define ATLAS /* Comment out this #define if you don't want the built in  */
-              /* city atlas and time zone change features in the program. */
+#endif        /* city atlas and time zone change features in the program. */
 
+#ifndef INTERPRET
 #define INTERPRET /* Comment out this #define if you don't want the ability */
-                  /* to display interpretations of the various chart types. */
+#endif            /* to display interpretations of the various chart types. */
 
+#ifndef ARABIC
 #define ARABIC /* Comment out this #define if you don't want any chart     */
-               /* lists that include Arabic parts included in the program. */
+#endif         /* lists that include Arabic parts included in the program. */
 
+#ifndef CONSTEL
 #define CONSTEL /* Comment out this #define if you don't want any of the */
-                /* astronomical constellation charts in the program.     */
+#endif          /* astronomical constellation charts in the program.     */
 
+#ifndef BIORHYTHM
 #define BIORHYTHM /* Comment out this #define if you don't want the    */
-                  /* non-astrological biorhythm charts in the program. */
+#endif            /* non-astrological biorhythm charts in the program. */
 
+#ifndef EXPRESS
 #define EXPRESS /* Comment out this #define if you don't want programmable */
-                /* AstroExpression customization options in the program.   */
+#endif          /* AstroExpression customization options in the program.   */
 
 /*
 ** DATA CONFIGURATION SECTION: These settings describe particulars of
