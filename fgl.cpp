@@ -202,10 +202,44 @@ int Globe3DWidget::handle(int event)
     return 1;
 
   case FL_MOUSEWHEEL:
-    // Zoom with mouse wheel (adjust camera distance)
-    // For now, just redraw
-    redraw();
+    // Zoom with mouse wheel
+    {
+      int dy = Fl::event_dy();
+      if (dy != 0) {
+        real r = gs.rspace;
+        if (r < rSmall)
+          r = (real)(1 << (4 - gi.nScale / gi.nScaleT));
+        if (dy < 0)
+          r /= 1.25;  // Zoom in (scroll up)
+        else
+          r *= 1.25;  // Zoom out (scroll down)
+        if (FValidZoom(r)) {
+          gs.rspace = r;
+          redraw();
+        }
+      }
+    }
     return 1;
+
+#ifdef __APPLE__
+  case FL_ZOOM_GESTURE:
+    // Trackpad pinch-to-zoom gesture (macOS)
+    {
+      float mag = (float)Fl::event_dy();
+      if (mag != 0.0f) {
+        real r = gs.rspace;
+        if (r < rSmall)
+          r = (real)(1 << (4 - gi.nScale / gi.nScaleT));
+        // Apply magnification as a continuous scale factor
+        r *= (1.0 - mag * 0.5);
+        if (FValidZoom(r)) {
+          gs.rspace = r;
+          redraw();
+        }
+      }
+    }
+    return 1;
+#endif
 
   case FL_FOCUS:
   case FL_UNFOCUS:

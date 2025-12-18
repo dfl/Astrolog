@@ -82,6 +82,7 @@ public:
   Fl_Menu_Bar *menuBar() { return menubar_; }
 
   void resize(int x, int y, int w, int h) FL_OVERRIDE;
+  int handle(int event) FL_OVERRIDE;
 
   static void timer_callback(void *data);
   void startAnimation();

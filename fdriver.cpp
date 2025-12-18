@@ -379,6 +379,41 @@ int ChartWidget::handle(int event)
     }
     return 1;
 
+#ifdef __APPLE__
+  case FL_ZOOM_GESTURE:
+    // Trackpad pinch-to-zoom gesture (macOS)
+    // event_dy() contains the magnification delta (positive = zoom in)
+    {
+      float mag = (float)Fl::event_dy();
+      if (mag != 0.0f) {
+        flag fChanged = fFalse;
+        // Local Horizon, Telescope, and Orbit views use gs.rspace for zoom
+        if (gi.nMode == gLocal || gi.nMode == gTelescope || gi.nMode == gOrbit) {
+          real r = gs.rspace;
+          if (r < rSmall)
+            r = (real)(1 << (4 - gi.nScale / gi.nScaleT));
+          // Apply magnification as a continuous scale factor
+          // mag > 0 means zoom in, mag < 0 means zoom out
+          r *= (1.0 - mag * 0.5);  // Scale factor for smooth zooming
+          if (FValidZoom(r)) {
+            gs.rspace = r;
+            fChanged = fTrue;
+          }
+        } else {
+          // Other views use gs.nScale for zoom
+          // Convert continuous magnification to discrete zoom steps
+          if (mag > 0.02)
+            fChanged = FAdjustZoom(1);   // Zoom in
+          else if (mag < -0.02)
+            fChanged = FAdjustZoom(-1);  // Zoom out
+        }
+        if (fChanged)
+          redraw();
+      }
+    }
+    return 1;
+#endif
+
   case FL_FOCUS:
   case FL_UNFOCUS:
     return 1;
@@ -873,6 +908,9 @@ AstrologWindow::AstrologWindow(int w, int h, const char *title)
   fi.menubar = menubar_;
   fi.xClient = w;
   fi.yClient = h;
+
+  // Start animation timer (runs continuously like Windows version)
+  startAnimation();
 }
 
 AstrologWindow::~AstrologWindow()
@@ -955,20 +993,44 @@ void AstrologWindow::resize(int x, int y, int w, int h)
 #endif
 }
 
+int AstrologWindow::handle(int event)
+{
+#ifdef __APPLE__
+  // Handle trackpad pinch-to-zoom gesture (macOS sends this to window, not widget)
+  if (event == FL_ZOOM_GESTURE) {
+    // Forward to chart widget's handle method
+    if (chart_ && chart_->visible())
+      return chart_->handle(event);
+#ifdef OPENGL
+    if (chart3D_ && chart3D_->visible())
+      return chart3D_->handle(event);
+#endif
+  }
+#endif
+  return Fl_Double_Window::handle(event);
+}
+
 void AstrologWindow::timer_callback(void *data)
 {
   AstrologWindow *win = (AstrologWindow *)data;
-  if (win && win->animating_ && gs.nAnim && !gi.fPause) {
-    // Advance animation
+  if (!win)
+    return;
+
+  // Only animate if animation mode is enabled and not paused
+  if (gs.nAnim && !gi.fPause) {
     Animate(gs.nAnim, gi.nDir);
 
-    // Redraw
-    if (win->chart_)
+    // Redraw the appropriate chart widget
+    if (win->chart_ && win->chart_->visible())
       win->chart_->redraw();
-
-    // Schedule next frame (30 FPS)
-    Fl::repeat_timeout(1.0/30.0, timer_callback, data);
+#ifdef OPENGL
+    if (win->chart3D_ && win->chart3D_->visible())
+      win->chart3D_->redraw();
+#endif
   }
+
+  // Always reschedule - timer runs continuously like Windows version
+  Fl::repeat_timeout(1.0/30.0, timer_callback, data);
 }
 
 void AstrologWindow::startAnimation()
@@ -1042,10 +1104,10 @@ void AstrologWindow::createMenus()
 
   // Animate menu
   menubar_->add("&Animate/Animation &Settings...", 0, FMenuAnimSettings);
-  menubar_->add("&Animate/&Pause/Play", ' ', FMenuAnimPause);
+  menubar_->add("&Animate/&Pause\\/Play", ' ', FMenuAnimPause);
   menubar_->add("&Animate/&Reverse", 'r', FMenuAnimReverse);
-  menubar_->add("&Animate/Jump &Forward", 0, FMenuAnimForward);
-  menubar_->add("&Animate/Jump &Back", 0, FMenuAnimBack);
+  menubar_->add("&Animate/Jump &Forward", '+', FMenuAnimForward);
+  menubar_->add("&Animate/Jump &Back", '-', FMenuAnimBack);
 
   // Help menu
   menubar_->add("&Help/&About Astrolog...", 0, FMenuHelpAbout);
@@ -1444,10 +1506,6 @@ void InteractFltk()
   // Main event loop
   if (!fi.window)
     return;
-
-  // Start animation if needed
-  if (gs.nAnim)
-    fi.window->startAnimation();
 
   // Run the FLTK event loop
   while (fi.window && fi.window->visible()) {
