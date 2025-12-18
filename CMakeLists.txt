@@ -107,7 +107,7 @@ if(USE_FLTK)
       "  Windows: vcpkg install fltk")
   endif()
 
-  list(APPEND SOURCES fdriver.cpp)
+  list(APPEND SOURCES fdriver.cpp fdialog.cpp)
   list(APPEND COMPILE_DEFS FLTK)
   message(STATUS "Building with FLTK GUI backend")
 endif()

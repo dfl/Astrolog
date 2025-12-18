@@ -96,10 +96,29 @@ extern void FMenuFileSave(Fl_Widget *w, void *data);
 extern void FMenuFileSaveAs(Fl_Widget *w, void *data);
 extern void FMenuFileExit(Fl_Widget *w, void *data);
 extern void FMenuEditCopy(Fl_Widget *w, void *data);
+extern void FMenuCommand(Fl_Widget *w, void *data);
+extern void FMenuInfoChart(Fl_Widget *w, void *data);
+extern void FMenuInfoChart2(Fl_Widget *w, void *data);
+extern void FMenuCalcSettings(Fl_Widget *w, void *data);
+extern void FMenuDisplaySettings(Fl_Widget *w, void *data);
+extern void FMenuGraphicsSettings(Fl_Widget *w, void *data);
+extern void FMenuAnimSettings(Fl_Widget *w, void *data);
+extern void FMenuAspectSettings(Fl_Widget *w, void *data);
 extern void FMenuHelpAbout(Fl_Widget *w, void *data);
 
 // Convert Astrolog color index to FLTK color
 extern Fl_Color FltkColorFromKI(int ki);
+
+// Dialog function declarations (fdialog.cpp)
+// Note: Using int instead of flag since header is included before typedef
+extern void FShowDlgInfo(int nChart);
+extern void FShowDlgAbout(void);
+extern int FShowDlgCommand(char *szCommand, int cchMax);
+extern void FShowDlgGraphics(void);
+extern void FShowDlgCalc(void);
+extern void FShowDlgDisplay(void);
+extern void FShowDlgAnim(void);
+extern void FShowDlgAspect(void);
 
 #endif // FLTK
 #endif // _FDRIVER_H

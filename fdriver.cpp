@@ -453,11 +453,11 @@ void AstrologWindow::createMenus()
   // Edit menu
   menubar_->add("&Edit/&Copy", FL_CTRL+'c', FMenuEditCopy);
   menubar_->add("&Edit/&Paste", FL_CTRL+'v', (Fl_Callback*)NULL);
-  menubar_->add("&Edit/Command &Line...", 0, (Fl_Callback*)NULL);
+  menubar_->add("&Edit/Command &Line...", FL_F+2, FMenuCommand);
 
   // Info menu
-  menubar_->add("&Info/Set &Chart Info...", 0, (Fl_Callback*)NULL);
-  menubar_->add("&Info/Set Chart #&2 Info...", 0, (Fl_Callback*)NULL);
+  menubar_->add("&Info/Set &Chart Info...", FL_CTRL+'i', FMenuInfoChart);
+  menubar_->add("&Info/Set Chart #&2 Info...", 0, FMenuInfoChart2);
 
   // View menu
   menubar_->add("&View/&Wheel Chart", 'v', (Fl_Callback*)NULL);
@@ -470,11 +470,13 @@ void AstrologWindow::createMenus()
   menubar_->add("&View/&World Map", 'w', (Fl_Callback*)NULL);
 
   // Settings menu
-  menubar_->add("Se&ttings/&Calculation Settings...", 0, (Fl_Callback*)NULL);
-  menubar_->add("Se&ttings/&Display Settings...", 0, (Fl_Callback*)NULL);
-  menubar_->add("Se&ttings/&Graphics Settings...", 0, (Fl_Callback*)NULL);
+  menubar_->add("Se&ttings/&Calculation Settings...", 0, FMenuCalcSettings);
+  menubar_->add("Se&ttings/&Display Settings...", 0, FMenuDisplaySettings);
+  menubar_->add("Se&ttings/&Graphics Settings...", 0, FMenuGraphicsSettings);
+  menubar_->add("Se&ttings/&Aspect Settings...", 0, FMenuAspectSettings);
 
   // Animate menu
+  menubar_->add("&Animate/Animation &Settings...", 0, FMenuAnimSettings);
   menubar_->add("&Animate/&Pause", 'p', (Fl_Callback*)NULL);
   menubar_->add("&Animate/&Reverse", 'r', (Fl_Callback*)NULL);
   menubar_->add("&Animate/Jump &Forward", 0, (Fl_Callback*)NULL);
@@ -539,15 +541,52 @@ void FMenuEditCopy(Fl_Widget *w, void *data)
 
 void FMenuHelpAbout(Fl_Widget *w, void *data)
 {
-  char sz[cchSzMax * 4];
-  sprintf(sz, "%s %s\n\n"
-    "A free astrology program for Windows, macOS, and Linux.\n\n"
-    "%s\n\n"
-    "By Walter D. Pullen\n"
-    "%s",
-    szAppNameCore, szVersionCore, szDateCore, szAddressCore);
-  fl_message_title("About Astrolog");
-  fl_message("%s", sz);
+  FShowDlgAbout();
+}
+
+void FMenuInfoChart(Fl_Widget *w, void *data)
+{
+  FShowDlgInfo(1);
+}
+
+void FMenuInfoChart2(Fl_Widget *w, void *data)
+{
+  FShowDlgInfo(2);
+}
+
+void FMenuCommand(Fl_Widget *w, void *data)
+{
+  char szCommand[cchSzMax] = "";
+  if (FShowDlgCommand(szCommand, cchSzMax) && szCommand[0]) {
+    FProcessCommandLine(szCommand);
+    if (fi.chart)
+      fi.chart->redraw();
+  }
+}
+
+void FMenuGraphicsSettings(Fl_Widget *w, void *data)
+{
+  FShowDlgGraphics();
+}
+
+void FMenuCalcSettings(Fl_Widget *w, void *data)
+{
+  FShowDlgCalc();
+}
+
+void FMenuDisplaySettings(Fl_Widget *w, void *data)
+{
+  FShowDlgDisplay();
+}
+
+void FMenuAnimSettings(Fl_Widget *w, void *data)
+{
+  FShowDlgAnim();
+}
+
+void FMenuAspectSettings(Fl_Widget *w, void *data)
+{
+  FShowDlgAspect();
 }
 
 /*
