@@ -172,6 +172,17 @@ void FMenuIndian(Fl_Widget *w, void *data);
 void FMenuIndianS(Fl_Widget *w, void *data);
 void FMenuIndianN(Fl_Widget *w, void *data);
 void FMenuIndianE(Fl_Widget *w, void *data);
+void FMenuHelpSign(Fl_Widget *w, void *data);
+void FMenuHelpObject(Fl_Widget *w, void *data);
+void FMenuHelpAspect(Fl_Widget *w, void *data);
+void FMenuHelpConstel(Fl_Widget *w, void *data);
+void FMenuHelpPlanet(Fl_Widget *w, void *data);
+void FMenuHelpRay(Fl_Widget *w, void *data);
+void FMenuHelpMeaning(Fl_Widget *w, void *data);
+void FMenuHelpSwitch(Fl_Widget *w, void *data);
+void FMenuHelpObscure(Fl_Widget *w, void *data);
+void FMenuHelpKeystroke(Fl_Widget *w, void *data);
+void FMenuHelpCredit(Fl_Widget *w, void *data);
 
 /*
 ******************************************************************************
@@ -1219,7 +1230,22 @@ void AstrologWindow::createMenus()
 
   // Help menu
   menubar_->add("&Help/&About Astrolog...", 0, FMenuHelpAbout);
-  menubar_->add("&Help/&Documentation", 0, (Fl_Callback*)NULL);
+  menubar_->add("&Help/&Documentation", 0, (Fl_Callback*)NULL, 0, FL_MENU_DIVIDER);
+  menubar_->add("&Help/List Si&gns", 0, FMenuHelpSign);
+  menubar_->add("&Help/List &Objects", 0, FMenuHelpObject);
+  menubar_->add("&Help/List Aspec&ts", 0, FMenuHelpAspect);
+#ifdef CONSTEL
+  menubar_->add("&Help/List &Constellations", 0, FMenuHelpConstel);
+#endif
+  menubar_->add("&Help/List &Planet Info", 0, FMenuHelpPlanet);
+  menubar_->add("&Help/List &Rays", 0, FMenuHelpRay);
+#ifdef INTERPRET
+  menubar_->add("&Help/List &General Meanings", 0, FMenuHelpMeaning);
+#endif
+  menubar_->add("&Help/List S&witches", 0, FMenuHelpSwitch);
+  menubar_->add("&Help/List O&bscure Switches", 0, FMenuHelpObscure);
+  menubar_->add("&Help/List &Keystrokes", '?', FMenuHelpKeystroke);
+  menubar_->add("&Help/List Cr&edits", 0, FMenuHelpCredit);
 }
 
 /*
@@ -1557,6 +1583,99 @@ void FMenuIndianE(Fl_Widget *w, void *data)
   gs.fIndianWheel = gs.fHouseExtra = fTrue;
   UpdateMenuCheck(FMenuIndian, fTrue);
   us.fGraphics = fTrue;
+  if (fi.chart) fi.chart->redraw();
+}
+
+// Help list callbacks - these switch to text mode
+void FMenuHelpSign(Fl_Widget *w, void *data)
+{
+  gi.nMode = gSign;
+  us.fGraphics = fFalse;
+  fi.fDoCast = fTrue;
+  if (fi.chart) fi.chart->redraw();
+}
+
+void FMenuHelpObject(Fl_Widget *w, void *data)
+{
+  gi.nMode = gObject;
+  us.fGraphics = fFalse;
+  fi.fDoCast = fTrue;
+  if (fi.chart) fi.chart->redraw();
+}
+
+void FMenuHelpAspect(Fl_Widget *w, void *data)
+{
+  gi.nMode = gHelpAsp;
+  us.fGraphics = fFalse;
+  fi.fDoCast = fTrue;
+  if (fi.chart) fi.chart->redraw();
+}
+
+#ifdef CONSTEL
+void FMenuHelpConstel(Fl_Widget *w, void *data)
+{
+  gi.nMode = gConstel;
+  us.fGraphics = fFalse;
+  fi.fDoCast = fTrue;
+  if (fi.chart) fi.chart->redraw();
+}
+#endif
+
+void FMenuHelpPlanet(Fl_Widget *w, void *data)
+{
+  gi.nMode = gPlanet;
+  us.fGraphics = fFalse;
+  fi.fDoCast = fTrue;
+  if (fi.chart) fi.chart->redraw();
+}
+
+void FMenuHelpRay(Fl_Widget *w, void *data)
+{
+  gi.nMode = gRay;
+  us.fGraphics = fFalse;
+  fi.fDoCast = fTrue;
+  if (fi.chart) fi.chart->redraw();
+}
+
+#ifdef INTERPRET
+void FMenuHelpMeaning(Fl_Widget *w, void *data)
+{
+  gi.nMode = gMeaning;
+  us.fGraphics = fFalse;
+  fi.fDoCast = fTrue;
+  if (fi.chart) fi.chart->redraw();
+}
+#endif
+
+void FMenuHelpSwitch(Fl_Widget *w, void *data)
+{
+  gi.nMode = gSwitch;
+  us.fGraphics = fFalse;
+  fi.fDoCast = fTrue;
+  if (fi.chart) fi.chart->redraw();
+}
+
+void FMenuHelpObscure(Fl_Widget *w, void *data)
+{
+  gi.nMode = gObscure;
+  us.fGraphics = fFalse;
+  fi.fDoCast = fTrue;
+  if (fi.chart) fi.chart->redraw();
+}
+
+void FMenuHelpKeystroke(Fl_Widget *w, void *data)
+{
+  gi.nMode = gKeystroke;
+  us.fGraphics = fFalse;
+  fi.fDoCast = fTrue;
+  if (fi.chart) fi.chart->redraw();
+}
+
+void FMenuHelpCredit(Fl_Widget *w, void *data)
+{
+  gi.nMode = gCredit;
+  us.fGraphics = fFalse;
+  fi.fDoCast = fTrue;
   if (fi.chart) fi.chart->redraw();
 }
 
