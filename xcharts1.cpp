@@ -559,14 +559,12 @@ void XChartGrid(int x0, int y0)
 
         // For cells on main diagonal, draw glyph of planet.
         } else {
-          if (gs.fLabelAsp) {
-            DrawColor(kDkBlueB);
-            DrawBlock(x0 + (int)((x-1)*rUnit)+1, y0 + (int)((y-1)*rUnit)+1,
-              x0 + (int)(x*rUnit)-1, y0 + (int)(y*rUnit)-1);
-          }
+          // Draw double outline for diagonal cells (works on regular/reverse)
           DrawColor(gi.kiLite);
           DrawEdge(x0 + (int)((x-1)*rUnit), y0 + (int)((y-1)*rUnit),
             x0 + (int)(x*rUnit), y0 + (int)(y*rUnit));
+          DrawEdge(x0 + (int)((x-1)*rUnit)+1, y0 + (int)((y-1)*rUnit)+1,
+            x0 + (int)(x*rUnit)-1, y0 + (int)(y*rUnit)-1);
           DrawObject(i, x0 + gi.xTurtle, y0 + gi.yTurtle);
         }
 
