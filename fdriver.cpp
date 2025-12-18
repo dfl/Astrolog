@@ -162,6 +162,16 @@ void FMenuHouseSolar(Fl_Widget *w, void *data);
 void FMenuHouse3D(Fl_Widget *w, void *data);
 void FMenuHouseDecan(Fl_Widget *w, void *data);
 void FMenuHouseFlip(Fl_Widget *w, void *data);
+void FMenuMapConstel(Fl_Widget *w, void *data);
+void FMenuMapAllStar(Fl_Widget *w, void *data);
+void FMenuMapExo(Fl_Widget *w, void *data);
+void FMenuMapCity(Fl_Widget *w, void *data);
+void FMenuMapBmp(Fl_Widget *w, void *data);
+void FMenuMapAxis(Fl_Widget *w, void *data);
+void FMenuIndian(Fl_Widget *w, void *data);
+void FMenuIndianS(Fl_Widget *w, void *data);
+void FMenuIndianN(Fl_Widget *w, void *data);
+void FMenuIndianE(Fl_Widget *w, void *data);
 
 /*
 ******************************************************************************
@@ -1165,7 +1175,19 @@ void AstrologWindow::createMenus()
   menubar_->add("&Graphics/Show &Glyphs on Aspects", 'k', FMenuGraphicsLabelAsp, 0, FL_MENU_TOGGLE|FL_MENU_DIVIDER);
   menubar_->add("&Graphics/Show &House Details", 'd', FMenuGraphicsHouseExtra, 0, FL_MENU_TOGGLE);
   menubar_->add("&Graphics/Show &Equator", 'e', FMenuGraphicsEquator, 0, FL_MENU_TOGGLE|FL_MENU_DIVIDER);
-  menubar_->add("&Graphics/Modify &Display", 'i', FMenuGraphicsModify, 0, FL_MENU_TOGGLE);
+  menubar_->add("&Graphics/Modify &Display", 'i', FMenuGraphicsModify, 0, FL_MENU_TOGGLE|FL_MENU_DIVIDER);
+  // Map Effects submenu
+  menubar_->add("&Graphics/Map Effects/Show &Constellations", 'F', FMenuMapConstel, 0, FL_MENU_TOGGLE);
+  menubar_->add("&Graphics/Map Effects/Show Full &Star List", 0, FMenuMapAllStar, 0, FL_MENU_TOGGLE);
+  menubar_->add("&Graphics/Map Effects/Show E&xoplanets", 0, FMenuMapExo, 0, FL_MENU_TOGGLE|FL_MENU_DIVIDER);
+  menubar_->add("&Graphics/Map Effects/Show C&ities", 0, FMenuMapCity, 0, FL_MENU_TOGGLE|FL_MENU_DIVIDER);
+  menubar_->add("&Graphics/Map Effects/Use Detailed World &Map", 'w', FMenuMapBmp, 0, FL_MENU_TOGGLE);
+  menubar_->add("&Graphics/Map Effects/Use Ecliptic &Axis", 0, FMenuMapAxis, 0, FL_MENU_TOGGLE);
+  // Indian Style Charts submenu
+  menubar_->add("&Graphics/Indian Style/Show &Indian Wheels", '=', FMenuIndian, 0, FL_MENU_TOGGLE|FL_MENU_DIVIDER);
+  menubar_->add("&Graphics/Indian Style/Draw &South Indian", 0, FMenuIndianS);
+  menubar_->add("&Graphics/Indian Style/Draw &North Indian", 0, FMenuIndianN);
+  menubar_->add("&Graphics/Indian Style/Draw &East Indian", 0, FMenuIndianE);
 
   // Animate menu
   menubar_->add("&Animate/Do &Animation", 'N', FMenuAnimToggle);
@@ -1456,6 +1478,85 @@ void FMenuHouseFlip(Fl_Widget *w, void *data)
   inv(us.fFlip);
   UpdateMenuCheck(FMenuHouseFlip, us.fFlip);
   fi.fDoCast = fTrue;
+  if (fi.chart) fi.chart->redraw();
+}
+
+// Map effects callbacks
+void FMenuMapConstel(Fl_Widget *w, void *data)
+{
+  inv(gs.fConstel);
+  UpdateMenuCheck(FMenuMapConstel, gs.fConstel);
+  if (fi.chart) fi.chart->redraw();
+}
+
+void FMenuMapAllStar(Fl_Widget *w, void *data)
+{
+  inv(gs.fAllStar);
+  UpdateMenuCheck(FMenuMapAllStar, gs.fAllStar);
+  if (fi.chart) fi.chart->redraw();
+}
+
+void FMenuMapExo(Fl_Widget *w, void *data)
+{
+  inv(gs.fAllExo);
+  UpdateMenuCheck(FMenuMapExo, gs.fAllExo);
+  if (fi.chart) fi.chart->redraw();
+}
+
+void FMenuMapCity(Fl_Widget *w, void *data)
+{
+  inv(gs.fLabelCity);
+  UpdateMenuCheck(FMenuMapCity, gs.fLabelCity);
+  if (fi.chart) fi.chart->redraw();
+}
+
+void FMenuMapBmp(Fl_Widget *w, void *data)
+{
+  inv(gi.fBmp);
+  UpdateMenuCheck(FMenuMapBmp, gi.fBmp);
+  if (fi.chart) fi.chart->redraw();
+}
+
+void FMenuMapAxis(Fl_Widget *w, void *data)
+{
+  inv(gs.fEcliptic);
+  UpdateMenuCheck(FMenuMapAxis, gs.fEcliptic);
+  if (fi.chart) fi.chart->redraw();
+}
+
+// Indian style chart callbacks
+void FMenuIndian(Fl_Widget *w, void *data)
+{
+  inv(gs.fIndianWheel);
+  UpdateMenuCheck(FMenuIndian, gs.fIndianWheel);
+  if (fi.chart) fi.chart->redraw();
+}
+
+void FMenuIndianS(Fl_Widget *w, void *data)
+{
+  gi.nMode = gWheel;
+  gs.fIndianWheel = fTrue;
+  gs.fHouseExtra = fFalse;
+  UpdateMenuCheck(FMenuIndian, fTrue);
+  us.fGraphics = fTrue;
+  if (fi.chart) fi.chart->redraw();
+}
+
+void FMenuIndianN(Fl_Widget *w, void *data)
+{
+  gi.nMode = gHouse;
+  gs.fIndianWheel = fTrue;
+  UpdateMenuCheck(FMenuIndian, fTrue);
+  us.fGraphics = fTrue;
+  if (fi.chart) fi.chart->redraw();
+}
+
+void FMenuIndianE(Fl_Widget *w, void *data)
+{
+  gi.nMode = gWheel;
+  gs.fIndianWheel = gs.fHouseExtra = fTrue;
+  UpdateMenuCheck(FMenuIndian, fTrue);
+  us.fGraphics = fTrue;
   if (fi.chart) fi.chart->redraw();
 }
 
