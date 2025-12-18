@@ -6,4 +6,4 @@ The files here were copied from: http://www.astrolog.org/ftp/ast78src.zip
 
 The changes in version 7.80 are described at: http://www.astrolog.org/ftp/updat780.htm
 
-No modifications have been made to any of these files, and the only addition is this GITHUB format README.
+This fork adds a cross-platform FLTK GUI with a CMake build system. For build instructions, see [GUI.md](GUI.md).
