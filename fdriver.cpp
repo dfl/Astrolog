@@ -231,16 +231,16 @@ void ChartWidget::draw()
       for (int i = 0; i <= is.nObj; i++)
         gi.nGridCell += FProper(i);
     }
-    // Grid base size is nGridCell * CELLSIZE (14 pixels per cell at 100%)
+    // Calculate floating-point scale to fill window smoothly
     int nCells = gi.nGridCell + (us.nRel <= rcDual);
     if (nCells > 0) {
-      int baseSize = nCells * CELLSIZE;
       int winSize = Min(gs.xWin, gs.yWin);
-      // Calculate scale as percentage (100 = 100%)
-      gs.nScale = (winSize * 100) / baseSize;
-      gs.nScale = Max(gs.nScale, 100);  // Minimum 100%
-      gi.nScale = gs.nScale / 100;
-      gi.rScaleX = gi.rScaleY = (real)gi.nScale;
+      // Use floating-point scaling for smooth resize (like map charts)
+      gi.rScaleX = gi.rScaleY = (real)winSize / (real)(nCells * CELLSIZE);
+      // Keep integer scale for compatibility, but use floating-point for drawing
+      gi.nScale = (int)gi.rScaleX;
+      if (gi.nScale < 1) gi.nScale = 1;
+      gs.nScale = gi.nScale * 100;
     }
   } else {
     // Non-map charts use uniform scaling

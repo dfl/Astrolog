@@ -497,11 +497,15 @@ KI FormatGridCell(char *sz, int x, int y, int type, flag fWide)
 void XChartGrid(int x0, int y0)
 {
   char sz[cchSzDef];
-  int nScale, unit, siz, x, y, i, j, k, i0, j0, ig, jg;
+  int nScale, x, y, i, j, k, i0, j0, ig, jg;
+  real rUnit;  // Floating-point unit for smooth scaling
+  int siz;
   KI c;
 
   nScale = gi.nScale/gi.nScaleT;
-  unit = CELLSIZE*gi.nScale; siz = gi.nGridCell*unit;
+  // Use floating-point scale for smooth resizing
+  rUnit = (real)CELLSIZE * gi.rScaleX;
+  siz = (int)(gi.nGridCell * rUnit);
   i = us.fSmartCusp; us.fSmartCusp = fFalse;
   j = us.objRequire; us.objRequire = -1;
   if (!FCreateGrid(gs.fAlt))
@@ -516,8 +520,8 @@ void XChartGrid(int x0, int y0)
       j = rgobjList[j0];
     } while (!FProper(j) && j0 <= is.nObj);
     DrawColor(gi.kiGray);
-    DrawDash(x0, y0 + y*unit, x0 + siz, y0 + y*unit, !gs.fColor);
-    DrawDash(x0 + y*unit, y0, x0 + y*unit, y0 + siz, !gs.fColor);
+    DrawDash(x0, y0 + (int)(y*rUnit), x0 + siz, y0 + (int)(y*rUnit), !gs.fColor);
+    DrawDash(x0 + (int)(y*rUnit), y0, x0 + (int)(y*rUnit), y0 + siz, !gs.fColor);
     if (j0 <= is.nObj) for (x = 1, i0 = -1; x <= gi.nGridCell; x++) {
       do {
         i0++;
@@ -527,8 +531,8 @@ void XChartGrid(int x0, int y0)
       if ((i > j) != (i0 > j0))
         SwapN(ig, jg);
       if (i0 <= is.nObj) {
-        gi.xTurtle = x*unit-unit/2;
-        gi.yTurtle = y*unit-unit/2 - (nScale > 2 ? 5*gi.nScaleT : 0);
+        gi.xTurtle = (int)(x*rUnit - rUnit/2.0);
+        gi.yTurtle = (int)(y*rUnit - rUnit/2.0) - (gi.rScaleX > 2.0 ? 5*gi.nScaleT : 0);
         k = grid->n[ig][jg];
 
         // If this is an aspect cell, draw glyph of aspect in effect.
@@ -548,28 +552,30 @@ void XChartGrid(int x0, int y0)
         } else {
           if (gs.fLabelAsp) {
             DrawColor(kDkBlueB);
-            DrawBlock(x0 + (x-1)*unit+1, y0 + (y-1)*unit+1,
-              x0 + x*unit-1, y0 + y*unit-1);
+            DrawBlock(x0 + (int)((x-1)*rUnit)+1, y0 + (int)((y-1)*rUnit)+1,
+              x0 + (int)(x*rUnit)-1, y0 + (int)(y*rUnit)-1);
           }
           DrawColor(gi.kiLite);
-          DrawEdge(x0 + (x-1)*unit, y0 + (y-1)*unit, x0 + x*unit, y0 + y*unit);
+          DrawEdge(x0 + (int)((x-1)*rUnit), y0 + (int)((y-1)*rUnit),
+            x0 + (int)(x*rUnit), y0 + (int)(y*rUnit));
           DrawObject(i, x0 + gi.xTurtle, y0 + gi.yTurtle);
         }
 
-        // When the scale size is 300+, can print text in each cell.
-        if (nScale > 2 && gs.fLabel) {
+        // When the scale size is large enough, can print text in each cell.
+        if (gi.rScaleX > 2.0 && gs.fLabel) {
 
           // For the aspect portion, print the orb in degrees and minutes.
           if (x != y)
             c = FormatGridCell(sz, ig, jg, 1 + (gs.fAlt ? x < y : x > y),
-              nScale > 3 && us.fSeconds);
+              gi.rScaleX > 3.0 && us.fSeconds);
 
           // For the main diagonal, print degree and sign of each planet.
           else
-            c = FormatGridCell(sz, ig, jg, 0, nScale > 3 && us.fSeconds);
+            c = FormatGridCell(sz, ig, jg, 0, gi.rScaleX > 3.0 && us.fSeconds);
           if (c >= 0)
             DrawColor(c);
-          DrawSz(sz, x0 + x*unit-unit/2, y0 + y*unit-3*gi.nScaleT, dtBottom);
+          DrawSz(sz, x0 + (int)(x*rUnit - rUnit/2.0),
+            y0 + (int)(y*rUnit) - 3*gi.nScaleT, dtBottom);
         }
       }
     }

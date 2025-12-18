@@ -2288,11 +2288,16 @@ void DrawChartX()
   flag fAltWire = fFalse, fSky, fSav;
 
   gi.nScale = gs.nScale/100;
-  // Initialize floating-point scales for map chart smooth resizing
+  // Initialize floating-point scales for smooth resizing
   // For map charts, use full window dimensions; for others, use integer scale
   if (gi.nMode == gWorldMap || gi.nMode == gAstroGraph) {
     gi.rScaleX = (real)gs.xWin / 360.0;
     gi.rScaleY = (real)gs.yWin / 180.0;
+  } else if (gi.nMode == gGrid && gi.nGridCell > 0) {
+    // For grid charts, calculate floating-point scale from window size
+    int nCells = gi.nGridCell + (us.nRel <= rcDual);
+    int winSize = Min(gs.xWin, gs.yWin);
+    gi.rScaleX = gi.rScaleY = (real)winSize / (real)(nCells * CELLSIZE);
   } else {
     gi.rScaleX = gi.rScaleY = (real)gi.nScale;
   }
