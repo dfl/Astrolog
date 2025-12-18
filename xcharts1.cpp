@@ -681,8 +681,9 @@ void EquToHorizon2(real lon, real lat, int x1, int y1, int xs, int ys,
 
 void XChartHorizon()
 {
-  int cx, cy, unit, x1, y1, x2, y2, xs, ys, xp, yp, i, j, k;
-  real rT;
+  int centerX, centerY, unit, areaLeft, areaTop, areaRight, areaBottom,
+    areaWidth, areaHeight, plotX, plotY, i, j, k;
+  real tempAngle;
   ObjDraw rgod[objMax];
   char sz[cchSzDef];
   flag fHouse3D = !us.fHouse3D, fFlip = gs.fEcliptic && us.rHarmonic < 0.0;
@@ -697,15 +698,15 @@ void XChartHorizon()
 
   unit = Max(12, 6*gi.nScale);
   unit = Max(unit, yFontT);
-  x1 = y1 = unit; x2 = gs.xWin-1-unit; y2 = gs.yWin-1-unit;
-  xs = x2-x1; ys = y2-y1; cx = (x1+x2)/2; cy = (y1+y2)/2;
+  areaLeft = areaTop = unit; areaRight = gs.xWin-1-unit; areaBottom = gs.yWin-1-unit;
+  areaWidth = areaRight-areaLeft; areaHeight = areaBottom-areaTop; centerX = (areaLeft+areaRight)/2; centerY = (areaTop+areaBottom)/2;
 
   // Calculate the local horizon coordinates of each planet. First convert
   // zodiac position and declination to zenith longitude and latitude.
 
   ClearB((pbyte)rgod, sizeof(rgod));
   for (i = 0; i <= is.nObj; i++) if (FProper(i)) {
-    EclToHorizon(planet[i], planetalt[i], x1, y1, xs, ys,
+    EclToHorizon(planet[i], planetalt[i], areaLeft, areaTop, areaWidth, areaHeight,
       &rgod[i].x, &rgod[i].y);
     rgod[i].obj = i;
     rgod[i].kv = ~0;
@@ -715,12 +716,12 @@ void XChartHorizon()
   // Draw planet disks (which become visible if large enough).
   if (!gs.fAlt)
     for (i = 0; i <= is.nObj; i++) if (FProper(i) && i != us.objCenter) {
-      rT = RObjDiam(i);
-      if (rT <= 0.0)
+      tempAngle = RObjDiam(i);
+      if (tempAngle <= 0.0)
         continue;
-      rT = RAtnD((rT / 2.0) / (PtLen(space[i]) * rAUToKm));
-      j = (int)(rT * (real)xs / rDegMax);
-      k = (int)(rT * (real)ys / rDegHalf);
+      tempAngle = RAtnD((tempAngle / 2.0) / (PtLen(space[i]) * rAUToKm));
+      j = (int)(tempAngle * (real)areaWidth / rDegMax);
+      k = (int)(tempAngle * (real)areaHeight / rDegHalf);
       if (j > 1 || k > 1) {
         DrawColor(kDkGreenB);
         DrawCircle2(rgod[i].x, rgod[i].y, j, k);
@@ -731,8 +732,8 @@ void XChartHorizon()
   if (gs.fEquator) {
     DrawColor(kPurpleB);
     for (i = 0; i <= nDegMax; i++) {
-      EquToHorizon((real)i, 0.0, x1, y1, xs, ys, &xp, &yp);
-      DrawPoint(xp, yp);
+      EquToHorizon((real)i, 0.0, areaLeft, areaTop, areaWidth, areaHeight, &plotX, &plotY);
+      DrawPoint(plotX, plotY);
     }
   }
 
@@ -741,16 +742,16 @@ void XChartHorizon()
   if (gs.fConstel) {
     EnumConstelLines(NULL, NULL, NULL, NULL, NULL);
     while (EnumConstelLines(&m1, &n1, &m2, &n2, &i)) {
-      EquToHorizon2((real)(nDegMax-m1), (real)(90-n1), x1, y1, xs, ys,
-        &xp, &yp, fFlip);
+      EquToHorizon2((real)(nDegMax-m1), (real)(90-n1), areaLeft, areaTop, areaWidth, areaHeight,
+        &plotX, &plotY, fFlip);
       if (i <= 0) {
         DrawColor(kPurpleB);
-        EquToHorizon2((real)(nDegMax-m2), (real)(90-n2), x1, y1, xs, ys,
+        EquToHorizon2((real)(nDegMax-m2), (real)(90-n2), areaLeft, areaTop, areaWidth, areaHeight,
           &xpT, &ypT, fFlip);
-        DrawWrap(xp, yp, xpT, ypT, x1, x2);
+        DrawWrap(plotX, plotY, xpT, ypT, areaLeft, areaRight);
       } else {
         DrawColor(gi.kiGray);
-        DrawSz(szCnstlAbbrev[i], xp, yp, dtCent | dtScale2);
+        DrawSz(szCnstlAbbrev[i], plotX, plotY, dtCent | dtScale2);
       }
     }
   }
@@ -765,8 +766,8 @@ void XChartHorizon()
         k = i/30 + 1;
         DrawColor(kSignB(!fFlip ? k : cSign+1 - k));
       }
-      EclToHorizon((real)i, 0.0, x1, y1, xs, ys, &xp, &yp);
-      DrawPoint(xp, yp);
+      EclToHorizon((real)i, 0.0, areaLeft, areaTop, areaWidth, areaHeight, &plotX, &plotY);
+      DrawPoint(plotX, plotY);
     }
     for (i = 0; i < nDegMax; i += 30) {
       if (gs.fColorSign) {
@@ -774,19 +775,19 @@ void XChartHorizon()
         DrawColor(kSignB(!fFlip ? k : Mod12(cSign+2 - k)));
       }
       for (j = -90; j <= 90; j++) {
-        EclToHorizon((real)i, (real)j, x1, y1, xs, ys, &xp, &yp);
-        DrawPoint(xp, yp);
+        EclToHorizon((real)i, (real)j, areaLeft, areaTop, areaWidth, areaHeight, &plotX, &plotY);
+        DrawPoint(plotX, plotY);
       }
     }
     k = gi.nScale;
     gi.nScale = gi.nScaleTextT;
     for (j = -80; j <= 80; j += 160)
       for (i = 1; i <= cSign; i++) {
-        EclToHorizon((real)(i-1)*30.0+15.0, (real)j, x1, y1, xs, ys,
-          &xp, &yp);
+        EclToHorizon((real)(i-1)*30.0+15.0, (real)j, areaLeft, areaTop, areaWidth, areaHeight,
+          &plotX, &plotY);
         if (gs.fColorSign)
           DrawColor(kSignB(!fFlip ? i : cSign+1 - i));
-        DrawSign(!fFlip ? i : cSign+1 - i, xp, yp);
+        DrawSign(!fFlip ? i : cSign+1 - i, plotX, plotY);
       }
     gi.nScale = k;
   }
@@ -813,49 +814,49 @@ void XChartHorizon()
         }
         if (gs.fColorHouse)
           DrawColor(kSignB(j));
-        rT = chouse3[j];
+        tempAngle = chouse3[j];
         if (us.nHouse3D == hmHorizon)
-          rT = (rT + rDegQuad) * (Lat < 0.0 ? -1.0 : 1.0) - rDegQuad;
+          tempAngle = (tempAngle + rDegQuad) * (Lat < 0.0 ? -1.0 : 1.0) - rDegQuad;
         for (i = -89; i < 90; i++) {
           if (us.nHouse3D == hmPrime)
-            PriToHorizon(rT, i, x1, y1, xs, ys, &xp, &yp);
+            PriToHorizon(tempAngle, i, areaLeft, areaTop, areaWidth, areaHeight, &plotX, &plotY);
           else if (us.nHouse3D == hmHorizon)
-            LocToHorizon(rT, i, x1, y1, xs, ys, &xp, &yp);
+            LocToHorizon(tempAngle, i, areaLeft, areaTop, areaWidth, areaHeight, &plotX, &plotY);
           else
-            EarToHorizon(rT, i, x1, y1, xs, ys, &xp, &yp);
-          DrawPoint(xp, yp);
+            EarToHorizon(tempAngle, i, areaLeft, areaTop, areaWidth, areaHeight, &plotX, &plotY);
+          DrawPoint(plotX, plotY);
         }
       }
       for (i = 1; i <= cSign; i++) {
-        rT = Midpoint(chouse3[i], chouse3[Mod12(i+1)]);
+        tempAngle = Midpoint(chouse3[i], chouse3[Mod12(i+1)]);
         if (us.nHouse3D == hmPrime)
-          PriToHorizon(rT, 0.0, x1, y1, xs, ys, &xp, &yp);
+          PriToHorizon(tempAngle, 0.0, areaLeft, areaTop, areaWidth, areaHeight, &plotX, &plotY);
         else if (us.nHouse3D == hmHorizon) {
-          rT = (rT + rDegQuad) * (Lat < 0.0 ? -1.0 : 1.0) - rDegQuad;
-          LocToHorizon(rT, 0.0, x1, y1, xs, ys, &xp, &yp);
+          tempAngle = (tempAngle + rDegQuad) * (Lat < 0.0 ? -1.0 : 1.0) - rDegQuad;
+          LocToHorizon(tempAngle, 0.0, areaLeft, areaTop, areaWidth, areaHeight, &plotX, &plotY);
         } else
-          EarToHorizon(rT, 0.0, x1, y1, xs, ys, &xp, &yp);
+          EarToHorizon(tempAngle, 0.0, areaLeft, areaTop, areaWidth, areaHeight, &plotX, &plotY);
         if (gs.fColorHouse)
           DrawColor(kSignB(i));
-        DrawHouse(i, xp, yp);
+        DrawHouse(i, plotX, plotY);
       }
     } else {
       for (i = 1; i <= cSign; i++) {
         if (gs.fColorHouse)
           DrawColor(kSignB(SFromZ(chouse[i])));
         for (j = -90; j <= 90; j++) {
-          EclToHorizon(chouse[i], (real)j, x1, y1, xs, ys,
-            &xp, &yp);
-          DrawPoint(xp, yp);
+          EclToHorizon(chouse[i], (real)j, areaLeft, areaTop, areaWidth, areaHeight,
+            &plotX, &plotY);
+          DrawPoint(plotX, plotY);
         }
       }
       for (j = -75; j <= 75; j += 150)
         for (i = 1; i <= cSign; i++) {
           EclToHorizon(Midpoint(chouse[i], chouse[Mod12(i+1)]), (real)j,
-            x1, y1, xs, ys, &xp, &yp);
+            areaLeft, areaTop, areaWidth, areaHeight, &plotX, &plotY);
           if (gs.fColorHouse)
             DrawColor(kSignB(i));
-          DrawHouse(i, xp, yp);
+          DrawHouse(i, plotX, plotY);
         }
     }
   }
@@ -867,29 +868,29 @@ void XChartHorizon()
 
   if (gs.fHouseExtra && fHouse3D && !gs.fEcliptic) {
     DrawColor(gs.fColorHouse ? kSignB(sCap) : kDkGreenB);
-    DrawDash(cx, y1, cx, cy, 1);
+    DrawDash(centerX, areaTop, centerX, centerY, 1);
     DrawColor(gs.fColorHouse ? kSignB(sCan) : kDkGreenB);
-    DrawDash(cx, cy, cx, y2, 1);
+    DrawDash(centerX, centerY, centerX, areaBottom, 1);
   }
   if (!(us.fIndian && gs.fEcliptic)) {
     DrawColor(gi.kiGray);
     if (!(gs.fHouseExtra && fHouse3D && !gs.fEcliptic))
-      DrawDash(cx, y1, cx, y2, 1);
-    DrawDash((cx+x1)/2, y1, (cx+x1)/2, y2, 1);
-    DrawDash((cx+x2)/2, y1, (cx+x2)/2, y2, 1);
+      DrawDash(centerX, areaTop, centerX, areaBottom, 1);
+    DrawDash((centerX+areaLeft)/2, areaTop, (centerX+areaLeft)/2, areaBottom, 1);
+    DrawDash((centerX+areaRight)/2, areaTop, (centerX+areaRight)/2, areaBottom, 1);
   }
   DrawColor(gi.kiOn);
-  DrawEdge(x1, y1, x2, y2);
+  DrawEdge(areaLeft, areaTop, areaRight, areaBottom);
   if (!(us.fIndian && gs.fEcliptic)) {
     if (gs.fHouseExtra && fHouse3D) {
       if (gs.fColorHouse)
         DrawColor(kSignB(sAri));
-      DrawDash(x1, cy, cx, cy, 1);
+      DrawDash(areaLeft, centerY, centerX, centerY, 1);
       if (gs.fColorHouse)
         DrawColor(kSignB(sLib));
-      DrawDash(cx, cy, x2, cy, 1);
+      DrawDash(centerX, centerY, areaRight, centerY, 1);
     } else
-      DrawDash(x1, cy, x2, cy, 1);
+      DrawDash(areaLeft, centerY, areaRight, centerY, 1);
   }
 
   // Make a slightly smaller rectangle within the window to draw the planets
@@ -897,17 +898,17 @@ void XChartHorizon()
 
   DrawColor(gi.kiLite);
   for (i = 5; i < 180; i += 5) {
-    j = y1+(int)((real)i*(real)ys/rDegHalf);
+    j = areaTop+(int)((real)i*(real)areaHeight/rDegHalf);
     k = (2+(i%10 == 0)+2*(i%30 == 0))*gi.nScaleT;
-    DrawLine(x1+1, j, x1+1+k, j);
-    DrawLine(x2-1, j, x2-1-k, j);
+    DrawLine(areaLeft+1, j, areaLeft+1+k, j);
+    DrawLine(areaRight-1, j, areaRight-1-k, j);
   }
   for (i = 0; i <= nDegMax; i += 5) {
-    j = x1+(int)((real)i*(real)xs/rDegMax);
+    j = areaLeft+(int)((real)i*(real)areaWidth/rDegMax);
     if (i > 0 && i < nDegMax) {
       k = (2+(i%10 == 0)+2*(i%30 == 0))*gi.nScaleT;
-      DrawLine(j, y1+1, j, y1+1+k);
-      DrawLine(j, y2-1, j, y2-1-k);
+      DrawLine(j, areaTop+1, j, areaTop+1+k);
+      DrawLine(j, areaBottom-1, j, areaBottom-1-k);
     }
     if (i%90 == 0) {
       k = !fFlip ? i : nDegMax-i;
@@ -919,7 +920,7 @@ void XChartHorizon()
         sprintf(sz, "%dh", k/15);
       else
         sprintf(sz, "%d", k);
-      DrawSz(sz, j, y1-2*gi.nScaleT, dtBottom | dtScale2);
+      DrawSz(sz, j, areaTop-2*gi.nScaleT, dtBottom | dtScale2);
     }
   }
 
@@ -929,17 +930,17 @@ void XChartHorizon()
     DrawColor(gi.kiGray);
     SwissComputeStar(0.0, NULL);
     while (SwissComputeStar(is.T, &es)) {
-      EclToHorizon(es.lon, es.lat, x1, y1, xs, ys, &xp, &yp);
-      DrawStar(xp, yp, &es);
+      EclToHorizon(es.lon, es.lat, areaLeft, areaTop, areaWidth, areaHeight, &plotX, &plotY);
+      DrawStar(plotX, plotY, &es);
     }
 
     // Draw constellation lines between stars.
     DrawColor(gi.kiLite);
     EnumStarsLines(fTrue, NULL, NULL);
     while (EnumStarsLines(fFalse, &pes1, &pes2)) {
-      EclToHorizon(pes1->lon, pes1->lat, x1, y1, xs, ys, &xp, &yp);
-      EclToHorizon(pes2->lon, pes2->lat, x1, y1, xs, ys, &xp2, &yp2);
-      DrawWrap(xp, yp, xp2, yp2, x1, x2);
+      EclToHorizon(pes1->lon, pes1->lat, areaLeft, areaTop, areaWidth, areaHeight, &plotX, &plotY);
+      EclToHorizon(pes2->lon, pes2->lat, areaLeft, areaTop, areaWidth, areaHeight, &xp2, &yp2);
+      DrawWrap(plotX, plotY, xp2, yp2, areaLeft, areaRight);
     }
   }
 
@@ -948,8 +949,8 @@ void XChartHorizon()
     DrawColor(gi.kiGray);
     SwissComputeAsteroid(0.0, NULL, fTrue);
     while (SwissComputeAsteroid(is.T, &es, fTrue)) {
-      EclToHorizon(es.lon, es.lat, x1, y1, xs, ys, &xp, &yp);
-      DrawStar(xp, yp, &es);
+      EclToHorizon(es.lon, es.lat, areaLeft, areaTop, areaWidth, areaHeight, &plotX, &plotY);
+      DrawStar(plotX, plotY, &es);
     }
   }
 #endif
@@ -959,8 +960,8 @@ void XChartHorizon()
     EnumExoplanets(NULL);
     while (EnumExoplanets(&es)) {
       EquToEcl(&es.lon, &es.lat);
-      EclToHorizon(es.lon, es.lat, x1, y1, xs, ys, &xp, &yp);
-      DrawStar(xp, yp, &es);
+      EclToHorizon(es.lon, es.lat, areaLeft, areaTop, areaWidth, areaHeight, &plotX, &plotY);
+      DrawStar(plotX, plotY, &es);
     }
   }
 
@@ -1086,8 +1087,9 @@ void EquToHorizonSky2(real lon, real lat, CONST CIRC *pcr, int *xp, int *yp,
 
 void XChartHorizonSky()
 {
-  int cx, cy, rx, ry, unit, x1, y1, x2, y2, xs, ys, xp, yp, i, j, k;
-  real s, rT;
+  int centerX, centerY, radiusX, radiusY, unit, areaLeft, areaTop, areaRight, areaBottom,
+    areaWidth, areaHeight, plotX, plotY, i, j, k;
+  real s, tempAngle;
   CIRC cr;
   ObjDraw rgod[objMax];
   flag fHouse3D = !us.fHouse3D, fFlip = gs.fEcliptic && us.rHarmonic < 0.0;
@@ -1102,10 +1104,10 @@ void XChartHorizonSky()
 
   unit = Max(12, 6*gi.nScale);
   unit = Max(unit, yFontT);
-  x1 = y1 = unit; x2 = gs.xWin-1-unit; y2 = gs.yWin-1-unit;
-  xs = x2-x1; ys = y2-y1; cx = (x1+x2)/2; cy = (y1+y2)/2;
-  rx = (int)((real)xs/2.0/rSqr2); ry = (int)((real)ys/2.0/rSqr2);
-  cr.xc = cx; cr.yc = cy; cr.xr = rx; cr.yr = ry;
+  areaLeft = areaTop = unit; areaRight = gs.xWin-1-unit; areaBottom = gs.yWin-1-unit;
+  areaWidth = areaRight-areaLeft; areaHeight = areaBottom-areaTop; centerX = (areaLeft+areaRight)/2; centerY = (areaTop+areaBottom)/2;
+  radiusX = (int)((real)areaWidth/2.0/rSqr2); radiusY = (int)((real)areaHeight/2.0/rSqr2);
+  cr.xc = centerX; cr.yc = centerY; cr.xr = radiusX; cr.yr = radiusY;
 
   // Calculate the local horizon coordinates of each planet. First convert
   // zodiac position and declination to zenith longitude and latitude.
@@ -1121,12 +1123,12 @@ void XChartHorizonSky()
   // Draw planet disks (which become visible if large enough).
   if (!gs.fAlt)
     for (i = 0; i <= is.nObj; i++) if (FProper(i) && i != us.objCenter) {
-      rT = RObjDiam(i);
-      if (rT <= 0.0)
+      tempAngle = RObjDiam(i);
+      if (tempAngle <= 0.0)
         continue;
-      rT = RAtnD((rT / 2.0) / (PtLen(space[i]) * rAUToKm));
-      j = (int)(rT * (real)rx * 2.0 * rPi / rDegMax);
-      k = (int)(rT * (real)ry * 2.0 * rPi / rDegMax);
+      tempAngle = RAtnD((tempAngle / 2.0) / (PtLen(space[i]) * rAUToKm));
+      j = (int)(tempAngle * (real)radiusX * 2.0 * rPi / rDegMax);
+      k = (int)(tempAngle * (real)radiusY * 2.0 * rPi / rDegMax);
       if (j > 1 || k > 1) {
         DrawColor(kDkGreenB);
         DrawCircle2(rgod[i].x, rgod[i].y, j, k);
@@ -1137,8 +1139,8 @@ void XChartHorizonSky()
   if (gs.fEquator) {
     DrawColor(kPurpleB);
     for (i = 0; i <= nDegMax; i++) {
-      EquToHorizonSky((real)i, 0.0, &cr, &xp, &yp);
-      DrawPoint(xp, yp);
+      EquToHorizonSky((real)i, 0.0, &cr, &plotX, &plotY);
+      DrawPoint(plotX, plotY);
     }
   }
 
@@ -1147,17 +1149,17 @@ void XChartHorizonSky()
   if (gs.fConstel) {
     EnumConstelLines(NULL, NULL, NULL, NULL, NULL);
     while (EnumConstelLines(&m1, &n1, &m2, &n2, &i)) {
-      EquToHorizonSky2((real)(nDegMax-m1), (real)(90-n1), &cr, &xp, &yp,
+      EquToHorizonSky2((real)(nDegMax-m1), (real)(90-n1), &cr, &plotX, &plotY,
         fFlip);
       if (i <= 0) {
         DrawColor(kPurpleB);
         EquToHorizonSky2((real)(nDegMax-m2), (real)(90-n2), &cr, &xpT, &ypT,
           fFlip);
-        if (NAbs(xpT - xp) + NAbs(ypT - yp) < (xs+ys) >> 4)
-          DrawLine(xp, yp, xpT, ypT);
+        if (NAbs(xpT - plotX) + NAbs(ypT - plotY) < (areaWidth+areaHeight) >> 4)
+          DrawLine(plotX, plotY, xpT, ypT);
       } else {
         DrawColor(gi.kiGray);
-        DrawSz(szCnstlAbbrev[i], xp, yp, dtCent | dtScale2);
+        DrawSz(szCnstlAbbrev[i], plotX, plotY, dtCent | dtScale2);
       }
     }
   }
@@ -1172,8 +1174,8 @@ void XChartHorizonSky()
         k = i/30 + 1;
         DrawColor(kSignB(!fFlip ? k : cSign+1 - k));
       }
-      EclToHorizonSky((real)i, 0.0, &cr, &xp, &yp);
-      DrawPoint(xp, yp);
+      EclToHorizonSky((real)i, 0.0, &cr, &plotX, &plotY);
+      DrawPoint(plotX, plotY);
     }
     for (i = 0; i < nDegMax; i += 30) {
       if (gs.fColorSign) {
@@ -1181,18 +1183,18 @@ void XChartHorizonSky()
         DrawColor(kSignB(!fFlip ? k : Mod12(cSign+2 - k)));
       }
       for (j = -90; j <= 90; j++) {
-        EclToHorizonSky((real)i, (real)j, &cr, &xp, &yp);
-        DrawPoint(xp, yp);
+        EclToHorizonSky((real)i, (real)j, &cr, &plotX, &plotY);
+        DrawPoint(plotX, plotY);
       }
     }
     k = gi.nScale;
     gi.nScale = gi.nScaleTextT;
     for (j = -80; j <= 80; j += 160)
       for (i = 1; i <= cSign; i++) {
-        EclToHorizonSky((real)(i-1)*30.0+15.0, (real)j, &cr, &xp, &yp);
+        EclToHorizonSky((real)(i-1)*30.0+15.0, (real)j, &cr, &plotX, &plotY);
         if (gs.fColorSign)
           DrawColor(kSignB(!fFlip ? i : cSign+1 - i));
-        DrawSign(!fFlip ? i : cSign+1 - i, xp, yp);
+        DrawSign(!fFlip ? i : cSign+1 - i, plotX, plotY);
       }
     gi.nScale = k;
   }
@@ -1219,48 +1221,48 @@ void XChartHorizonSky()
         }
         if (gs.fColorHouse)
           DrawColor(kSignB(j));
-        rT = chouse3[j];
+        tempAngle = chouse3[j];
         if (us.nHouse3D == hmHorizon)
-          rT = (rT + rDegQuad) * (Lat < 0.0 ? -1.0 : 1.0) - rDegQuad;
+          tempAngle = (tempAngle + rDegQuad) * (Lat < 0.0 ? -1.0 : 1.0) - rDegQuad;
         for (i = -89; i < 90; i++) {
           if (us.nHouse3D == hmPrime)
-            PriToHorizonSky(rT, i, &cr, &xp, &yp);
+            PriToHorizonSky(tempAngle, i, &cr, &plotX, &plotY);
           else if (us.nHouse3D == hmHorizon)
-            LocToHorizonSky(rT, i, &cr, &xp, &yp);
+            LocToHorizonSky(tempAngle, i, &cr, &plotX, &plotY);
           else
-            EarToHorizonSky(rT, i, &cr, &xp, &yp);
-          DrawPoint(xp, yp);
+            EarToHorizonSky(tempAngle, i, &cr, &plotX, &plotY);
+          DrawPoint(plotX, plotY);
         }
       }
       for (i = 1; i <= cSign; i++) {
-        rT = Midpoint(chouse3[i], chouse3[Mod12(i+1)]);
+        tempAngle = Midpoint(chouse3[i], chouse3[Mod12(i+1)]);
         if (us.nHouse3D == hmPrime)
-          PriToHorizonSky(rT, 0.0, &cr, &xp, &yp);
+          PriToHorizonSky(tempAngle, 0.0, &cr, &plotX, &plotY);
         else if (us.nHouse3D == hmHorizon) {
-          rT = (rT + rDegQuad) * (Lat < 0.0 ? -1.0 : 1.0) - rDegQuad;
-          LocToHorizonSky(rT, 0.0, &cr, &xp, &yp);
+          tempAngle = (tempAngle + rDegQuad) * (Lat < 0.0 ? -1.0 : 1.0) - rDegQuad;
+          LocToHorizonSky(tempAngle, 0.0, &cr, &plotX, &plotY);
         } else
-          EarToHorizonSky(rT, 0.0, &cr, &xp, &yp);
+          EarToHorizonSky(tempAngle, 0.0, &cr, &plotX, &plotY);
         if (gs.fColorHouse)
           DrawColor(kSignB(i));
-        DrawHouse(i, xp, yp);
+        DrawHouse(i, plotX, plotY);
       }
     } else {
       for (i = 1; i <= cSign; i++) {
         if (gs.fColorHouse)
           DrawColor(kSignB(SFromZ(chouse[i])));
         for (j = -90; j <= 90; j++) {
-          EclToHorizonSky(chouse[i], (real)j, &cr, &xp, &yp);
-          DrawPoint(xp, yp);
+          EclToHorizonSky(chouse[i], (real)j, &cr, &plotX, &plotY);
+          DrawPoint(plotX, plotY);
         }
       }
       for (j = -75; j <= 75; j += 150)
         for (i = 1; i <= cSign; i++) {
           EclToHorizonSky(Midpoint(chouse[i], chouse[Mod12(i+1)]), (real)j,
-            &cr, &xp, &yp);
+            &cr, &plotX, &plotY);
           if (gs.fColorHouse)
             DrawColor(kSignB(i));
-          DrawHouse(i, xp, yp);
+          DrawHouse(i, plotX, plotY);
         }
     }
   }
@@ -1270,54 +1272,54 @@ void XChartHorizonSky()
   // on these lines and the edges marking 5 degree increments.
 
   DrawColor(gi.kiGray);
-  DrawDash(cx, y1, cx, y2, 1);
-  DrawDash(x1, cy, x2, cy, 1);
+  DrawDash(centerX, areaTop, centerX, areaBottom, 1);
+  DrawDash(areaLeft, centerY, areaRight, centerY, 1);
   DrawColor(gi.kiLite);
   for (i = -125; i <= 125; i += 5) {
     k = (2+(i/10*10 == i ? 1 : 0)+(i/30*30 == i ? 2 : 0))*gi.nScaleT;
     s = 1.0/(rDegQuad*rSqr2);
-    j = cy + (int)(s*ys/2*i);
-    DrawLine(cx-k, j, cx+k, j);
-    j = cx + (int)(s*xs/2*i);
-    DrawLine(j, cy-k, j, cy+k);
+    j = centerY + (int)(s*areaHeight/2*i);
+    DrawLine(centerX-k, j, centerX+k, j);
+    j = centerX + (int)(s*areaWidth/2*i);
+    DrawLine(j, centerY-k, j, centerY+k);
   }
   for (i = 5; i < 55; i += 5) {
     k = (2+(i/10*10 == i ? 1 : 0)+(i/30*30 == i ? 2 : 0))*gi.nScaleT;
     s = 1.0/(rDegHalf-rDegQuad*rSqr2);
-    j = (int)(s*ys/2*i);
-    DrawLine(x1, y1+j, x1+k, y1+j);
-    DrawLine(x1, y2-j, x1+k, y2-j);
-    DrawLine(x2, y1+j, x2-k, y1+j);
-    DrawLine(x2, y2-j, x2-k, y2-j);
-    j = (int)(s*xs/2*i);
-    DrawLine(x1+j, y1, x1+j, y1+k);
-    DrawLine(x2-j, y1, x2-j, y1+k);
-    DrawLine(x1+j, y2, x1+j, y2-k);
-    DrawLine(x2-j, y2, x2-j, y2-k);
+    j = (int)(s*areaHeight/2*i);
+    DrawLine(areaLeft, areaTop+j, areaLeft+k, areaTop+j);
+    DrawLine(areaLeft, areaBottom-j, areaLeft+k, areaBottom-j);
+    DrawLine(areaRight, areaTop+j, areaRight-k, areaTop+j);
+    DrawLine(areaRight, areaBottom-j, areaRight-k, areaBottom-j);
+    j = (int)(s*areaWidth/2*i);
+    DrawLine(areaLeft+j, areaTop, areaLeft+j, areaTop+k);
+    DrawLine(areaRight-j, areaTop, areaRight-j, areaTop+k);
+    DrawLine(areaLeft+j, areaBottom, areaLeft+j, areaBottom-k);
+    DrawLine(areaRight-j, areaBottom, areaRight-j, areaBottom-k);
   }
   i = gi.nScaleT;
   DrawSz(!gs.fEcliptic ? (us.nHorizon >= 4 ? "S" : "N") :
-    (!fFlip ? "Can" : "Cap"), cx, y1-2*i, dtBottom | dtScale2);
+    (!fFlip ? "Can" : "Cap"), centerX, areaTop-2*i, dtBottom | dtScale2);
   DrawSz(!gs.fEcliptic ? (FOdd(us.nHorizon) ? "W" : "E") : "r",
-    x1/2, cy+2*i, dtCent | dtScale2);
+    areaLeft/2, centerY+2*i, dtCent | dtScale2);
   DrawSz(!gs.fEcliptic ? (FOdd(us.nHorizon) ? "E" : "W") : "i",
-    (gs.xWin+x2)/2, cy+2*i, dtCent | dtScale2);
+    (gs.xWin+areaRight)/2, centerY+2*i, dtCent | dtScale2);
   if (gs.fEcliptic) {
-    DrawSz("A", x1/2, cy+2*i-yFontT, dtCent | dtScale2);
-    DrawSz("i", x1/2, cy+2*i+yFontT, dtCent | dtScale2);
-    DrawSz("L", (gs.xWin+x2)/2, cy+2*i-yFontT, dtCent | dtScale2);
-    DrawSz("b", (gs.xWin+x2)/2, cy+2*i+yFontT, dtCent | dtScale2);
+    DrawSz("A", areaLeft/2, centerY+2*i-yFontT, dtCent | dtScale2);
+    DrawSz("i", areaLeft/2, centerY+2*i+yFontT, dtCent | dtScale2);
+    DrawSz("L", (gs.xWin+areaRight)/2, centerY+2*i-yFontT, dtCent | dtScale2);
+    DrawSz("b", (gs.xWin+areaRight)/2, centerY+2*i+yFontT, dtCent | dtScale2);
   }
   if (!gs.fText)
     DrawSz(!gs.fEcliptic ? (us.nHorizon >= 4 ? "N" : "S") :
-      (!fFlip ? "Cap" : "Can"), cx, gs.yWin-3*i, dtBottom | dtScale2);
+      (!fFlip ? "Cap" : "Can"), centerX, gs.yWin-3*i, dtBottom | dtScale2);
   DrawColor(gi.kiOn);
-  DrawEdge(x1, y1, x2, y2);
-  DrawCircle(cx, cy, rx, ry);
+  DrawEdge(areaLeft, areaTop, areaRight, areaBottom);
+  DrawCircle(centerX, centerY, radiusX, radiusY);
   for (i = 0; i < nDegMax; i += 5) {
     k = (2+(i/10*10 == i ? 1 : 0)+(i/30*30 == i ? 2 : 0))*gi.nScaleT;
-    DrawLine(cx+(int)((rx-k)*RCosD((real)i)), cy+(int)((ry-k)*RSinD((real)i)),
-      cx+(int)((rx+k)*RCosD((real)i)), cy+(int)((ry+k)*RSinD((real)i)));
+    DrawLine(centerX+(int)((radiusX-k)*RCosD((real)i)), centerY+(int)((radiusY-k)*RSinD((real)i)),
+      centerX+(int)((radiusX+k)*RCosD((real)i)), centerY+(int)((radiusY+k)*RSinD((real)i)));
   }
 
 #ifdef SWISS
@@ -1326,17 +1328,17 @@ void XChartHorizonSky()
     DrawColor(gi.kiGray);
     SwissComputeStar(0.0, NULL);
     while (SwissComputeStar(is.T, &es)) {
-      EclToHorizonSky(es.lon, es.lat, &cr, &xp, &yp);
-      DrawStar(xp, yp, &es);
+      EclToHorizonSky(es.lon, es.lat, &cr, &plotX, &plotY);
+      DrawStar(plotX, plotY, &es);
     }
 
     // Draw constellation lines between stars.
     DrawColor(gi.kiLite);
     EnumStarsLines(fTrue, NULL, NULL);
     while (EnumStarsLines(fFalse, &pes1, &pes2)) {
-      EclToHorizonSky(pes1->lon, pes1->lat, &cr, &xp, &yp);
+      EclToHorizonSky(pes1->lon, pes1->lat, &cr, &plotX, &plotY);
       EclToHorizonSky(pes2->lon, pes2->lat, &cr, &xp2, &yp2);
-      DrawLine(xp, yp, xp2, yp2);
+      DrawLine(plotX, plotY, xp2, yp2);
     }
   }
 
@@ -1345,8 +1347,8 @@ void XChartHorizonSky()
     DrawColor(gi.kiGray);
     SwissComputeAsteroid(0.0, NULL, fTrue);
     while (SwissComputeAsteroid(is.T, &es, fTrue)) {
-      EclToHorizonSky(es.lon, es.lat, &cr, &xp, &yp);
-      DrawStar(xp, yp, &es);
+      EclToHorizonSky(es.lon, es.lat, &cr, &plotX, &plotY);
+      DrawStar(plotX, plotY, &es);
     }
   }
 #endif
@@ -1356,8 +1358,8 @@ void XChartHorizonSky()
     EnumExoplanets(NULL);
     while (EnumExoplanets(&es)) {
       EquToEcl(&es.lon, &es.lat);
-      EclToHorizonSky(es.lon, es.lat, &cr, &xp, &yp);
-      DrawStar(xp, yp, &es);
+      EclToHorizonSky(es.lon, es.lat, &cr, &plotX, &plotY);
+      DrawStar(plotX, plotY, &es);
     }
   }
 
