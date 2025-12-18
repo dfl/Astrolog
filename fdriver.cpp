@@ -2117,6 +2117,7 @@ void FMenuGraphicsReverse(Fl_Widget *w, void *data)
 {
   inv(gs.fInverse);
   InitColorPalette(gs.fInverse);
+  InitColorsX();
   UpdateMenuCheck(FMenuGraphicsReverse, gs.fInverse);
   if (fi.chart) fi.chart->redraw();
 }
@@ -2124,6 +2125,7 @@ void FMenuGraphicsReverse(Fl_Widget *w, void *data)
 void FMenuGraphicsMonochrome(Fl_Widget *w, void *data)
 {
   inv(gs.fColor);
+  InitColorsX();
   UpdateMenuCheck(FMenuGraphicsMonochrome, !gs.fColor);
   if (fi.chart) fi.chart->redraw();
 }
