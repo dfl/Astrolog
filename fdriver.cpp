@@ -148,6 +148,7 @@ int ChartWidget::handle(int event)
   case FL_PUSH:
     mousex_ = buttonx_ = mx;
     mousey_ = buttony_ = my;
+    take_focus();  // Grab keyboard focus when clicked
 
     if (Fl::event_button() == FL_LEFT_MOUSE) {
       // Left click - draw point or interact with chart
@@ -247,6 +248,8 @@ int ChartWidget::handle(int event)
 
 int ChartWidget::handleKey(int key)
 {
+  int i;
+
 #ifdef EXPRESS
   // Allow AstroExpression to adjust the key
   if (!us.fExpOff && FSzSet(us.szExpKey)) {
@@ -257,6 +260,7 @@ int ChartWidget::handleKey(int key)
 #endif
 
   switch (key) {
+  // Basic controls
   case ' ':
     redraw();
     return 1;
@@ -280,99 +284,341 @@ int ChartWidget::handleKey(int key)
     redraw();
     return 1;
 
-  case 'B':
-#ifdef PS
-    // Toggle PostScript output mode
-    if (gs.ft == ftPS)
-      gs.ft = ftNone;
-    else
-      gs.ft = ftPS;
+  // Display toggles
+  case 't':
+    inv(gs.fText);
+    redraw();
+    return 1;
+
+  case 'i':
+    inv(gs.fAlt);
+    redraw();
+    return 1;
+
+  case 'b':
+    inv(gs.fBorder);
+    redraw();
+    return 1;
+
+  case 'q':
+    inv(gs.fThick);
+    redraw();
+    return 1;
+
+  case 'l':
+    inv(gs.fLabel);
+    redraw();
+    return 1;
+
+  case 'k':
+    inv(gs.fLabelAsp);
+    redraw();
+    return 1;
+
+  case 'j':
+    inv(gs.fJetTrail);
+    return 1;
+
+  case 'd':
+    inv(gs.fHouseExtra);
+    redraw();
+    return 1;
+
+  case 'e':
+    inv(gs.fEquator);
+    redraw();
+    return 1;
+
+  case '=':
+    inv(gs.fIndianWheel);
+    redraw();
+    return 1;
+
+  case '0':
+    inv(us.fPrimeVert);
+    inv(us.fCalendarYear);
+    inv(us.nEphemYears);
+    inv(gs.fMollewide);
+    gi.nMode = (gi.nMode == gWheel ? gHouse :
+      (gi.nMode == gHouse ? gWheel : gi.nMode));
+    redraw();
+    return 1;
+
+#ifdef CONSTEL
+  case 'F':
+    if (gi.nMode != gHorizon && gi.nMode != gSphere &&
+        gi.nMode != gGlobe && gi.nMode != gPolar && gi.nMode != gTelescope)
+      gi.nMode = gWorldMap;
+    inv(gs.fConstel);
+    redraw();
+    return 1;
 #endif
-    return 1;
 
-  case 'C':
-    // Not implemented yet - would show chart info dialog
-    return 1;
-
-  case 'Q':
-    // Quit
-    if (fi.window)
-      fi.window->hide();
-    return 1;
-
-  case FL_Escape:
-    // Also quit on Escape
-    if (fi.window)
-      fi.window->hide();
-    return 1;
-
-  case 'V':
-    if (gi.nMode == gWheel)
-      gi.nMode = gHouse;
-    else if (gi.nMode == gHouse)
-      gi.nMode = gWheel;
+  // Calculation toggles
+  case 'c':
+    us.nRel = us.nRel ? rcNone : rcDual;
+    fi.fDoCast = fTrue;
     redraw();
     return 1;
 
-  case 'v':
-    gi.nMode = (gi.nMode == gGrid ? gWheel : gGrid);
+  case 's':
+    inv(us.fSidereal);
+    fi.fDoCast = fTrue;
     redraw();
     return 1;
 
-  case 'g':
-    gi.nMode = (gi.nMode == gGlobe ? gWheel : gGlobe);
+  case 'h':
+    inv(us.objCenter);
+    fi.fDoCast = fTrue;
     redraw();
     return 1;
 
   case 'a':
-    gi.nMode = (gi.nMode == gAstroGraph ? gWheel : gAstroGraph);
+    inv(us.fHouse3D);
+    fi.fDoCast = fTrue;
+    redraw();
+    return 1;
+
+  case 'g':
+    inv(us.fDecan);
+    fi.fDoCast = fTrue;
+    redraw();
+    return 1;
+
+  case 'f':
+    inv(us.fFlip);
+    fi.fDoCast = fTrue;
     redraw();
     return 1;
 
   case 'z':
-    gi.nMode = (gi.nMode == gHorizon ? gWheel : gHorizon);
+    inv(us.fIndian);
     redraw();
     return 1;
 
-  case 'w':
-    gi.nMode = (gi.nMode == gWorldMap ? gWheel : gWorldMap);
+  // Object restrictions
+  case 'R':
+    for (i = oChi; i <= oVes; i++)
+      inv(ignore[i]);
+    for (i = oSou; i <= oEP; i++)
+      inv(ignore[i]);
+    AdjustRestrictions();
+    fi.fDoCast = fTrue;
     redraw();
     return 1;
 
+  case 'C':
+    inv(us.fCusp);
+    for (i = cuspLo; i <= cuspHi; i++)
+      ignore[i] = !us.fCusp || !ignore[i];
+    AdjustRestrictions();
+    fi.fDoCast = fTrue;
+    redraw();
+    return 1;
+
+  case 'u':
+    inv(us.fUranian);
+    for (i = uranLo; i <= uranHi; i++)
+      ignore[i] = !us.fUranian || !ignore[i];
+    AdjustRestrictions();
+    fi.fDoCast = fTrue;
+    redraw();
+    return 1;
+
+  case 'y':
+    inv(us.fDwarf);
+    for (i = dwarfLo; i <= dwarfHi; i++)
+      ignore[i] = !us.fDwarf || !ignore[i];
+    AdjustRestrictions();
+    fi.fDoCast = fTrue;
+    redraw();
+    return 1;
+
+  case '`':
+    inv(us.fMoons);
+    for (i = moonsLo; i <= moonsHi; i++)
+      ignore[i] = !us.fMoons || !ignore[i];
+    AdjustRestrictions();
+    fi.fDoCast = fTrue;
+    redraw();
+    return 1;
+
+  case '~':
+    inv(us.fCOB);
+    for (i = cobLo; i <= cobHi; i++)
+      ignore[i] = !us.fCOB || !ignore[i];
+    AdjustRestrictions();
+    fi.fDoCast = fTrue;
+    redraw();
+    return 1;
+
+  case 'U':
+    inv(us.fStar);
+    for (i = starLo; i <= starHi; i++)
+      ignore[i] = !us.fStar || !ignore[i];
+    AdjustRestrictions();
+    fi.fDoCast = fTrue;
+    redraw();
+    return 1;
+
+  // Scale adjustments
+  case '<':
+    if (gs.nScale > 100) {
+      gs.nScale -= 100;
+      gi.nScale = gs.nScale / 100;
+      redraw();
+    }
+    return 1;
+
+  case '>':
+    if (gs.nScale < MAXSCALE) {
+      gs.nScale += 100;
+      gi.nScale = gs.nScale / 100;
+      redraw();
+    }
+    return 1;
+
+  // Tilt controls
+  case '[':
+    gs.rTilt = gs.rTilt > -rDegQuad ?
+      gs.rTilt - (real)NAbs(gi.nDir) : -rDegQuad;
+    if (gi.nMode == gTelescope)
+      gs.objTrack = -1;
+    redraw();
+    return 1;
+
+  case ']':
+    gs.rTilt = gs.rTilt < rDegQuad ?
+      gs.rTilt + (real)NAbs(gi.nDir) : rDegQuad;
+    if (gi.nMode == gTelescope)
+      gs.objTrack = -1;
+    redraw();
+    return 1;
+
+  // Rotation controls
+  case '{':
+    if (gi.nMode == gMidpoint || gi.nMode == gTelescope) {
+      if (gi.nMode == gMidpoint && gs.objTrack >= 0)
+        gs.rRot = planet[gs.objTrack];
+      gs.objTrack = -1;
+    }
+    gs.rRot += (real)NAbs(gi.nDir);
+    if (gs.rRot >= rDegMax)
+      gs.rRot -= rDegMax;
+    redraw();
+    return 1;
+
+  case '}':
+    if (gi.nMode == gMidpoint || gi.nMode == gTelescope) {
+      if (gi.nMode == gMidpoint && gs.objTrack >= 0)
+        gs.rRot = planet[gs.objTrack];
+      gs.objTrack = -1;
+    }
+    gs.rRot -= (real)NAbs(gi.nDir);
+    if (gs.rRot < 0.0)
+      gs.rRot += rDegMax;
+    redraw();
+    return 1;
+
+  // Chart save/restore
+  case 'o':
+    ciSave = ciMain;
+    return 1;
+
+  case 'O':
+    ciMain = ciSave;
+    fi.fDoCast = fTrue;
+    redraw();
+    return 1;
+
+  // Animation step controls
   case '+':
-  case '=':
-    // Zoom in
-    gs.nScale = gs.nScale * 11 / 10;
-    if (gs.nScale > MAXSCALE)
-      gs.nScale = MAXSCALE;
-    gi.nScale = gs.nScale / 100;
+    Animate(gs.nAnim, NAbs(gi.nDir));
+    fi.fDoCast = fTrue;
     redraw();
     return 1;
 
   case '-':
-  case '_':
-    // Zoom out
-    gs.nScale = gs.nScale * 10 / 11;
-    if (gs.nScale < 100)
-      gs.nScale = 100;
-    gi.nScale = gs.nScale / 100;
+    Animate(gs.nAnim, -NAbs(gi.nDir));
+    fi.fDoCast = fTrue;
     redraw();
     return 1;
 
+  // Set current time
+#ifdef TIME
+  case 'n':
+    Animate(10, 0);
+    ciMain = ciCore;
+    fi.fDoCast = fTrue;
+    redraw();
+    return 1;
+#endif
+
+  // Toggle continuous animation
+  case 'N':
+    gs.nAnim = gs.nAnim ? 0 : -iAnimNow;
+    return 1;
+
+  // Animation modes (time units)
+  case '!': gs.nAnim = -1; return 1;  // Seconds
+  case '@': gs.nAnim = -2; return 1;  // Minutes
+  case '#': gs.nAnim = -3; return 1;  // Hours
+  case '$': gs.nAnim = -4; return 1;  // Days
+  case '%': gs.nAnim = -5; return 1;  // Months
+  case '^': gs.nAnim = -6; return 1;  // Years
+  case '&': gs.nAnim = -7; return 1;  // Decades
+  case '*': gs.nAnim = -8; return 1;  // Centuries
+  case '(': gs.nAnim = -9; return 1;  // Millennia
+
+  // Chart modes (uppercase letters)
+  case 'V': gi.nMode = gWheel;      redraw(); return 1;
+  case 'A': gi.nMode = gGrid;       redraw(); return 1;
+  case 'Z': gi.nMode = gHorizon;    redraw(); return 1;
+  case 'S': gi.nMode = gOrbit;      redraw(); return 1;
+  case 'H': gi.nMode = gSector;     redraw(); return 1;
+  case 'K': gi.nMode = gCalendar;   redraw(); return 1;
+  case 'J': gi.nMode = gDisposit;   redraw(); return 1;
+  case 'L': gi.nMode = gAstroGraph; redraw(); return 1;
+  case 'E': gi.nMode = gEphemeris;  redraw(); return 1;
+  case 'I': gi.nMode = gRising;     redraw(); return 1;
+  case 'M': gi.nMode = gMoons;      redraw(); return 1;
+  case 'X': gi.nMode = gSphere;     redraw(); return 1;
+  case 'W': gi.nMode = gWorldMap;   redraw(); return 1;
+  case 'G': gi.nMode = gGlobe;      redraw(); return 1;
+  case 'P': gi.nMode = gPolar;      redraw(); return 1;
+  case 'T': gi.nMode = gTelescope;  redraw(); return 1;
+#ifdef BIORHYTHM
+  case 'Y':
+    us.nRel = rcBiorhythm;
+    gi.nMode = gBiorhythm;
+    fi.fDoCast = fTrue;
+    redraw();
+    return 1;
+#endif
+
+  // Quit
+  case 'Q':
+    SquareX(&gs.xWin, &gs.yWin, fTrue);
+    redraw();
+    return 1;
+
+  case FL_Escape:
+    if (fi.window)
+      fi.window->hide();
+    return 1;
+
+  // Arrow key navigation
   case FL_Left:
-    // Navigate left
     gs.rRot = Mod(gs.rRot + (Fl::event_state() & FL_SHIFT ? 1.0 : 5.0));
     redraw();
     return 1;
 
   case FL_Right:
-    // Navigate right
     gs.rRot = Mod(gs.rRot - (Fl::event_state() & FL_SHIFT ? 1.0 : 5.0));
     redraw();
     return 1;
 
   case FL_Up:
-    // Navigate up
     gs.rTilt += (Fl::event_state() & FL_SHIFT ? 1.0 : 5.0);
     if (gs.rTilt > rDegQuad)
       gs.rTilt = rDegQuad;
@@ -380,7 +626,6 @@ int ChartWidget::handleKey(int key)
     return 1;
 
   case FL_Down:
-    // Navigate down
     gs.rTilt -= (Fl::event_state() & FL_SHIFT ? 1.0 : 5.0);
     if (gs.rTilt < -rDegQuad)
       gs.rTilt = -rDegQuad;
@@ -388,6 +633,11 @@ int ChartWidget::handleKey(int key)
     return 1;
 
   default:
+    // Animation speed (1-9)
+    if (key >= '1' && key <= '9') {
+      gi.nDir = (gi.nDir > 0 ? 1 : -1) * (key - '0');
+      return 1;
+    }
     break;
   }
 
