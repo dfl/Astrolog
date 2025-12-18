@@ -172,6 +172,7 @@ void FMenuIndian(Fl_Widget *w, void *data);
 void FMenuIndianS(Fl_Widget *w, void *data);
 void FMenuIndianN(Fl_Widget *w, void *data);
 void FMenuIndianE(Fl_Widget *w, void *data);
+void FMenuGlyphFont(Fl_Widget *w, void *data);
 void FMenuHelpSign(Fl_Widget *w, void *data);
 void FMenuHelpObject(Fl_Widget *w, void *data);
 void FMenuHelpAspect(Fl_Widget *w, void *data);
@@ -1165,6 +1166,12 @@ void AstrologWindow::createMenus()
   menubar_->add("Se&ttings/&Object Restrictions...", 0, FMenuRestrict);
   menubar_->add("Se&ttings/&Transit Restrictions...", 0, FMenuRestrictTransit);
   menubar_->add("Se&ttings/Co&lor Settings...", 0, FMenuColorSettings, 0, FL_MENU_DIVIDER);
+  // Glyph Fonts submenu
+  menubar_->add("Se&ttings/Glyph &Fonts/&Default (Built-in)", 0, FMenuGlyphFont, (void*)0);
+  menubar_->add("Se&ttings/Glyph &Fonts/&Astro", 0, FMenuGlyphFont, (void*)2);
+  menubar_->add("Se&ttings/Glyph &Fonts/&Enigma", 0, FMenuGlyphFont, (void*)3);
+  menubar_->add("Se&ttings/Glyph &Fonts/&Hamburg", 0, FMenuGlyphFont, (void*)4);
+  menubar_->add("Se&ttings/Glyph &Fonts/Astrono&micon", 0, FMenuGlyphFont, (void*)5, FL_MENU_DIVIDER);
   menubar_->add("Se&ttings/Include &Minors", 'R', FMenuIncludeMinors, 0, FL_MENU_TOGGLE);
   menubar_->add("Se&ttings/Include &Cusps", 'C', FMenuIncludeCusps, 0, FL_MENU_TOGGLE);
   menubar_->add("Se&ttings/Include &Uranians", 'u', FMenuIncludeUranians, 0, FL_MENU_TOGGLE);
@@ -1727,6 +1734,20 @@ void FMenuRestrictTransit(Fl_Widget *w, void *data)
 void FMenuColorSettings(Fl_Widget *w, void *data)
 {
   FShowDlgColor();
+}
+
+void FMenuGlyphFont(Fl_Widget *w, void *data)
+{
+  int font = (int)(intptr_t)data;
+  // Set all glyph fonts (signs, houses, objects, aspects, nakshatras) to selected font
+  // Format: 0SSSSS where each S is a font digit
+  gs.nFontSig = font;
+  gs.nFontHou = font;
+  gs.nFontObj = font;
+  gs.nFontAsp = font;
+  gs.nFontNak = font;
+  gs.nFontAll = font * 11111;  // Pack into single value
+  if (fi.chart) fi.chart->redraw();
 }
 
 void FMenuChartType(Fl_Widget *w, void *data)
