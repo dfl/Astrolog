@@ -108,6 +108,8 @@ void FMenuIncludeStars(Fl_Widget *w, void *data);
 
 // Forward declarations for other menu callbacks (used by handleKey)
 void FMenuChartNow(Fl_Widget *w, void *data);
+void FMenuSidereal(Fl_Widget *w, void *data);
+void FMenuHeliocentric(Fl_Widget *w, void *data);
 
 /*
 ******************************************************************************
@@ -593,17 +595,8 @@ int ChartWidget::handleKey(int key)
     redraw();
     return 1;
 
-  case 's':
-    inv(us.fSidereal);
-    fi.fDoCast = fTrue;
-    redraw();
-    return 1;
-
-  case 'h':
-    inv(us.objCenter);
-    fi.fDoCast = fTrue;
-    redraw();
-    return 1;
+  case 's': FMenuSidereal(NULL, NULL); return 1;
+  case 'h': FMenuHeliocentric(NULL, NULL); return 1;
 
   case 'a':
     inv(us.fHouse3D);
@@ -1069,6 +1062,8 @@ void AstrologWindow::createMenus()
 #endif
 
   // Settings menu
+  menubar_->add("Se&ttings/&Sidereal Zodiac", 's', FMenuSidereal, 0, FL_MENU_TOGGLE);
+  menubar_->add("Se&ttings/&Heliocentric", 'h', FMenuHeliocentric, 0, FL_MENU_TOGGLE|FL_MENU_DIVIDER);
   menubar_->add("Se&ttings/&Calculation Settings...", 0, FMenuCalcSettings);
   menubar_->add("Se&ttings/&Display Settings...", 0, FMenuDisplaySettings);
   menubar_->add("Se&ttings/&Graphics Settings...", 0, FMenuGraphicsSettings);
@@ -1571,6 +1566,23 @@ void FMenuIncludeStars(Fl_Widget *w, void *data)
   AdjustRestrictions();
   fi.fDoCast = fTrue;
   UpdateMenuCheck(FMenuIncludeStars, us.fStar);
+  if (fi.chart) fi.chart->redraw();
+}
+
+// Settings toggle callbacks
+void FMenuSidereal(Fl_Widget *w, void *data)
+{
+  inv(us.fSidereal);
+  fi.fDoCast = fTrue;
+  UpdateMenuCheck(FMenuSidereal, us.fSidereal);
+  if (fi.chart) fi.chart->redraw();
+}
+
+void FMenuHeliocentric(Fl_Widget *w, void *data)
+{
+  inv(us.objCenter);
+  fi.fDoCast = fTrue;
+  UpdateMenuCheck(FMenuHeliocentric, us.objCenter);
   if (fi.chart) fi.chart->redraw();
 }
 
