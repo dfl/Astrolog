@@ -69,3 +69,24 @@ fltk-config --version
 fltk-config --cxxflags
 fltk-config --ldflags
 ```
+
+## Releasing to GitHub
+
+To update the macOS release on dfl/Astrolog:
+
+```bash
+# 1. Build the app
+cd build
+cmake -DCMAKE_BUILD_TYPE=Release ..
+make
+
+# 2. Create the zip
+zip -r Astrolog-macOS.zip Astrolog.app
+
+# 3. Delete old asset and upload new one
+gh release delete-asset v7.80-gui Astrolog-macOS.zip --repo dfl/Astrolog --yes
+gh release upload v7.80-gui Astrolog-macOS.zip --repo dfl/Astrolog
+
+# 4. Verify
+gh release view v7.80-gui --repo dfl/Astrolog
+```
