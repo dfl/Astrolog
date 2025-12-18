@@ -1154,17 +1154,11 @@ void ComputeEphem(real t)
 #endif
 
 
-// This is probably the main routine in all of Astrolog. It generates a chart,
-// calculating the positions of all the celestial bodies and house cusps,
-// based on the current chart information, and saves them for use by any of
-// the display routines.
+// Handle early return cases for CastChart. Returns fTrue if the caller should
+// return early (chart already populated from position file).
 
-real CastChart(int nContext)
+flag CastChartValidation(int nContext)
 {
-  CI ciSav;
-  real housetemp[cSign+1], r, r2;
-  int i, k, k2;
-
   is.nContext = nContext;
 #ifdef EXPRESS
   // Notify AstroExpression a chart is about to be cast.
@@ -1178,15 +1172,24 @@ real CastChart(int nContext)
   if (FNoTimeOrSpace(ciCore)) {
     is.MC = planet[oMC]; is.Asc = planet[oAsc];
     ComputeInHouses();
-    return 0.0;
+    return fTrue;
   }
+  return fFalse;
+}
+
+
+// Normalize time zone and calculate Julian Day for the chart.
+// Modifies ciCore time values and sets is.JD, is.T, is.Tp.
+
+void CastChartTime(CI *pciSav)
+{
+  *pciSav = ciCore;
+  is.JD = (real)MdyToJulian(MM, DD, YY);
 
   // Hack: Time zone 24 means to have the time of day be in Local Mean Time
   // (LMT). This is done by making the time zone value reflect the logical
   // offset from UTC as indicated by the chart's longitude value.
 
-  ciSav = ciCore;
-  is.JD = (real)MdyToJulian(MM, DD, YY);
   if (ZZ == zonLMT)
     ZZ = OO / 15.0;
   else if (ZZ == zonLAT)
@@ -1227,8 +1230,14 @@ real CastChart(int nContext)
   }
   is.T -= ((us.rCuspAddition - us.rObjAddition) / 24.0);
   is.T = (is.T - 2415020.5) / 36525.0;
+}
 
-  // Go calculate house cusp and angle positions.
+
+// Calculate house cusps and angles using the appropriate ephemeris engine.
+
+void CastChartHouses(void)
+{
+  real r = 0.0;
 
 #ifdef SWISS
   if (FCmSwissAny()) {
@@ -1250,8 +1259,16 @@ real CastChart(int nContext)
 #endif
   }
   // This value (often same as is.RA) is frequently used, so compute once.
-  cp0.lonMC = Tropical(is.MC); r = 0.0;
+  cp0.lonMC = Tropical(is.MC);
   EclToEqu(&cp0.lonMC, &r);
+}
+
+
+// Calculate planet positions using the appropriate ephemeris engine.
+
+void CastChartPlanets(void)
+{
+  int i;
 
 #ifdef MATRIX
   // Go calculate planet, Moon, and North Node positions.
@@ -1294,6 +1311,15 @@ real CastChart(int nContext)
     } else
       ret[oNod] = ret[oSou] = ret[oMoo] = 1.0;
   }
+}
+
+
+// Calculate Part of Fortune and house cusp object positions.
+
+void CastChartPOFAndCusps(void)
+{
+  real r, r2;
+  int i;
 
   // Calculate position of Part of Fortune.
 
@@ -1331,6 +1357,16 @@ real CastChart(int nContext)
       r /= (rDegMax + 1.0);
     ret[i] = r;
   }
+}
+
+
+// Apply various chart modifications: equatorial transform, progressions,
+// harmonic, rotation, forcing, solar, domal, decan, dwad, navamsa.
+
+void CastChartModify(void)
+{
+  real housetemp[cSign+1], r, r2;
+  int i, k, k2;
 
   // Transform ecliptic to equatorial coordinates if -sr in effect.
 
@@ -1462,6 +1498,17 @@ real CastChart(int nContext)
   if (us.fNavamsa)
     for (i = 0; i <= is.nObj; i++)
       planet[i] = Navamsa(planet[i]);
+}
+
+
+// Finalize chart positions: sort planets and apply AstroExpression adjustments.
+
+void CastChartFinalize(CI *pciSav)
+{
+  int i;
+#ifdef EXPRESS
+  int k;
+#endif
 
   // Sort planet and star positions now that all positions are finalized.
 
@@ -1509,7 +1556,41 @@ real CastChart(int nContext)
   if (!us.fExpOff && FSzSet(us.szExpCast2))
     ParseExpression(us.szExpCast2);
 #endif
-  ciCore = ciSav;
+  ciCore = *pciSav;
+}
+
+
+// This is probably the main routine in all of Astrolog. It generates a chart,
+// calculating the positions of all the celestial bodies and house cusps,
+// based on the current chart information, and saves them for use by any of
+// the display routines.
+
+real CastChart(int nContext)
+{
+  CI ciSav;
+
+  // Handle early return cases (position file already loaded).
+  if (CastChartValidation(nContext))
+    return 0.0;
+
+  // Normalize time zone and calculate Julian Day.
+  CastChartTime(&ciSav);
+
+  // Calculate house cusps and angles.
+  CastChartHouses();
+
+  // Calculate planet positions.
+  CastChartPlanets();
+
+  // Calculate Part of Fortune and house cusp object positions.
+  CastChartPOFAndCusps();
+
+  // Apply chart modifications (equatorial, progressions, harmonic, etc.).
+  CastChartModify();
+
+  // Finalize: sort planets and apply AstroExpression adjustments.
+  CastChartFinalize(&ciSav);
+
   return is.T;
 }
 
