@@ -538,9 +538,14 @@ void XChartGrid(int x0, int y0)
         // If this is an aspect cell, draw glyph of aspect in effect.
         if (gs.fAlt ? x > y : x < y) {
           if (k) {
-            // Use alpha transparency: Major aspects (1-5) fully opaque,
-            // Minor aspects (6-11) semi-transparent, Obscure (12+) more faded
-            int nAlpha = k <= 5 ? 255 : (k <= 11 ? 180 : 120);
+            // Use alpha transparency based on orb tightness:
+            // Exact aspects (orb=0) fully opaque, wide orbs more faded
+            real rOrbCur = RAbs(grid->v[ig][jg]);
+            real rOrbMax = GetOrb(ig, jg, k);
+            real rOrbRatio = (rOrbMax > 0.0) ? rOrbCur / rOrbMax : 0.0;
+            // Alpha: 255 at exact, down to 64 at max orb
+            int nAlpha = (int)(255.0 - rOrbRatio * 191.0);
+            if (nAlpha < 64) nAlpha = 64;
             c = kAspB[k];
             DrawColorAlpha(c, nAlpha);
             DrawAspect(k + (NCheckEclipseAny(ig, k, jg, NULL) >

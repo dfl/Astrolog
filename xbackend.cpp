@@ -279,6 +279,29 @@ static void FltkSetColor(int ki)
   fl_color(FltkColorFromKI(ki));
 }
 
+static void FltkSetColorAlpha(int ki, int alpha)
+{
+  // FLTK doesn't support true alpha blending, so we simulate it by
+  // blending the foreground color with the background color (gi.kiOff)
+  if (alpha >= 255) {
+    fl_color(FltkColorFromKI(ki));
+    return;
+  }
+  if (ki < 0 || ki >= cColor)
+    ki = 0;
+
+  // Get foreground and background colors
+  KV kvFg = rgbbmp[ki];
+  KV kvBg = rgbbmp[gi.kiOff];
+
+  // Blend based on alpha (alpha/255 * fg + (1 - alpha/255) * bg)
+  uchar r = (uchar)((RgbR(kvFg) * alpha + RgbR(kvBg) * (255 - alpha)) / 255);
+  uchar g = (uchar)((RgbG(kvFg) * alpha + RgbG(kvBg) * (255 - alpha)) / 255);
+  uchar b = (uchar)((RgbB(kvFg) * alpha + RgbB(kvBg) * (255 - alpha)) / 255);
+
+  fl_color(fl_rgb_color(r, g, b));
+}
+
 static void FltkDrawPixel(int x, int y)
 {
   fl_point(x, y);
@@ -334,7 +357,7 @@ static void FltkFlush(void)
 static GB gbFltk = {
   "FLTK",
   FltkSetColor,
-  NULL,  // PutColorAlpha - FLTK doesn't support alpha natively
+  FltkSetColorAlpha,
   FltkDrawPixel,
   FltkDrawPixelThick,
   FltkDrawLine,
