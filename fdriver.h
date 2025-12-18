@@ -98,6 +98,7 @@ extern void FMenuFileSaveAs(Fl_Widget *w, void *data);
 #ifdef CAIRO
 extern void FMenuExportSVG(Fl_Widget *w, void *data);
 extern void FMenuExportPDF(Fl_Widget *w, void *data);
+extern void FMenuViewCairo(Fl_Widget *w, void *data);
 #endif
 extern void FMenuExportBitmap(Fl_Widget *w, void *data);
 extern void FMenuFileExit(Fl_Widget *w, void *data);

@@ -94,14 +94,46 @@ void ChartWidget::draw()
 
 #ifdef CAIRO
   if (fUseCairo) {
-    // Get HiDPI scale factor (2.0 on Retina displays)
-    float scale = Fl::screen_scale(Fl::screen_num(x(), y()));
-    if (scale < 1.0f) scale = 1.0f;
+    // Get HiDPI scale factor - platform-specific detection
+    float scale = Fl::screen_scale(0);
+
+#ifdef __APPLE__
+    // On macOS, FLTK reports scale=1.0 but handles Retina internally
+    // However for Cairo, we render our own surface so we need the actual scale
+    if (scale < 1.5f) {
+      // Use macOS default of 2.0 for Retina displays
+      // This works on all Macs from ~2013 onwards
+      scale = 2.0f;
+    }
+#elif defined(_WIN32)
+    // On Windows, get DPI scale from system
+    // GetDeviceCaps returns 96 for 100%, 120 for 125%, 144 for 150%, 192 for 200%
+    if (scale < 1.1f) {
+      HDC hdc = GetDC(NULL);
+      if (hdc) {
+        int dpi = GetDeviceCaps(hdc, LOGPIXELSX);
+        scale = (float)dpi / 96.0f;
+        ReleaseDC(NULL, hdc);
+      }
+    }
+#else
+    // On Linux/Unix, FLTK 1.4 should report correct scale on Wayland
+    // For X11, check FLTK_SCALING_FACTOR or GDK_SCALE environment
+    if (scale < 1.1f) {
+      const char *envScale = getenv("FLTK_SCALING_FACTOR");
+      if (!envScale) envScale = getenv("GDK_SCALE");
+      if (envScale) {
+        float envVal = (float)atof(envScale);
+        if (envVal >= 1.0f) scale = envVal;
+      }
+    }
+#endif
 
     // Debug: print scale factor once
     static int debugOnce = 0;
     if (!debugOnce) {
-      printf("Cairo rendering: scale=%.2f, widget=%dx%d\n", scale, w(), h());
+      printf("Cairo rendering: scale=%.2f (fltk_scale=%.2f), widget=%dx%d, surface=%dx%d\n",
+             scale, Fl::screen_scale(0), w(), h(), (int)(w()*scale), (int)(h()*scale));
       debugOnce = 1;
     }
 

@@ -62,6 +62,14 @@ extern void InitBackendX11(void);
 extern void InitBackendWin(void);
 extern void InitBackendFltk(void);
 
+#ifdef CAIRO
+#include <cairo/cairo.h>
+// Cairo backend - supports SVG, PDF, and screen rendering via image surface
+extern void InitBackendCairo(cairo_surface_t *surface);
+extern void EndBackendCairo(void);
+extern cairo_t *CairoContext(void);  // Get current Cairo context for advanced operations
+#endif
+
 // Convenience macros for calling backend functions
 // These check if backend exists and call the appropriate function
 

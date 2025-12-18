@@ -354,6 +354,163 @@ void InitBackendFltk(void)
 
 /*
 ******************************************************************************
+** Cairo Backend Implementation
+******************************************************************************
+*/
+
+#ifdef CAIRO
+#include <cairo/cairo.h>
+#include <cairo/cairo-svg.h>
+#include <cairo/cairo-pdf.h>
+
+static cairo_t *gi_cr = NULL;
+static cairo_surface_t *gi_surface = NULL;
+static GB *gpBackendPrev = NULL;  // Previous backend to restore
+
+static void CairoSetColor(int ki)
+{
+  if (ki < 0 || ki >= cColor)
+    ki = 0;
+  KV kv = rgbbmp[ki];
+  cairo_set_source_rgb(gi_cr,
+    (double)RgbR(kv) / 255.0,
+    (double)RgbG(kv) / 255.0,
+    (double)RgbB(kv) / 255.0);
+}
+
+static void CairoDrawPixel(int x, int y)
+{
+  cairo_rectangle(gi_cr, x, y, 1, 1);
+  cairo_fill(gi_cr);
+}
+
+static void CairoDrawPixelThick(int x, int y)
+{
+  cairo_rectangle(gi_cr, x, y, 2, 2);
+  cairo_fill(gi_cr);
+}
+
+static void CairoDrawLine(int x1, int y1, int x2, int y2)
+{
+  // Draw without offset for proper antialiasing
+  // Cairo will antialias across pixel boundaries
+  cairo_move_to(gi_cr, (double)x1, (double)y1);
+  cairo_line_to(gi_cr, (double)x2, (double)y2);
+  cairo_stroke(gi_cr);
+}
+
+static void CairoDrawLineThick(int x1, int y1, int x2, int y2)
+{
+  double oldWidth = cairo_get_line_width(gi_cr);
+  cairo_set_line_width(gi_cr, 2.0);
+  cairo_move_to(gi_cr, (double)x1, (double)y1);
+  cairo_line_to(gi_cr, (double)x2, (double)y2);
+  cairo_stroke(gi_cr);
+  cairo_set_line_width(gi_cr, oldWidth);
+}
+
+static void CairoDrawRect(int x, int y, int w, int h)
+{
+  cairo_rectangle(gi_cr, x, y, w, h);
+  cairo_fill(gi_cr);
+}
+
+static void CairoDrawArc(int x, int y, int w, int h, double deg1, double deg2)
+{
+  // Cairo uses radians, Astrolog uses degrees
+  // Also need to handle ellipse (non-circular arc)
+  double cx = x + w / 2.0;
+  double cy = y + h / 2.0;
+  double rx = w / 2.0;
+  double ry = h / 2.0;
+
+  cairo_save(gi_cr);
+  cairo_translate(gi_cr, cx, cy);
+  cairo_scale(gi_cr, rx, ry);
+  // Cairo angles are in radians, counterclockwise from positive x-axis
+  // Convert degrees to radians, negate for clockwise direction
+  cairo_arc(gi_cr, 0, 0, 1.0, -deg2 * rPi / 180.0, -deg1 * rPi / 180.0);
+  cairo_restore(gi_cr);
+  cairo_stroke(gi_cr);
+}
+
+static void CairoDrawEllipse(int x, int y, int w, int h)
+{
+  double cx = x + w / 2.0;
+  double cy = y + h / 2.0;
+  double rx = w / 2.0;
+  double ry = h / 2.0;
+
+  cairo_save(gi_cr);
+  cairo_translate(gi_cr, cx, cy);
+  cairo_scale(gi_cr, rx, ry);
+  cairo_arc(gi_cr, 0, 0, 1.0, 0, 2 * rPi);
+  cairo_restore(gi_cr);
+  cairo_fill(gi_cr);
+}
+
+static void CairoClearScreen(int ki)
+{
+  CairoSetColor(ki);
+  cairo_paint(gi_cr);
+}
+
+static void CairoFlush(void)
+{
+  cairo_surface_flush(gi_surface);
+}
+
+static GB gbCairo = {
+  "Cairo",
+  CairoSetColor,
+  CairoDrawPixel,
+  CairoDrawPixelThick,
+  CairoDrawLine,
+  CairoDrawLineThick,
+  CairoDrawRect,
+  CairoDrawArc,
+  CairoDrawEllipse,
+  NULL,  // PutGlyph - use vector fallback for now (TODO: implement with Cairo fonts)
+  NULL,  // PutText - use vector fallback for now
+  CairoClearScreen,
+  CairoFlush,
+  NULL
+};
+
+void InitBackendCairo(cairo_surface_t *surface)
+{
+  gpBackendPrev = gpBackend;
+  gi_surface = surface;
+  gi_cr = cairo_create(gi_surface);
+
+  // Set default drawing properties for antialiased rendering
+  cairo_set_line_width(gi_cr, 1.0);
+  cairo_set_line_cap(gi_cr, CAIRO_LINE_CAP_ROUND);   // Round caps for smooth line ends
+  cairo_set_line_join(gi_cr, CAIRO_LINE_JOIN_ROUND); // Round joins for smooth corners
+  cairo_set_antialias(gi_cr, CAIRO_ANTIALIAS_BEST);
+
+  gpBackend = &gbCairo;
+}
+
+void EndBackendCairo(void)
+{
+  if (gi_cr) {
+    cairo_destroy(gi_cr);
+    gi_cr = NULL;
+  }
+  gi_surface = NULL;
+  gpBackend = gpBackendPrev;
+  gpBackendPrev = NULL;
+}
+
+cairo_t *CairoContext(void)
+{
+  return gi_cr;
+}
+#endif // CAIRO
+
+/*
+******************************************************************************
 ** Backend Selection
 ******************************************************************************
 */
