@@ -434,6 +434,10 @@ void BeginX()
   gi.xOffset = gi.yOffset = 0;
   InitColorsX();
 #endif // WCLI
+
+#ifdef FLTK
+  BeginFltk();
+#endif // FLTK
 }
 
 
@@ -597,6 +601,11 @@ void ResizeWindowToChart()
 
 void InteractX()
 {
+#ifdef FLTK
+  // FLTK handles its own event loop
+  InteractFltk();
+#else // !FLTK - X11 and WCLI implementations
+
 #ifdef X11
   char sz[cchSzDef];
   XEvent xevent;
@@ -1237,6 +1246,7 @@ void InteractX()
     } // if
 #endif
   } // while
+#endif // !FLTK
 }
 
 

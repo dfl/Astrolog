@@ -66,8 +66,10 @@
 //#define PC /* Comment out this #define if you have a Unix, Mac, or other */
            /* system that isn't a generic PC running DOS or MS Windows.  */
 
+#ifndef FLTK  /* X11 is auto-disabled if FLTK is defined by build system */
 #define X11 /* Comment out this #define if you don't have X windows, or */
             /* else have them and don't wish to compile in X graphics.  */
+#endif
 
 //#define WIN /* Comment out this #define if you don't have MS Windows, or */
             /* else have them but want a command line version instead.   */
@@ -77,6 +79,9 @@
 
 //#define WSETUP /* Comment out this #define if you don't want to compile a */
                /* modern Windows version that can do its own (un)setup.   */
+
+//#define FLTK /* Define this for cross-platform FLTK GUI. Comment out X11 */
+             /* and WIN above when using FLTK.                             */
 
 #define JPLWEB /* Comment out this #define if you don't want to compile in */
                /* features to access the JPL Horizons Website online.      */
@@ -352,6 +357,10 @@
 #define WINANY
 #include <windows.h>
 #endif
+#ifdef FLTK
+#define ISG
+#include "fdriver.h"
+#endif
 #ifdef PC
 #ifdef _WIN64
 #define szArchCore "64 bit"
@@ -405,6 +414,9 @@
 #ifdef WCLI
 #error "If 'X11' is defined 'WCLI' must not be as well"
 #endif
+#ifdef FLTK
+#error "If 'X11' is defined 'FLTK' must not be as well"
+#endif
 #ifdef PC
 #error "If 'X11' is defined 'PC' must not be as well"
 #endif
@@ -419,6 +431,9 @@
 #endif
 #ifdef WCLI
 #error "If 'WIN' is defined 'WCLI' must not be as well"
+#endif
+#ifdef FLTK
+#error "If 'WIN' is defined 'FLTK' must not be as well"
 #endif
 #ifndef PC
 #error "If 'WIN' is defined 'PC' must be too"
@@ -441,10 +456,28 @@
 #ifdef WIN
 #error "If 'WCLI' is defined 'WIN' must not be as well"
 #endif
+#ifdef FLTK
+#error "If 'WCLI' is defined 'FLTK' must not be as well"
+#endif
 #ifndef PC
 #error "If 'WCLI' is defined 'PC' must be too"
 #endif
 #endif // WCLI
+
+#ifdef FLTK
+#ifndef GRAPH
+#error "If 'FLTK' is defined 'GRAPH' must be too"
+#endif
+#ifdef X11
+#error "If 'FLTK' is defined 'X11' must not be as well"
+#endif
+#ifdef WIN
+#error "If 'FLTK' is defined 'WIN' must not be as well"
+#endif
+#ifdef WCLI
+#error "If 'FLTK' is defined 'WCLI' must not be as well"
+#endif
+#endif // FLTK
 
 #ifdef PS
 #ifndef GRAPH

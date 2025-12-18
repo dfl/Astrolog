@@ -108,6 +108,10 @@ void DrawColor(KI col)
     }
   }
 #endif
+#ifdef FLTK
+  else
+    fl_color(FltkColorFromKI(col));
+#endif
   gi.kiCur = col;
 }
 
@@ -233,6 +237,16 @@ void DrawPoint(int x, int y)
     }
   }
 #endif
+#ifdef FLTK
+  else {
+    fl_point(x, y);
+    if (gs.fThick) {
+      fl_point(x+1, y);
+      fl_point(x, y+1);
+      fl_point(x+1, y+1);
+    }
+  }
+#endif
 }
 
 
@@ -338,6 +352,10 @@ void DrawBlock(int x1, int y1, int x2, int y2)
     SelectObject(wi.hdc, GetStockObject(NULL_BRUSH));
     DeleteObject(wi.hbrush);
   }
+#endif
+#ifdef FLTK
+  else
+    fl_rectf(x1, y1, x2-x1+1, y2-y1+1);
 #endif
 }
 
@@ -569,6 +587,14 @@ void DrawDash(int x1, int y1, int x2, int y2, int skip)
         LineTo(wi.hdc, x2+1, y2+1);
         LineTo(wi.hdc, x1+1, y1+1);
         LineTo(wi.hdc, x1, y1);
+      }
+#endif
+#ifdef FLTK
+      fl_line(x1, y1, x2, y2);
+      if (gs.fThick) {
+        fl_line(x1+1, y1, x2+1, y2);
+        fl_line(x1, y1+1, x2, y2+1);
+        fl_line(x1+1, y1+1, x2+1, y2+1);
       }
 #endif
       return;
@@ -856,6 +882,17 @@ void DrawArc(int x1, int y1, int x2, int y2, real rRotate, real t1, real t2)
     }
   }
 #endif
+#ifdef FLTK
+  else {
+    // FLTK arc takes x, y, width, height, start angle, end angle
+    fl_arc(x1, y1, x2-x1, y2-y1, 0.0, 360.0);
+    if (gs.fThick) {
+      fl_arc(x1+1, y1, x2-x1, y2-y1, 0.0, 360.0);
+      fl_arc(x1, y1+1, x2-x1, y2-y1, 0.0, 360.0);
+      fl_arc(x1+1, y1+1, x2-x1, y2-y1, 0.0, 360.0);
+    }
+  }
+#endif
 }
 
 
@@ -922,6 +959,10 @@ void DrawEllipse2(int x1, int y1, int x2, int y2)
     SelectObject(wi.hdc, GetStockObject(NULL_BRUSH));
     DeleteObject(wi.hbrush);
   }
+#endif
+#ifdef FLTK
+  else
+    fl_pie(x1, y1, x2-x1, y2-y1, 0.0, 360.0);
 #endif
 }
 
