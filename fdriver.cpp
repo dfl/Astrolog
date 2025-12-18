@@ -120,6 +120,27 @@ void FMenuGraphicsLabelAsp(Fl_Widget *w, void *data);
 void FMenuGraphicsModify(Fl_Widget *w, void *data);
 void FMenuGraphicsHouseExtra(Fl_Widget *w, void *data);
 void FMenuGraphicsEquator(Fl_Widget *w, void *data);
+void FMenuAnimToggle(Fl_Widget *w, void *data);
+void FMenuAnimNow(Fl_Widget *w, void *data);
+void FMenuAnimRate1(Fl_Widget *w, void *data);
+void FMenuAnimRate2(Fl_Widget *w, void *data);
+void FMenuAnimRate3(Fl_Widget *w, void *data);
+void FMenuAnimRate4(Fl_Widget *w, void *data);
+void FMenuAnimRate5(Fl_Widget *w, void *data);
+void FMenuAnimRate6(Fl_Widget *w, void *data);
+void FMenuAnimRate7(Fl_Widget *w, void *data);
+void FMenuAnimRate8(Fl_Widget *w, void *data);
+void FMenuAnimRate9(Fl_Widget *w, void *data);
+void FMenuAnimFactor1(Fl_Widget *w, void *data);
+void FMenuAnimFactor2(Fl_Widget *w, void *data);
+void FMenuAnimFactor3(Fl_Widget *w, void *data);
+void FMenuAnimFactor4(Fl_Widget *w, void *data);
+void FMenuAnimFactor5(Fl_Widget *w, void *data);
+void FMenuAnimFactor6(Fl_Widget *w, void *data);
+void FMenuAnimFactor7(Fl_Widget *w, void *data);
+void FMenuAnimFactor8(Fl_Widget *w, void *data);
+void FMenuAnimFactor9(Fl_Widget *w, void *data);
+void FMenuAnimTimedExposure(Fl_Widget *w, void *data);
 
 /*
 ******************************************************************************
@@ -1062,11 +1083,32 @@ void AstrologWindow::createMenus()
   menubar_->add("&Graphics/Modify &Display", 'i', FMenuGraphicsModify, 0, FL_MENU_TOGGLE);
 
   // Animate menu
+  menubar_->add("&Animate/Do &Animation", 'N', FMenuAnimToggle);
+  menubar_->add("&Animate/Jump Rate/Update to &Now", 0, FMenuAnimNow);
+  menubar_->add("&Animate/Jump Rate/&Seconds", '!', FMenuAnimRate1);
+  menubar_->add("&Animate/Jump Rate/&Minutes", '@', FMenuAnimRate2);
+  menubar_->add("&Animate/Jump Rate/&Hours", '#', FMenuAnimRate3);
+  menubar_->add("&Animate/Jump Rate/&Days", '$', FMenuAnimRate4);
+  menubar_->add("&Animate/Jump Rate/M&onths", '%', FMenuAnimRate5);
+  menubar_->add("&Animate/Jump Rate/&Years", '^', FMenuAnimRate6);
+  menubar_->add("&Animate/Jump Rate/&Decades", '&', FMenuAnimRate7);
+  menubar_->add("&Animate/Jump Rate/&Centuries", '*', FMenuAnimRate8);
+  menubar_->add("&Animate/Jump Rate/Mi&llennia", '(', FMenuAnimRate9);
+  menubar_->add("&Animate/Jump Factor/&1 Unit", '1', FMenuAnimFactor1);
+  menubar_->add("&Animate/Jump Factor/&2 Units", '2', FMenuAnimFactor2);
+  menubar_->add("&Animate/Jump Factor/&3 Units", '3', FMenuAnimFactor3);
+  menubar_->add("&Animate/Jump Factor/&4 Units", '4', FMenuAnimFactor4);
+  menubar_->add("&Animate/Jump Factor/&5 Units", '5', FMenuAnimFactor5);
+  menubar_->add("&Animate/Jump Factor/&6 Units", '6', FMenuAnimFactor6);
+  menubar_->add("&Animate/Jump Factor/&7 Units", '7', FMenuAnimFactor7);
+  menubar_->add("&Animate/Jump Factor/&8 Units", '8', FMenuAnimFactor8);
+  menubar_->add("&Animate/Jump Factor/&9 Units", '9', FMenuAnimFactor9);
+  menubar_->add("&Animate/&Reverse Direction", 'r', FMenuAnimReverse);
+  menubar_->add("&Animate/&Pause Animation", 'p', FMenuAnimPause);
+  menubar_->add("&Animate/&Timed Exposure", 'j', FMenuAnimTimedExposure, 0, FL_MENU_TOGGLE|FL_MENU_DIVIDER);
+  menubar_->add("&Animate/Step &Forward", '+', FMenuAnimForward);
+  menubar_->add("&Animate/Step &Backward", '-', FMenuAnimBack);
   menubar_->add("&Animate/Animation &Settings...", 0, FMenuAnimSettings);
-  menubar_->add("&Animate/&Pause\\/Play", ' ', FMenuAnimPause);
-  menubar_->add("&Animate/&Reverse", 'r', FMenuAnimReverse);
-  menubar_->add("&Animate/Jump &Forward", '+', FMenuAnimForward);
-  menubar_->add("&Animate/Jump &Back", '-', FMenuAnimBack);
 
   // Help menu
   menubar_->add("&Help/&About Astrolog...", 0, FMenuHelpAbout);
@@ -1442,6 +1484,48 @@ void FMenuAnimBack(Fl_Widget *w, void *data)
   Animate(gs.nAnim, -gi.nDir);
   fi.fDoCast = fTrue;
   if (fi.chart) fi.chart->redraw();
+}
+
+void FMenuAnimToggle(Fl_Widget *w, void *data)
+{
+  gs.nAnim = gs.nAnim ? 0 : -4;  // Toggle animation (default to days)
+}
+
+void FMenuAnimNow(Fl_Widget *w, void *data)
+{
+#ifdef TIME
+  Animate(10, 0);
+  ciMain = ciCore;
+  fi.fDoCast = fTrue;
+  if (fi.chart) fi.chart->redraw();
+#endif
+}
+
+// Jump Rate callbacks
+void FMenuAnimRate1(Fl_Widget *w, void *data) { gs.nAnim = -1; }  // Seconds
+void FMenuAnimRate2(Fl_Widget *w, void *data) { gs.nAnim = -2; }  // Minutes
+void FMenuAnimRate3(Fl_Widget *w, void *data) { gs.nAnim = -3; }  // Hours
+void FMenuAnimRate4(Fl_Widget *w, void *data) { gs.nAnim = -4; }  // Days
+void FMenuAnimRate5(Fl_Widget *w, void *data) { gs.nAnim = -5; }  // Months
+void FMenuAnimRate6(Fl_Widget *w, void *data) { gs.nAnim = -6; }  // Years
+void FMenuAnimRate7(Fl_Widget *w, void *data) { gs.nAnim = -7; }  // Decades
+void FMenuAnimRate8(Fl_Widget *w, void *data) { gs.nAnim = -8; }  // Centuries
+void FMenuAnimRate9(Fl_Widget *w, void *data) { gs.nAnim = -9; }  // Millennia
+
+// Jump Factor callbacks - magnitude stored in |gi.nDir|, sign is direction
+void FMenuAnimFactor1(Fl_Widget *w, void *data) { gi.nDir = (gi.nDir > 0 ? 1 : -1) * 1; }
+void FMenuAnimFactor2(Fl_Widget *w, void *data) { gi.nDir = (gi.nDir > 0 ? 1 : -1) * 2; }
+void FMenuAnimFactor3(Fl_Widget *w, void *data) { gi.nDir = (gi.nDir > 0 ? 1 : -1) * 3; }
+void FMenuAnimFactor4(Fl_Widget *w, void *data) { gi.nDir = (gi.nDir > 0 ? 1 : -1) * 4; }
+void FMenuAnimFactor5(Fl_Widget *w, void *data) { gi.nDir = (gi.nDir > 0 ? 1 : -1) * 5; }
+void FMenuAnimFactor6(Fl_Widget *w, void *data) { gi.nDir = (gi.nDir > 0 ? 1 : -1) * 6; }
+void FMenuAnimFactor7(Fl_Widget *w, void *data) { gi.nDir = (gi.nDir > 0 ? 1 : -1) * 7; }
+void FMenuAnimFactor8(Fl_Widget *w, void *data) { gi.nDir = (gi.nDir > 0 ? 1 : -1) * 8; }
+void FMenuAnimFactor9(Fl_Widget *w, void *data) { gi.nDir = (gi.nDir > 0 ? 1 : -1) * 9; }
+
+void FMenuAnimTimedExposure(Fl_Widget *w, void *data)
+{
+  inv(gs.fJetTrail);
 }
 
 // Helper to update menu checkbox state
