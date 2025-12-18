@@ -146,6 +146,14 @@ void FMenuAnimFactor7(Fl_Widget *w, void *data);
 void FMenuAnimFactor8(Fl_Widget *w, void *data);
 void FMenuAnimFactor9(Fl_Widget *w, void *data);
 void FMenuAnimTimedExposure(Fl_Widget *w, void *data);
+void FMenuRelNo(Fl_Widget *w, void *data);
+void FMenuRelSynastry(Fl_Widget *w, void *data);
+void FMenuRelComposite(Fl_Widget *w, void *data);
+void FMenuRelMidpoint(Fl_Widget *w, void *data);
+void FMenuRelDate(Fl_Widget *w, void *data);
+void FMenuRelBiorhythm(Fl_Widget *w, void *data);
+void FMenuRelTransit(Fl_Widget *w, void *data);
+void FMenuRelProgressed(Fl_Widget *w, void *data);
 
 /*
 ******************************************************************************
@@ -184,6 +192,19 @@ void ChartWidget::draw()
     gs.nScale = Min(scaleX, scaleY);
     gs.nScale = Max(gs.nScale, 100);
     gi.nScale = gs.nScale / 100;
+  } else if (gi.nMode == gGrid) {
+    // Auto-scale for aspect grid to fill window smoothly
+    // Grid base size is nGridCell * CELLSIZE (14 pixels per cell at 100%)
+    int nCells = gi.nGridCell + (us.nRel <= rcDual);
+    if (nCells > 0) {
+      int baseSize = nCells * CELLSIZE;
+      int winSize = Min(gs.xWin, gs.yWin);
+      // Calculate scale as percentage (100 = 100%)
+      gs.nScale = (winSize * 100) / baseSize;
+      gs.nScale = Max(gs.nScale, 100);  // Minimum 100%
+      gi.nScale = gs.nScale / 100;
+      gi.rScaleX = gi.rScaleY = (real)gi.nScale;
+    }
   } else {
     // Non-map charts use uniform scaling
     gi.rScaleX = gi.rScaleY = (real)gi.nScale;
@@ -1035,7 +1056,18 @@ void AstrologWindow::createMenus()
   // Info menu
   menubar_->add("&Info/Set &Chart Info...", FL_COMMAND+'i', FMenuInfoChart);
   menubar_->add("&Info/Chart for &Now", 'n', FMenuChartNow);
-  menubar_->add("&Info/Set Chart #&2 Info...", 0, FMenuInfoChart2);
+  menubar_->add("&Info/Set Chart #&2 Info...", 0, FMenuInfoChart2, 0, FL_MENU_DIVIDER);
+  menubar_->add("&Info/Relationship/No &Relationship Chart", 'c', FMenuRelNo);
+  menubar_->add("&Info/Relationship/Com&parison Chart", 0, FMenuRelNo);
+  menubar_->add("&Info/Relationship/&Synastry Chart", 0, FMenuRelSynastry);
+  menubar_->add("&Info/Relationship/&Composite Chart", 0, FMenuRelComposite);
+  menubar_->add("&Info/Relationship/Time Space &Midpoint Chart", 0, FMenuRelMidpoint, 0, FL_MENU_DIVIDER);
+  menubar_->add("&Info/Relationship/Date &Difference Chart", 'D', FMenuRelDate);
+#ifdef BIORHYTHM
+  menubar_->add("&Info/Relationship/&Biorhythm Chart", 'Y', FMenuRelBiorhythm);
+#endif
+  menubar_->add("&Info/Relationship/&Transit and Natal", 0, FMenuRelTransit);
+  menubar_->add("&Info/Relationship/&Progressed and Natal", 0, FMenuRelProgressed);
 
   // View menu - using legacy uppercase key mappings
   menubar_->add("&View/&Wheel Chart", 'V', FMenuViewWheel);
@@ -1281,6 +1313,67 @@ void FMenuChartNow(Fl_Widget *w, void *data)
   fi.fDoCast = fTrue;
   if (fi.chart) fi.chart->redraw();
 #endif
+}
+
+// Relationship chart callbacks
+static void FSetRel(int rc)
+{
+  CI ciT;
+  if (us.nRel == rcMidpoint) {  // Restore chart when leaving midpoint mode
+    ciT = ciMain;
+    ciCore = ciMain = ciSave;
+    ciSave = ciT;
+  }
+  if (rc == rcMidpoint)         // Remember chart so can restore it later
+    ciSave = ciMain;
+  us.nRel = rc;
+  fi.fDoCast = fTrue;
+  if (fi.chart) fi.chart->redraw();
+}
+
+void FMenuRelNo(Fl_Widget *w, void *data)
+{
+  FSetRel(us.nRel ? rcNone : rcDual);
+}
+
+void FMenuRelSynastry(Fl_Widget *w, void *data)
+{
+  FSetRel(rcSynastry);
+}
+
+void FMenuRelComposite(Fl_Widget *w, void *data)
+{
+  FSetRel(rcComposite);
+}
+
+void FMenuRelMidpoint(Fl_Widget *w, void *data)
+{
+  FSetRel(rcMidpoint);
+}
+
+void FMenuRelDate(Fl_Widget *w, void *data)
+{
+  FSetRel(rcDifference);
+  gi.nMode = gWheel;
+  us.fGraphics = fFalse;
+}
+
+#ifdef BIORHYTHM
+void FMenuRelBiorhythm(Fl_Widget *w, void *data)
+{
+  FSetRel(rcBiorhythm);
+  gi.nMode = gBiorhythm;
+}
+#endif
+
+void FMenuRelTransit(Fl_Widget *w, void *data)
+{
+  FSetRel(rcTransit);
+}
+
+void FMenuRelProgressed(Fl_Widget *w, void *data)
+{
+  FSetRel(rcProgress);
 }
 
 void FMenuCommand(Fl_Widget *w, void *data)
