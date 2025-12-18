@@ -100,6 +100,8 @@ static GB gbX11 = {
   X11DrawRect,
   X11DrawArc,
   X11DrawEllipse,
+  NULL,  // PutGlyph - X11 uses vector fallback
+  NULL,  // PutText - X11 uses vector fallback
   X11ClearScreen,
   X11Flush,
   NULL
@@ -250,6 +252,8 @@ static GB gbWin = {
   WinDrawRect,
   WinDrawArc,
   WinDrawEllipse,
+  NULL,  // PutGlyph - Windows uses DrawGlyph directly for now
+  NULL,  // PutText - Windows uses direct GDI calls for now
   WinClearScreenImpl,
   WinFlush,
   NULL
@@ -335,6 +339,8 @@ static GB gbFltk = {
   FltkDrawRect,
   FltkDrawArc,
   FltkDrawEllipse,
+  NULL,  // PutGlyph - FLTK uses vector fallback for now
+  NULL,  // PutText - FLTK uses vector fallback for now
   FltkClearScreen,
   FltkFlush,
   NULL

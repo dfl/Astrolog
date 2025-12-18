@@ -42,6 +42,10 @@ typedef struct _GraphicsBackend {
   void (*PutArc)(int x, int y, int w, int h, double deg1, double deg2);  // Draw arc
   void (*PutEllipse)(int x, int y, int w, int h);   // Draw filled ellipse
 
+  // Text/font rendering (returns 1 if rendered, 0 to use vector fallback)
+  int (*PutGlyph)(int ch, int x, int y, int nFont, int nScale);  // Draw glyph
+  int (*PutText)(const char *sz, int x, int y, int nFont, int nScale);  // Draw text
+
   // Screen management
   void (*ClearScreen)(int ki);        // Clear screen with color
   void (*Flush)(void);                // Flush pending drawing operations
@@ -93,6 +97,13 @@ extern void InitBackendFltk(void);
 
 // Check if a screen backend is active (not writing to file)
 #define FBackendActive() (gpBackend != NULL)
+
+// Text/font rendering macros (return 1 if rendered, 0 to use vector fallback)
+#define GBDrawGlyph(ch, x, y, nFont, nScale) \
+  (gpBackend && gpBackend->PutGlyph ? gpBackend->PutGlyph(ch, x, y, nFont, nScale) : 0)
+
+#define GBDrawText(sz, x, y, nFont, nScale) \
+  (gpBackend && gpBackend->PutText ? gpBackend->PutText(sz, x, y, nFont, nScale) : 0)
 
 #endif // GRAPH
 #endif // _XBACKEND_H
