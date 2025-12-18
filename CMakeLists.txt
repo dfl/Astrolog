@@ -9,7 +9,7 @@ option(USE_FLTK "Build with FLTK GUI" ON)
 option(USE_X11 "Build with X11 GUI (Unix only)" OFF)
 option(USE_WIN "Build with Win32 GUI (Windows only)" OFF)
 option(USE_CAIRO "Build with Cairo for vector rendering (SVG/PDF export)" ON)
-option(USE_OPENGL "Build with OpenGL for 3D chart rendering" ON)
+option(USE_OPENGL "Build with OpenGL for 3D chart rendering" OFF)
 
 # Make GUI options mutually exclusive
 if(USE_FLTK AND (USE_X11 OR USE_WIN))

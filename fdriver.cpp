@@ -141,6 +141,16 @@ void ChartWidget::draw()
   gs.xWin = w();
   gs.yWin = h();
 
+  // Auto-scale for map charts (World Map, AstroGraph) to fill window
+  // These charts use 360*nScale x 180*nScale coordinate system
+  if (gi.nMode == gWorldMap || gi.nMode == gAstroGraph) {
+    int scaleX = (gs.xWin * 100) / 360;  // Scale to fit width
+    int scaleY = (gs.yWin * 100) / 180;  // Scale to fit height
+    gs.nScale = Min(scaleX, scaleY);     // Use smaller to maintain aspect
+    gs.nScale = Max(gs.nScale, 100);     // Minimum scale of 100%
+    gi.nScale = gs.nScale / 100;
+  }
+
 #ifdef CAIRO
   if (fUseCairo) {
     // Get HiDPI scale factor - platform-specific detection
@@ -345,8 +355,25 @@ int ChartWidget::handle(int event)
     {
       int dy = Fl::event_dy();
       if (dy != 0) {
-        // Zoom in (dy < 0) or out (dy > 0)
-        if (FAdjustZoom(dy < 0 ? 1 : -1))
+        flag fChanged = fFalse;
+        // Local Horizon, Telescope, and Orbit views use gs.rspace for zoom
+        if (gi.nMode == gLocal || gi.nMode == gTelescope || gi.nMode == gOrbit) {
+          real r = gs.rspace;
+          if (r < rSmall)
+            r = (real)(1 << (4 - gi.nScale / gi.nScaleT));
+          if (dy < 0)
+            r /= 1.25;  // Zoom in (scroll up)
+          else
+            r *= 1.25;  // Zoom out (scroll down)
+          if (FValidZoom(r)) {
+            gs.rspace = r;
+            fChanged = fTrue;
+          }
+        } else {
+          // Other views use gs.nScale for zoom
+          fChanged = FAdjustZoom(dy < 0 ? 1 : -1);
+        }
+        if (fChanged)
           redraw();
       }
     }
