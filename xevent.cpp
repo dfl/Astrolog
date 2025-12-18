@@ -279,8 +279,8 @@ flag FIsMapMode(int nMode)
 // Check if current mode supports rotation (globe, local horizon, etc.)
 flag FSupportsRotation(int nMode)
 {
-  return nMode == gGlobe || nMode == gPolar || nMode == gLocal ||
-         nMode == gAstroGraph || nMode == gWorldMap ||
+  return nMode == gGlobe || nMode == gSphere || nMode == gPolar ||
+         nMode == gLocal || nMode == gAstroGraph || nMode == gWorldMap ||
          nMode == gMidpoint || nMode == gTelescope;
 }
 

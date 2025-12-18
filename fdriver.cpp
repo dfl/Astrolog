@@ -305,39 +305,35 @@ int ChartWidget::handle(int event)
     break;
 
   case FL_DRAG:
-    if (Fl::event_button() == FL_RIGHT_MOUSE) {
-      // Right mouse drag: rotate/tilt globe views
-      if (us.fGraphics && FSupportsRotation(gi.nMode)) {
-        // Calculate rotation delta with mode-specific factor
-        real rFactor = (gi.nMode == gLocal || gi.nMode == gTelescope) ?
-          -gi.zViewRatio : 1.0;
-        gs.rRot += (real)(mx - mousex_) * rDegHalf / (real)gs.xWin * rFactor;
+    // Both left and right mouse drag can rotate globe/map views
+    if (us.fGraphics && FSupportsRotation(gi.nMode) &&
+        !(Fl::event_state() & (FL_SHIFT | FL_ALT))) {
+      // Calculate rotation delta with mode-specific factor
+      real rFactor = (gi.nMode == gLocal || gi.nMode == gTelescope) ?
+        -gi.zViewRatio : 1.0;
+      gs.rRot += (real)(mx - mousex_) * rDegHalf / (real)gs.xWin * rFactor;
 
-        // Calculate tilt delta with mode-specific factor
-        rFactor = (gi.nMode == gLocal || gi.nMode == gTelescope) ? gi.zViewRatio :
-          (gi.nMode == gGlobe ? -1.0 : 1.0);
-        gs.rTilt += (real)(my - mousey_) * rDegHalf / (real)gs.yWin * rFactor;
+      // Calculate tilt delta with mode-specific factor
+      rFactor = (gi.nMode == gLocal || gi.nMode == gTelescope) ? gi.zViewRatio :
+        (gi.nMode == gGlobe ? -1.0 : 1.0);
+      gs.rTilt += (real)(my - mousey_) * rDegHalf / (real)gs.yWin * rFactor;
 
-        // Clamp values using shared helpers
-        ClampRotation();
-        ClampTilt();
+      // Clamp values using shared helpers
+      ClampRotation();
+      ClampTilt();
 
-        if (gi.nMode == gMidpoint || gi.nMode == gTelescope) {
-          if (gi.nMode == gMidpoint && gs.objTrack >= 0)
-            gs.rRot = planet[gs.objTrack];
-          gs.objTrack = -1;
-        }
-        mousex_ = mx;
-        mousey_ = my;
-        redraw();
+      if (gi.nMode == gMidpoint || gi.nMode == gTelescope) {
+        if (gi.nMode == gMidpoint && gs.objTrack >= 0)
+          gs.rRot = planet[gs.objTrack];
+        gs.objTrack = -1;
       }
-    } else if (Fl::event_button() == FL_LEFT_MOUSE) {
-      // Left mouse drag: draw line
-      if (Fl::event_state() & FL_SHIFT) {
-        // Would draw line, but needs proper implementation
-        mousex_ = mx;
-        mousey_ = my;
-      }
+      mousex_ = mx;
+      mousey_ = my;
+      redraw();
+    } else if (Fl::event_button() == FL_LEFT_MOUSE && (Fl::event_state() & FL_SHIFT)) {
+      // Shift+left drag: draw line
+      mousex_ = mx;
+      mousey_ = my;
     }
     return 1;
 
@@ -922,6 +918,14 @@ void AstrologWindow::resize(int x, int y, int w, int h)
   gs.yWin = fi.yClient;
   gi.xWinResize = gs.xWin;
   gi.yWinResize = gs.yWin;
+
+  // Trigger redraw of chart widgets after resize
+  if (chart_)
+    chart_->redraw();
+#ifdef OPENGL
+  if (chart3D_ && chart3D_->visible())
+    chart3D_->redraw();
+#endif
 }
 
 void AstrologWindow::timer_callback(void *data)
