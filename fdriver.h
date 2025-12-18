@@ -119,6 +119,9 @@ extern void FShowDlgCalc(void);
 extern void FShowDlgDisplay(void);
 extern void FShowDlgAnim(void);
 extern void FShowDlgAspect(void);
+extern void FShowDlgRestrict(int fTransit);
+extern void FShowDlgColor(void);
+extern void FShowDlgChartType(void);
 
 #endif // FLTK
 #endif // _FDRIVER_H

@@ -943,4 +943,354 @@ void FShowDlgAspect()
   }
 }
 
+/*
+******************************************************************************
+** Object Restrictions Dialog
+******************************************************************************
+*/
+
+#define cObjShow 21  // Show main planets + nodes
+
+static Fl_Window *s_dlgRestrict = NULL;
+static Fl_Check_Button *s_cbObj[cObjShow + 1];
+static flag s_fTransit = fFalse;
+
+static void cb_RestrictAll(Fl_Widget *w, void *data)
+{
+  for (int i = 0; i <= cObjShow; i++)
+    if (s_cbObj[i])
+      s_cbObj[i]->value(0);
+}
+
+static void cb_RestrictNone(Fl_Widget *w, void *data)
+{
+  for (int i = 0; i <= cObjShow; i++)
+    if (s_cbObj[i])
+      s_cbObj[i]->value(1);
+}
+
+static void cb_RestrictOK(Fl_Widget *w, void *data)
+{
+  byte *pb = s_fTransit ? ignore2 : ignore;
+  for (int i = 0; i <= cObjShow; i++)
+    if (s_cbObj[i])
+      pb[i] = !s_cbObj[i]->value();
+
+  AdjustRestrictions();
+  fi.fDoCast = fTrue;
+  if (fi.chart)
+    fi.chart->redraw();
+
+  if (s_dlgRestrict)
+    s_dlgRestrict->hide();
+}
+
+static void cb_RestrictCancel(Fl_Widget *w, void *data)
+{
+  if (s_dlgRestrict)
+    s_dlgRestrict->hide();
+}
+
+void FShowDlgRestrict(flag fTransit)
+{
+  s_fTransit = fTransit;
+  byte *pb = fTransit ? ignore2 : ignore;
+
+  int nObj = cObjShow;
+  int nCols = 2;
+  int nRows = (nObj + 1 + nCols - 1) / nCols;
+  int w = 320, h = nRows * 25 + 90;
+
+  s_dlgRestrict = new Fl_Window(w, h,
+    fTransit ? "Transit Object Restrictions" : "Object Restrictions");
+  s_dlgRestrict->begin();
+
+  int y = 10;
+  int colW = (w - 20) / nCols;
+
+  // Object checkboxes
+  for (int i = 0; i <= nObj; i++) {
+    int col = i / nRows;
+    int row = i % nRows;
+    int x = 10 + col * colW;
+    int yy = y + row * 25;
+
+    s_cbObj[i] = new Fl_Check_Button(x, yy, colW - 10, 25, szObjName[i]);
+    s_cbObj[i]->value(!pb[i]);  // Checked means shown (not restricted)
+  }
+
+  y += nRows * 25 + 10;
+
+  // Helper buttons
+  Fl_Button *btnAll = new Fl_Button(10, y, 70, 25, "Show All");
+  btnAll->callback(cb_RestrictAll);
+
+  Fl_Button *btnNone = new Fl_Button(85, y, 70, 25, "Hide All");
+  btnNone->callback(cb_RestrictNone);
+  y += 35;
+
+  // OK/Cancel buttons
+  Fl_Return_Button *btnOK = new Fl_Return_Button(w - 180, h - 40, 80, 30, "OK");
+  btnOK->callback(cb_RestrictOK);
+
+  Fl_Button *btnCancel = new Fl_Button(w - 90, h - 40, 80, 30, "Cancel");
+  btnCancel->callback(cb_RestrictCancel);
+
+  s_dlgRestrict->end();
+  s_dlgRestrict->set_modal();
+  s_dlgRestrict->show();
+
+  while (s_dlgRestrict->visible())
+    Fl::wait();
+
+  delete s_dlgRestrict;
+  s_dlgRestrict = NULL;
+  for (int i = 0; i <= nObj; i++)
+    s_cbObj[i] = NULL;
+}
+
+/*
+******************************************************************************
+** Color Settings Dialog
+******************************************************************************
+*/
+
+static Fl_Window *s_dlgColor = NULL;
+static Fl_Choice *s_chColorItem = NULL;
+static Fl_Int_Input *s_inColorR = NULL;
+static Fl_Int_Input *s_inColorG = NULL;
+static Fl_Int_Input *s_inColorB = NULL;
+static int s_nColorIndex = 0;
+
+static void UpdateColorFields()
+{
+  if (s_nColorIndex >= 0 && s_nColorIndex < cColor) {
+    char sz[32];
+    KV kv = rgbbmp[s_nColorIndex];
+    sprintf(sz, "%d", RgbR(kv));
+    s_inColorR->value(sz);
+    sprintf(sz, "%d", RgbG(kv));
+    s_inColorG->value(sz);
+    sprintf(sz, "%d", RgbB(kv));
+    s_inColorB->value(sz);
+  }
+}
+
+static void cb_ColorChoice(Fl_Widget *w, void *data)
+{
+  if (s_chColorItem) {
+    s_nColorIndex = s_chColorItem->value();
+    UpdateColorFields();
+  }
+}
+
+static void cb_ColorOK(Fl_Widget *w, void *data)
+{
+  if (s_nColorIndex >= 0 && s_nColorIndex < cColor) {
+    int r = atoi(s_inColorR->value());
+    int g = atoi(s_inColorG->value());
+    int b = atoi(s_inColorB->value());
+    r = Max(0, Min(255, r));
+    g = Max(0, Min(255, g));
+    b = Max(0, Min(255, b));
+    rgbbmp[s_nColorIndex] = Rgb(r, g, b);
+  }
+
+  if (fi.chart)
+    fi.chart->redraw();
+
+  if (s_dlgColor)
+    s_dlgColor->hide();
+}
+
+static void cb_ColorCancel(Fl_Widget *w, void *data)
+{
+  if (s_dlgColor)
+    s_dlgColor->hide();
+}
+
+void FShowDlgColor()
+{
+  int w = 300, h = 200;
+
+  s_dlgColor = new Fl_Window(w, h, "Color Settings");
+  s_dlgColor->begin();
+
+  int y = 10;
+
+  // Color selection dropdown
+  new Fl_Box(10, y, 60, 25, "Color:");
+  s_chColorItem = new Fl_Choice(70, y, 200, 25);
+  for (int i = 0; i < cColor; i++)
+    s_chColorItem->add(szColor[i]);
+  s_chColorItem->value(0);
+  s_chColorItem->callback(cb_ColorChoice);
+  y += 35;
+
+  // RGB inputs
+  new Fl_Box(10, y, 40, 25, "Red:");
+  s_inColorR = new Fl_Int_Input(50, y, 60, 25);
+  new Fl_Box(120, y, 50, 25, "Green:");
+  s_inColorG = new Fl_Int_Input(170, y, 60, 25);
+  y += 30;
+
+  new Fl_Box(10, y, 40, 25, "Blue:");
+  s_inColorB = new Fl_Int_Input(50, y, 60, 25);
+  y += 40;
+
+  // Initialize color fields
+  s_nColorIndex = 0;
+  UpdateColorFields();
+
+  // OK/Cancel buttons
+  Fl_Return_Button *btnOK = new Fl_Return_Button(w - 180, h - 40, 80, 30, "OK");
+  btnOK->callback(cb_ColorOK);
+
+  Fl_Button *btnCancel = new Fl_Button(w - 90, h - 40, 80, 30, "Cancel");
+  btnCancel->callback(cb_ColorCancel);
+
+  s_dlgColor->end();
+  s_dlgColor->set_modal();
+  s_dlgColor->show();
+
+  while (s_dlgColor->visible())
+    Fl::wait();
+
+  delete s_dlgColor;
+  s_dlgColor = NULL;
+  s_chColorItem = NULL;
+  s_inColorR = s_inColorG = s_inColorB = NULL;
+}
+
+/*
+******************************************************************************
+** Chart Type Dialog
+******************************************************************************
+*/
+
+static Fl_Window *s_dlgChartType = NULL;
+static Fl_Choice *s_chChartType = NULL;
+static Fl_Check_Button *s_cbChartMono = NULL;
+static Fl_Check_Button *s_cbChartGrid = NULL;
+static Fl_Check_Button *s_cbChartHouse = NULL;
+
+static void cb_ChartTypeOK(Fl_Widget *w, void *data)
+{
+  if (s_chChartType) {
+    int type = s_chChartType->value();
+    // Map choice to chart mode
+    switch (type) {
+    case 0: gi.nMode = gWheel; break;
+    case 1: gi.nMode = gHouse; break;
+    case 2: gi.nMode = gGrid; break;
+    case 3: gi.nMode = gHorizon; break;
+    case 4: gi.nMode = gOrbit; break;
+    case 5: gi.nMode = gSector; break;
+    case 6: gi.nMode = gAstroGraph; break;
+    case 7: gi.nMode = gEphemeris; break;
+    case 8: gi.nMode = gWorldMap; break;
+    case 9: gi.nMode = gGlobe; break;
+    case 10: gi.nMode = gPolar; break;
+    case 11: gi.nMode = gTelescope; break;
+    }
+  }
+
+  if (s_cbChartMono)
+    gs.fColor = !s_cbChartMono->value();
+  if (s_cbChartGrid)
+    us.fGridConfig = s_cbChartGrid->value();
+  if (s_cbChartHouse)
+    us.fWheelReverse = s_cbChartHouse->value();
+
+  fi.fDoCast = fTrue;
+  if (fi.chart)
+    fi.chart->redraw();
+
+  if (s_dlgChartType)
+    s_dlgChartType->hide();
+}
+
+static void cb_ChartTypeCancel(Fl_Widget *w, void *data)
+{
+  if (s_dlgChartType)
+    s_dlgChartType->hide();
+}
+
+void FShowDlgChartType()
+{
+  int w = 300, h = 230;
+
+  s_dlgChartType = new Fl_Window(w, h, "Chart Type");
+  s_dlgChartType->begin();
+
+  int y = 10;
+
+  // Chart type dropdown
+  new Fl_Box(10, y, 80, 25, "Chart Type:");
+  s_chChartType = new Fl_Choice(90, y, 180, 25);
+  s_chChartType->add("Standard Wheel");
+  s_chChartType->add("House Wheel");
+  s_chChartType->add("Aspect Grid");
+  s_chChartType->add("Horizon Chart");
+  s_chChartType->add("Orbit Chart");
+  s_chChartType->add("Sector Chart");
+  s_chChartType->add("Astro-Graph");
+  s_chChartType->add("Ephemeris");
+  s_chChartType->add("World Map");
+  s_chChartType->add("Globe");
+  s_chChartType->add("Polar Globe");
+  s_chChartType->add("Telescope");
+
+  // Set current mode
+  int current = 0;
+  switch (gi.nMode) {
+  case gWheel: current = 0; break;
+  case gHouse: current = 1; break;
+  case gGrid: current = 2; break;
+  case gHorizon: current = 3; break;
+  case gOrbit: current = 4; break;
+  case gSector: current = 5; break;
+  case gAstroGraph: current = 6; break;
+  case gEphemeris: current = 7; break;
+  case gWorldMap: current = 8; break;
+  case gGlobe: current = 9; break;
+  case gPolar: current = 10; break;
+  case gTelescope: current = 11; break;
+  }
+  s_chChartType->value(current);
+  y += 40;
+
+  // Options
+  s_cbChartMono = new Fl_Check_Button(10, y, 200, 25, "Monochrome");
+  s_cbChartMono->value(!gs.fColor);
+  y += 25;
+
+  s_cbChartGrid = new Fl_Check_Button(10, y, 200, 25, "Include aspects in grid");
+  s_cbChartGrid->value(us.fGridConfig);
+  y += 25;
+
+  s_cbChartHouse = new Fl_Check_Button(10, y, 200, 25, "Reverse wheel direction");
+  s_cbChartHouse->value(us.fWheelReverse);
+  y += 35;
+
+  // OK/Cancel buttons
+  Fl_Return_Button *btnOK = new Fl_Return_Button(w - 180, h - 40, 80, 30, "OK");
+  btnOK->callback(cb_ChartTypeOK);
+
+  Fl_Button *btnCancel = new Fl_Button(w - 90, h - 40, 80, 30, "Cancel");
+  btnCancel->callback(cb_ChartTypeCancel);
+
+  s_dlgChartType->end();
+  s_dlgChartType->set_modal();
+  s_dlgChartType->show();
+
+  while (s_dlgChartType->visible())
+    Fl::wait();
+
+  delete s_dlgChartType;
+  s_dlgChartType = NULL;
+  s_chChartType = NULL;
+  s_cbChartMono = s_cbChartGrid = s_cbChartHouse = NULL;
+}
+
 #endif // FLTK

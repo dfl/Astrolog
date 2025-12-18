@@ -363,6 +363,12 @@ void ChartWidget::requestResize(int w, int h)
   }
 }
 
+// Forward declarations for menu callbacks
+void FMenuRestrict(Fl_Widget *w, void *data);
+void FMenuRestrictTransit(Fl_Widget *w, void *data);
+void FMenuColorSettings(Fl_Widget *w, void *data);
+void FMenuChartType(Fl_Widget *w, void *data);
+
 /*
 ******************************************************************************
 ** AstrologWindow Implementation
@@ -474,6 +480,12 @@ void AstrologWindow::createMenus()
   menubar_->add("Se&ttings/&Display Settings...", 0, FMenuDisplaySettings);
   menubar_->add("Se&ttings/&Graphics Settings...", 0, FMenuGraphicsSettings);
   menubar_->add("Se&ttings/&Aspect Settings...", 0, FMenuAspectSettings);
+  menubar_->add("Se&ttings/&Object Restrictions...", 0, FMenuRestrict);
+  menubar_->add("Se&ttings/&Transit Restrictions...", 0, FMenuRestrictTransit);
+  menubar_->add("Se&ttings/Co&lor Settings...", 0, FMenuColorSettings);
+
+  // View menu - add Chart Type
+  menubar_->add("&View/Chart &Type...", 0, FMenuChartType);
 
   // Animate menu
   menubar_->add("&Animate/Animation &Settings...", 0, FMenuAnimSettings);
@@ -587,6 +599,26 @@ void FMenuAnimSettings(Fl_Widget *w, void *data)
 void FMenuAspectSettings(Fl_Widget *w, void *data)
 {
   FShowDlgAspect();
+}
+
+void FMenuRestrict(Fl_Widget *w, void *data)
+{
+  FShowDlgRestrict(fFalse);
+}
+
+void FMenuRestrictTransit(Fl_Widget *w, void *data)
+{
+  FShowDlgRestrict(fTrue);
+}
+
+void FMenuColorSettings(Fl_Widget *w, void *data)
+{
+  FShowDlgColor();
+}
+
+void FMenuChartType(Fl_Widget *w, void *data)
+{
+  FShowDlgChartType();
 }
 
 /*
