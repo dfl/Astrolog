@@ -230,8 +230,11 @@ int Globe3DWidget::handle(int event)
         real r = gs.rspace;
         if (r < rSmall)
           r = (real)(1 << (4 - gi.nScale / gi.nScaleT));
-        // Apply magnification as a continuous scale factor
-        r *= (1.0 - mag * 0.5);
+        // Use same zoom factor as mousewheel but scaled by magnification
+        if (mag > 0)
+          r /= (1.0 + mag * 0.02);  // Zoom in (pinch out)
+        else
+          r *= (1.0 - mag * 0.02);  // Zoom out (pinch in)
         if (FValidZoom(r)) {
           gs.rspace = r;
           redraw();
