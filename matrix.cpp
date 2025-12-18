@@ -342,6 +342,29 @@ real CuspEastPoint(void)
 
 
 // These are various different algorithms for calculating the house cusps.
+// Each house system divides the celestial sphere differently:
+//
+// PLACIDUS: Time-based. Divides the semi-arc (time from rise to culmination)
+//   into equal parts. Most popular system, but fails near polar latitudes.
+//   Uses iterative solution since there's no closed-form formula.
+//
+// KOCH: Similar to Placidus but projects birth horizon onto ecliptic.
+//   Also time-based and fails at extreme latitudes.
+//
+// CAMPANUS: Space-based. Divides the prime vertical (E-W great circle
+//   through zenith) into 30° segments, projects onto ecliptic.
+//
+// MERIDIAN (Axial): Divides the celestial equator into 30° segments,
+//   projects onto ecliptic. Independent of latitude.
+//
+// REGIOMONTANUS: Space-based. Divides the celestial equator, projects
+//   through the horizon poles onto the ecliptic.
+//
+// MORINUS: Divides the celestial equator, projects parallel to the
+//   equator onto the ecliptic. Simplest mathematically.
+//
+// TOPOCENTRIC: Modern system by Polich-Page. Uses different latitude
+//   values for different houses to approximate Placidus at extreme latitudes.
 
 real CuspPlacidus(real deg, real FF, flag fNeg)
 {
@@ -559,6 +582,37 @@ void ErrorCorrect(int ind, real *x, real *y, real *z)
 // This is the (classic) heart of the whole program of Astrolog. Calculate
 // the position of each body that orbits the Sun. A heliocentric chart is
 // most natural. Extra calculation is needed to have other central bodies.
+//
+// Algorithm overview - Keplerian orbital mechanics:
+//
+// 1. MEAN ANOMALY (M): Angular position if orbit were circular
+//    M = M0 + n*t, where n = mean motion (degrees/century)
+//
+// 2. KEPLER'S EQUATION: Relate mean anomaly to eccentric anomaly
+//    M = E - e*sin(E), solved iteratively for E (eccentric anomaly)
+//    The loop "EA = M + E*sin(EA)" converges in ~5 iterations
+//
+// 3. PERIFOCAL COORDINATES: Position in orbital plane
+//    x = a*(cos(E) - e)           [toward perihelion]
+//    y = a*sqrt(1-e²)*sin(E)      [perpendicular in orbital plane]
+//    where a = semi-major axis, e = eccentricity
+//
+// 4. VELOCITY COORDINATES: For calculating daily motion (ret[])
+//    vx = -a*n*sin(E) / (1 - e*cos(E))
+//    vy = a*n*sqrt(1-e²)*cos(E) / (1 - e*cos(E))
+//
+// 5. ROTATION TO ECLIPTIC: Apply 3 Euler angles via RecToSph2():
+//    - Argument of perihelion (AP): rotate in orbital plane
+//    - Longitude of ascending node (AN): rotate around ecliptic pole
+//    - Inclination (IN): tilt orbital plane to ecliptic
+//
+// Orbital elements from rgoe[] array (see struct OE in astrolog.h):
+//   ma0,ma1,ma2: Mean anomaly polynomial coefficients
+//   ec0,ec1,ec2: Eccentricity polynomial coefficients
+//   sma: Semi-major axis in AU
+//   ap0,ap1,ap2: Argument of perihelion coefficients
+//   an0,an1,an2: Ascending node coefficients
+//   in0,in1,in2: Inclination coefficients
 
 void ComputePlanets(void)
 {

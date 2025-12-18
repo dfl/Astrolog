@@ -853,6 +853,29 @@ void RecToSph3(real rx, real ry, real rz, real *azi, real *alt)
 // words, do a pole shift! This is used to convert among ecliptic, equatorial,
 // and local coordinates, each of which have zero declination in different
 // planes. In other words, take into account the Earth's axis.
+//
+// Mathematical basis: This implements a rotation matrix around the X-axis
+// (the direction of 0 degrees longitude). For input spherical coordinates
+// (azi, alt) and tilt angle T, the transformation is:
+//
+//   The 3D rotation matrix Rx(T) around the X-axis is:
+//   | 1     0       0      |
+//   | 0   cos(T)  -sin(T)  |
+//   | 0   sin(T)   cos(T)  |
+//
+//   Converting spherical to Cartesian: (with alt=latitude, azi=longitude)
+//     x = cos(alt) * cos(azi)
+//     y = cos(alt) * sin(azi)
+//     z = sin(alt)
+//
+//   After rotation, converting back to spherical:
+//     new_azi = atan2(y', x')  where y' = y*cos(T) - z*sin(T), x' = x
+//     new_alt = asin(y*sin(T) + z*cos(T))
+//
+// Common uses (via macros in extern.h):
+//   EclToEqu: tilt = obliquity (~23.4°) - ecliptic to equatorial
+//   EquToEcl: tilt = -obliquity - equatorial to ecliptic
+//   EquToLocal: tilt = observer's co-latitude - equatorial to horizon
 
 void CoorXform(real *azi, real *alt, real tilt)
 {
@@ -872,8 +895,10 @@ void CoorXform(real *azi, real *alt, real tilt)
 }
 
 
-// Fast version of CoorXForm() in which the slow trigonometry values have
+// Fast version of CoorXform() in which the slow trigonometry values have
 // already been computed. Useful when doing many transforms in a row.
+// Pre-compute: sinazi=sin(azi), cosazi=cos(azi), sinalt=sin(alt), etc.
+// See CoorXform() above for the mathematical derivation.
 
 void CoorXformFast(real *azi, real *alt, real sinazi, real cosazi,
   real sinalt, real cosalt, real sintilt, real costilt)

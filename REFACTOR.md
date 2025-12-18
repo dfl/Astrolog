@@ -27,10 +27,11 @@ The codebase uses cryptic single-letter variables extensively (e.g., `i, j, k` a
 Complex calculations lack explanatory comments.
 
 **Priority areas:**
-- [ ] Ephemeris calculations in `sweph.cpp`, `swecl.cpp`
-- [ ] House system calculations in `swehouse.cpp`
-- [ ] Matrix transformations in `calc.cpp` (`CoorXform`, `CoorXformFast`)
-- [ ] Chart casting logic
+- [ ] Ephemeris calculations in `sweph.cpp`, `swecl.cpp` (third-party Swiss Ephemeris)
+- [ ] House system calculations in `swehouse.cpp` (third-party Swiss Ephemeris)
+- [x] Matrix transformations in `calc.cpp` (`CoorXform`, `CoorXformFast`)
+- [x] Chart casting logic in `matrix.cpp` (Keplerian mechanics, house systems)
+- [x] Created `ALGORITHMS.md` reference document
 
 **Minimum documentation per function:**
 - Purpose/algorithm overview
