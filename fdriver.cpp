@@ -110,6 +110,16 @@ void FMenuIncludeStars(Fl_Widget *w, void *data);
 void FMenuChartNow(Fl_Widget *w, void *data);
 void FMenuSidereal(Fl_Widget *w, void *data);
 void FMenuHeliocentric(Fl_Widget *w, void *data);
+void FMenuGraphicsReverse(Fl_Widget *w, void *data);
+void FMenuGraphicsMonochrome(Fl_Widget *w, void *data);
+void FMenuGraphicsBorder(Fl_Widget *w, void *data);
+void FMenuGraphicsText(Fl_Widget *w, void *data);
+void FMenuGraphicsThick(Fl_Widget *w, void *data);
+void FMenuGraphicsLabel(Fl_Widget *w, void *data);
+void FMenuGraphicsLabelAsp(Fl_Widget *w, void *data);
+void FMenuGraphicsModify(Fl_Widget *w, void *data);
+void FMenuGraphicsHouseExtra(Fl_Widget *w, void *data);
+void FMenuGraphicsEquator(Fl_Widget *w, void *data);
 
 /*
 ******************************************************************************
@@ -507,61 +517,18 @@ int ChartWidget::handleKey(int key)
     neg(gi.nDir);
     return 1;
 
-  case 'x':
-    inv(gs.fInverse);
-    InitColorPalette(gs.fInverse);
-    redraw();
-    return 1;
-
-  case 'm':
-    inv(gs.fColor);
-    redraw();
-    return 1;
-
-  // Display toggles
-  case 't':
-    inv(gs.fText);
-    redraw();
-    return 1;
-
-  case 'i':
-    inv(gs.fAlt);
-    redraw();
-    return 1;
-
-  case 'b':
-    inv(gs.fBorder);
-    redraw();
-    return 1;
-
-  case 'q':
-    inv(gs.fThick);
-    redraw();
-    return 1;
-
-  case 'l':
-    inv(gs.fLabel);
-    redraw();
-    return 1;
-
-  case 'k':
-    inv(gs.fLabelAsp);
-    redraw();
-    return 1;
-
-  case 'j':
-    inv(gs.fJetTrail);
-    return 1;
-
-  case 'd':
-    inv(gs.fHouseExtra);
-    redraw();
-    return 1;
-
-  case 'e':
-    inv(gs.fEquator);
-    redraw();
-    return 1;
+  // Graphics toggles - delegate to menu callbacks
+  case 'x': FMenuGraphicsReverse(NULL, NULL); return 1;
+  case 'm': FMenuGraphicsMonochrome(NULL, NULL); return 1;
+  case 't': FMenuGraphicsText(NULL, NULL); return 1;
+  case 'i': FMenuGraphicsModify(NULL, NULL); return 1;
+  case 'b': FMenuGraphicsBorder(NULL, NULL); return 1;
+  case 'q': FMenuGraphicsThick(NULL, NULL); return 1;
+  case 'l': FMenuGraphicsLabel(NULL, NULL); return 1;
+  case 'k': FMenuGraphicsLabelAsp(NULL, NULL); return 1;
+  case 'j': inv(gs.fJetTrail); return 1;  // Timed exposure (no menu item)
+  case 'd': FMenuGraphicsHouseExtra(NULL, NULL); return 1;
+  case 'e': FMenuGraphicsEquator(NULL, NULL); return 1;
 
   case '=':
     inv(gs.fIndianWheel);
@@ -1082,6 +1049,18 @@ void AstrologWindow::createMenus()
   // View menu - add Chart Type
   menubar_->add("&View/Chart &Type...", 0, FMenuChartType);
 
+  // Graphics menu
+  menubar_->add("&Graphics/&Reverse Background", 'x', FMenuGraphicsReverse, 0, FL_MENU_TOGGLE);
+  menubar_->add("&Graphics/&Monochrome", 'm', FMenuGraphicsMonochrome, 0, FL_MENU_TOGGLE);
+  menubar_->add("&Graphics/Show &Border", 'b', FMenuGraphicsBorder, 0, FL_MENU_TOGGLE|FL_MENU_DIVIDER);
+  menubar_->add("&Graphics/Show Chart &Info", 't', FMenuGraphicsText, 0, FL_MENU_TOGGLE);
+  menubar_->add("&Graphics/&Thicker Lines", 'q', FMenuGraphicsThick, 0, FL_MENU_TOGGLE);
+  menubar_->add("&Graphics/Show Glyph &Labels", 'l', FMenuGraphicsLabel, 0, FL_MENU_TOGGLE);
+  menubar_->add("&Graphics/Show &Glyphs on Aspects", 'k', FMenuGraphicsLabelAsp, 0, FL_MENU_TOGGLE|FL_MENU_DIVIDER);
+  menubar_->add("&Graphics/Show &House Details", 'd', FMenuGraphicsHouseExtra, 0, FL_MENU_TOGGLE);
+  menubar_->add("&Graphics/Show &Equator", 'e', FMenuGraphicsEquator, 0, FL_MENU_TOGGLE|FL_MENU_DIVIDER);
+  menubar_->add("&Graphics/Modify &Display", 'i', FMenuGraphicsModify, 0, FL_MENU_TOGGLE);
+
   // Animate menu
   menubar_->add("&Animate/Animation &Settings...", 0, FMenuAnimSettings);
   menubar_->add("&Animate/&Pause\\/Play", ' ', FMenuAnimPause);
@@ -1583,6 +1562,78 @@ void FMenuHeliocentric(Fl_Widget *w, void *data)
   inv(us.objCenter);
   fi.fDoCast = fTrue;
   UpdateMenuCheck(FMenuHeliocentric, us.objCenter);
+  if (fi.chart) fi.chart->redraw();
+}
+
+// Graphics toggle callbacks
+void FMenuGraphicsReverse(Fl_Widget *w, void *data)
+{
+  inv(gs.fInverse);
+  InitColorPalette(gs.fInverse);
+  UpdateMenuCheck(FMenuGraphicsReverse, gs.fInverse);
+  if (fi.chart) fi.chart->redraw();
+}
+
+void FMenuGraphicsMonochrome(Fl_Widget *w, void *data)
+{
+  inv(gs.fColor);
+  UpdateMenuCheck(FMenuGraphicsMonochrome, !gs.fColor);
+  if (fi.chart) fi.chart->redraw();
+}
+
+void FMenuGraphicsBorder(Fl_Widget *w, void *data)
+{
+  inv(gs.fBorder);
+  UpdateMenuCheck(FMenuGraphicsBorder, gs.fBorder);
+  if (fi.chart) fi.chart->redraw();
+}
+
+void FMenuGraphicsText(Fl_Widget *w, void *data)
+{
+  inv(gs.fText);
+  UpdateMenuCheck(FMenuGraphicsText, gs.fText);
+  if (fi.chart) fi.chart->redraw();
+}
+
+void FMenuGraphicsThick(Fl_Widget *w, void *data)
+{
+  inv(gs.fThick);
+  UpdateMenuCheck(FMenuGraphicsThick, gs.fThick);
+  if (fi.chart) fi.chart->redraw();
+}
+
+void FMenuGraphicsLabel(Fl_Widget *w, void *data)
+{
+  inv(gs.fLabel);
+  UpdateMenuCheck(FMenuGraphicsLabel, gs.fLabel);
+  if (fi.chart) fi.chart->redraw();
+}
+
+void FMenuGraphicsLabelAsp(Fl_Widget *w, void *data)
+{
+  inv(gs.fLabelAsp);
+  UpdateMenuCheck(FMenuGraphicsLabelAsp, gs.fLabelAsp);
+  if (fi.chart) fi.chart->redraw();
+}
+
+void FMenuGraphicsModify(Fl_Widget *w, void *data)
+{
+  inv(gs.fAlt);
+  UpdateMenuCheck(FMenuGraphicsModify, gs.fAlt);
+  if (fi.chart) fi.chart->redraw();
+}
+
+void FMenuGraphicsHouseExtra(Fl_Widget *w, void *data)
+{
+  inv(gs.fHouseExtra);
+  UpdateMenuCheck(FMenuGraphicsHouseExtra, gs.fHouseExtra);
+  if (fi.chart) fi.chart->redraw();
+}
+
+void FMenuGraphicsEquator(Fl_Widget *w, void *data)
+{
+  inv(gs.fEquator);
+  UpdateMenuCheck(FMenuGraphicsEquator, gs.fEquator);
   if (fi.chart) fi.chart->redraw();
 }
 
