@@ -13,14 +13,26 @@
 
 #include "astrolog.h"
 #include "xevent.h"
+#include "xbackend.h"
 
 #ifdef FLTK
 #include "fdriver.h"
 #include <FL/Fl_File_Chooser.H>
 #include <FL/fl_ask.H>
 
+#ifdef CAIRO
+#include <cairo/cairo.h>
+#include <cairo/cairo-svg.h>
+#include <cairo/cairo-pdf.h>
+#endif
+
 // Global FLTK state
 FI fi = {0};
+
+// Flag to enable Cairo rendering (for antialiased graphics)
+#ifdef CAIRO
+static int fUseCairo = fTrue;  // Default to Cairo rendering when available
+#endif
 
 // Convert Astrolog color index to FLTK color
 // Astrolog stores colors as 0x00BBGGRR (Windows COLORREF format)
@@ -52,27 +64,79 @@ ChartWidget::~ChartWidget()
 
 void ChartWidget::draw()
 {
-  // Set up clipping region
-  fl_push_clip(x(), y(), w(), h());
+  // Clear the entire widget area with background color first
+  fl_color(FL_BLACK);
+  fl_rectf(x(), y(), w(), h());
 
   // Set the chart size to match the widget
   gs.xWin = w();
   gs.yWin = h();
 
-  // Clear background
-  fl_color(FltkColorFromKI(gi.kiOff));
-  fl_rectf(x(), y(), w(), h());
+#ifdef CAIRO
+  if (fUseCairo) {
+    // Cairo rendering path - antialiased, resolution-independent
+    cairo_surface_t *surface = cairo_image_surface_create(
+      CAIRO_FORMAT_ARGB32, w(), h());
 
-  // Set translation so drawing coordinates start at 0,0
-  fl_push_matrix();
-  fl_translate(x(), y());
+    // Switch to Cairo backend
+    InitBackendCairo(surface);
 
-  // Call Astrolog's chart drawing function
-  gi.fFile = fFalse;  // Drawing to screen, not file
-  DrawChartX();
+    // Clear background
+    GBClearScreen(gi.kiOff);
 
-  fl_pop_matrix();
-  fl_pop_clip();
+    // Draw the chart using Cairo backend
+    gi.fFile = fFalse;
+    DrawChartX();
+
+    // Blit Cairo surface to FLTK widget
+    // Cairo uses ARGB32 (premultiplied alpha), FLTK expects RGBA
+    cairo_surface_flush(surface);
+    unsigned char *data = cairo_image_surface_get_data(surface);
+    int stride = cairo_image_surface_get_stride(surface);
+
+    // Convert BGRA to RGBA for fl_draw_image
+    // Cairo on little-endian is BGRA in memory
+    for (int row = 0; row < h(); row++) {
+      unsigned char *p = data + row * stride;
+      for (int col = 0; col < w(); col++) {
+        unsigned char b = p[0];
+        unsigned char g = p[1];
+        unsigned char r = p[2];
+        unsigned char a = p[3];
+        p[0] = r;
+        p[1] = g;
+        p[2] = b;
+        p[3] = a;
+        p += 4;
+      }
+    }
+
+    fl_draw_image(data, x(), y(), w(), h(), 4, stride);
+
+    // Clean up
+    EndBackendCairo();
+    cairo_surface_destroy(surface);
+  } else
+#endif
+  {
+    // FLTK rendering path (original)
+    fl_push_clip(x(), y(), w(), h());
+
+    // Clear background
+    fl_color(FltkColorFromKI(gi.kiOff));
+    fl_rectf(x(), y(), w(), h());
+
+    // Set translation so drawing coordinates start at 0,0
+    fl_push_matrix();
+    fl_translate(x(), y());
+
+    // Call Astrolog's chart drawing function
+    gi.fFile = fFalse;  // Drawing to screen, not file
+    DrawChartX();
+
+    fl_pop_matrix();
+    fl_pop_clip();
+  }
 }
 
 int ChartWidget::handle(int event)
@@ -366,8 +430,12 @@ void FMenuAnimBack(Fl_Widget *w, void *data);
 */
 
 AstrologWindow::AstrologWindow(int w, int h, const char *title)
-  : Fl_Double_Window(w, h + 25, title), animating_(false)
+  : Fl_Double_Window(w, h + 25, title), animating_(false),
+    aspectRatio_((double)w / (double)h)
 {
+  // Set background to black to avoid white gaps during resize
+  color(FL_BLACK);
+
   // Create menu bar
   menubar_ = new Fl_Menu_Bar(0, 0, w, 25);
   createMenus();
@@ -398,9 +466,13 @@ void AstrologWindow::resize(int x, int y, int w, int h)
 {
   Fl_Double_Window::resize(x, y, w, h);
 
+  int menuH = 25;
+  int clientW = w;
+  int clientH = h - menuH;
+
   // Update global state
-  fi.xClient = w;
-  fi.yClient = h - 25;  // Subtract menu bar height
+  fi.xClient = clientW;
+  fi.yClient = clientH;
   gs.xWin = fi.xClient;
   gs.yWin = fi.yClient;
   gi.xWinResize = gs.xWin;
@@ -443,7 +515,11 @@ void AstrologWindow::createMenus()
   menubar_->add("&File/&Open Chart...", FL_CTRL+'o', FMenuFileOpen);
   menubar_->add("&File/&Save Chart...", FL_CTRL+'s', FMenuFileSave);
   menubar_->add("&File/Save &As...", 0, FMenuFileSaveAs);
-  menubar_->add("&File/Save &Image...", 0, (Fl_Callback*)NULL);
+#ifdef CAIRO
+  menubar_->add("&File/Export/&SVG...", 0, FMenuExportSVG);
+  menubar_->add("&File/Export/&PDF...", 0, FMenuExportPDF);
+#endif
+  menubar_->add("&File/Export/&Bitmap...", 0, FMenuExportBitmap);
   menubar_->add("&File/E&xit", FL_CTRL+'q', FMenuFileExit);
 
   // Edit menu
@@ -527,6 +603,87 @@ void FMenuFileSaveAs(Fl_Widget *w, void *data)
   if (chooser.value()) {
     // Save the chart file
     // FOutputData() or similar
+  }
+}
+
+#ifdef CAIRO
+void FMenuExportSVG(Fl_Widget *w, void *data)
+{
+  Fl_File_Chooser chooser(".", "SVG Files (*.svg)",
+    Fl_File_Chooser::CREATE, "Export as SVG");
+  chooser.show();
+  while (chooser.shown())
+    Fl::wait();
+
+  if (chooser.value()) {
+    // Create SVG surface
+    cairo_surface_t *surface = cairo_svg_surface_create(
+      chooser.value(), gs.xWin, gs.yWin);
+
+    if (cairo_surface_status(surface) == CAIRO_STATUS_SUCCESS) {
+      // Switch to Cairo backend and render
+      InitBackendCairo(surface);
+      GBClearScreen(gi.kiOff);
+      gi.fFile = fFalse;  // Use screen rendering path
+      DrawChartX();
+      EndBackendCairo();
+
+      cairo_surface_destroy(surface);
+
+      fl_message("Chart exported to %s", chooser.value());
+    } else {
+      fl_alert("Failed to create SVG file: %s",
+        cairo_status_to_string(cairo_surface_status(surface)));
+      cairo_surface_destroy(surface);
+    }
+  }
+}
+
+void FMenuExportPDF(Fl_Widget *w, void *data)
+{
+  Fl_File_Chooser chooser(".", "PDF Files (*.pdf)",
+    Fl_File_Chooser::CREATE, "Export as PDF");
+  chooser.show();
+  while (chooser.shown())
+    Fl::wait();
+
+  if (chooser.value()) {
+    // Create PDF surface
+    cairo_surface_t *surface = cairo_pdf_surface_create(
+      chooser.value(), gs.xWin, gs.yWin);
+
+    if (cairo_surface_status(surface) == CAIRO_STATUS_SUCCESS) {
+      // Switch to Cairo backend and render
+      InitBackendCairo(surface);
+      GBClearScreen(gi.kiOff);
+      gi.fFile = fFalse;
+      DrawChartX();
+      EndBackendCairo();
+
+      cairo_surface_destroy(surface);
+
+      fl_message("Chart exported to %s", chooser.value());
+    } else {
+      fl_alert("Failed to create PDF file: %s",
+        cairo_status_to_string(cairo_surface_status(surface)));
+      cairo_surface_destroy(surface);
+    }
+  }
+}
+#endif // CAIRO
+
+void FMenuExportBitmap(Fl_Widget *w, void *data)
+{
+  Fl_File_Chooser chooser(".", "Bitmap Files (*.bmp)",
+    Fl_File_Chooser::CREATE, "Export as Bitmap");
+  chooser.show();
+  while (chooser.shown())
+    Fl::wait();
+
+  if (chooser.value()) {
+    // Use existing BMP export mechanism
+    // TODO: Implement using gs.ft = ftBmp
+    fl_message("Bitmap export not yet implemented");
   }
 }
 

@@ -81,6 +81,7 @@ private:
   ChartWidget *chart_;
   Fl_Menu_Bar *menubar_;
   bool animating_;
+  double aspectRatio_;    // Initial aspect ratio (width/height)
 
   void createMenus();
 };
@@ -94,6 +95,11 @@ extern void EndFltk(void);
 extern void FMenuFileOpen(Fl_Widget *w, void *data);
 extern void FMenuFileSave(Fl_Widget *w, void *data);
 extern void FMenuFileSaveAs(Fl_Widget *w, void *data);
+#ifdef CAIRO
+extern void FMenuExportSVG(Fl_Widget *w, void *data);
+extern void FMenuExportPDF(Fl_Widget *w, void *data);
+#endif
+extern void FMenuExportBitmap(Fl_Widget *w, void *data);
 extern void FMenuFileExit(Fl_Widget *w, void *data);
 extern void FMenuEditCopy(Fl_Widget *w, void *data);
 extern void FMenuCommand(Fl_Widget *w, void *data);

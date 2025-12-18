@@ -8,6 +8,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 option(USE_FLTK "Build with FLTK GUI" ON)
 option(USE_X11 "Build with X11 GUI (Unix only)" OFF)
 option(USE_WIN "Build with Win32 GUI (Windows only)" OFF)
+option(USE_CAIRO "Build with Cairo for vector rendering (SVG/PDF export)" ON)
 
 # Make GUI options mutually exclusive
 if(USE_FLTK AND (USE_X11 OR USE_WIN))
@@ -129,8 +130,45 @@ if(USE_WIN)
   message(STATUS "Building with Win32 GUI backend")
 endif()
 
+# Cairo Backend (optional, for SVG/PDF rendering)
+if(USE_CAIRO)
+  find_package(PkgConfig)
+  if(PkgConfig_FOUND)
+    pkg_check_modules(CAIRO cairo)
+    if(CAIRO_FOUND)
+      list(APPEND COMPILE_DEFS CAIRO)
+      message(STATUS "Building with Cairo vector rendering support")
+    else()
+      message(STATUS "Cairo not found - SVG/PDF export will be disabled")
+      message(STATUS "  Install Cairo: brew install cairo (macOS) or apt install libcairo2-dev (Linux)")
+    endif()
+  else()
+    message(STATUS "pkg-config not found - Cairo detection skipped")
+  endif()
+endif()
+
 # Create executable
 add_executable(astrolog ${SOURCES})
+
+# macOS app bundle
+if(APPLE AND USE_FLTK)
+  set(MACOSX_BUNDLE_ICON_FILE Astrolog.icns)
+  set(APP_ICON_MACOS "${CMAKE_CURRENT_SOURCE_DIR}/resources/Astrolog.icns")
+  set_source_files_properties(${APP_ICON_MACOS} PROPERTIES
+    MACOSX_PACKAGE_LOCATION "Resources"
+  )
+  target_sources(astrolog PRIVATE ${APP_ICON_MACOS})
+  set_target_properties(astrolog PROPERTIES
+    MACOSX_BUNDLE TRUE
+    MACOSX_BUNDLE_BUNDLE_NAME "Astrolog"
+    MACOSX_BUNDLE_BUNDLE_VERSION "${PROJECT_VERSION}"
+    MACOSX_BUNDLE_SHORT_VERSION_STRING "${PROJECT_VERSION}"
+    MACOSX_BUNDLE_GUI_IDENTIFIER "org.astrolog.Astrolog"
+    MACOSX_BUNDLE_COPYRIGHT "Copyright © 2024 Astrolog"
+    MACOSX_BUNDLE_ICON_FILE "Astrolog.icns"
+    OUTPUT_NAME "Astrolog"
+  )
+endif()
 
 # Apply compile definitions
 target_compile_definitions(astrolog PRIVATE ${COMPILE_DEFS})
@@ -153,6 +191,11 @@ endif()
 if(USE_X11)
   target_include_directories(astrolog PRIVATE ${X11_INCLUDE_DIR})
   target_link_libraries(astrolog ${X11_LIBRARIES})
+endif()
+
+if(USE_CAIRO AND CAIRO_FOUND)
+  target_include_directories(astrolog PRIVATE ${CAIRO_INCLUDE_DIRS})
+  target_link_libraries(astrolog ${CAIRO_LIBRARIES})
 endif()
 
 if(USE_WIN)
@@ -180,7 +223,11 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
 endif()
 
 # Installation
-install(TARGETS astrolog RUNTIME DESTINATION bin)
+if(APPLE AND USE_FLTK)
+  install(TARGETS astrolog BUNDLE DESTINATION .)
+else()
+  install(TARGETS astrolog RUNTIME DESTINATION bin)
+endif()
 
 # Print configuration summary
 message(STATUS "")
@@ -191,4 +238,5 @@ message(STATUS "Build Type: ${CMAKE_BUILD_TYPE}")
 message(STATUS "FLTK Backend: ${USE_FLTK}")
 message(STATUS "X11 Backend: ${USE_X11}")
 message(STATUS "Win32 Backend: ${USE_WIN}")
+message(STATUS "Cairo Support: ${CAIRO_FOUND}")
 message(STATUS "")
