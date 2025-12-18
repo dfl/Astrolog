@@ -368,6 +368,18 @@ void FMenuRestrict(Fl_Widget *w, void *data);
 void FMenuRestrictTransit(Fl_Widget *w, void *data);
 void FMenuColorSettings(Fl_Widget *w, void *data);
 void FMenuChartType(Fl_Widget *w, void *data);
+void FMenuViewWheel(Fl_Widget *w, void *data);
+void FMenuViewGrid(Fl_Widget *w, void *data);
+void FMenuViewMidpoint(Fl_Widget *w, void *data);
+void FMenuViewHorizon(Fl_Widget *w, void *data);
+void FMenuViewOrbit(Fl_Widget *w, void *data);
+void FMenuViewAstroGraph(Fl_Widget *w, void *data);
+void FMenuViewGlobe(Fl_Widget *w, void *data);
+void FMenuViewWorldMap(Fl_Widget *w, void *data);
+void FMenuAnimPause(Fl_Widget *w, void *data);
+void FMenuAnimReverse(Fl_Widget *w, void *data);
+void FMenuAnimForward(Fl_Widget *w, void *data);
+void FMenuAnimBack(Fl_Widget *w, void *data);
 
 /*
 ******************************************************************************
@@ -466,14 +478,14 @@ void AstrologWindow::createMenus()
   menubar_->add("&Info/Set Chart #&2 Info...", 0, FMenuInfoChart2);
 
   // View menu
-  menubar_->add("&View/&Wheel Chart", 'v', (Fl_Callback*)NULL);
-  menubar_->add("&View/&Aspect Grid", 'g', (Fl_Callback*)NULL);
-  menubar_->add("&View/&Midpoint Grid", 0, (Fl_Callback*)NULL);
-  menubar_->add("&View/&Horizon Chart", 'z', (Fl_Callback*)NULL);
-  menubar_->add("&View/&Orbit Chart", 0, (Fl_Callback*)NULL);
-  menubar_->add("&View/&Astro-Graph", 'a', (Fl_Callback*)NULL);
-  menubar_->add("&View/&Globe", 0, (Fl_Callback*)NULL);
-  menubar_->add("&View/&World Map", 'w', (Fl_Callback*)NULL);
+  menubar_->add("&View/&Wheel Chart", 'v', FMenuViewWheel);
+  menubar_->add("&View/&Aspect Grid", 'g', FMenuViewGrid);
+  menubar_->add("&View/&Midpoint Grid", 0, FMenuViewMidpoint);
+  menubar_->add("&View/&Horizon Chart", 'z', FMenuViewHorizon);
+  menubar_->add("&View/&Orbit Chart", 0, FMenuViewOrbit);
+  menubar_->add("&View/&Astro-Graph", 'a', FMenuViewAstroGraph);
+  menubar_->add("&View/&Globe", 0, FMenuViewGlobe);
+  menubar_->add("&View/&World Map", 'w', FMenuViewWorldMap);
 
   // Settings menu
   menubar_->add("Se&ttings/&Calculation Settings...", 0, FMenuCalcSettings);
@@ -489,10 +501,10 @@ void AstrologWindow::createMenus()
 
   // Animate menu
   menubar_->add("&Animate/Animation &Settings...", 0, FMenuAnimSettings);
-  menubar_->add("&Animate/&Pause", 'p', (Fl_Callback*)NULL);
-  menubar_->add("&Animate/&Reverse", 'r', (Fl_Callback*)NULL);
-  menubar_->add("&Animate/Jump &Forward", 0, (Fl_Callback*)NULL);
-  menubar_->add("&Animate/Jump &Back", 0, (Fl_Callback*)NULL);
+  menubar_->add("&Animate/&Pause", 'p', FMenuAnimPause);
+  menubar_->add("&Animate/&Reverse", 'r', FMenuAnimReverse);
+  menubar_->add("&Animate/Jump &Forward", 0, FMenuAnimForward);
+  menubar_->add("&Animate/Jump &Back", 0, FMenuAnimBack);
 
   // Help menu
   menubar_->add("&Help/&About Astrolog...", 0, FMenuHelpAbout);
@@ -619,6 +631,88 @@ void FMenuColorSettings(Fl_Widget *w, void *data)
 void FMenuChartType(Fl_Widget *w, void *data)
 {
   FShowDlgChartType();
+}
+
+// View menu callbacks for chart type switching
+void FMenuViewWheel(Fl_Widget *w, void *data)
+{
+  gi.nMode = gWheel;
+  fi.fDoCast = fTrue;
+  if (fi.chart) fi.chart->redraw();
+}
+
+void FMenuViewGrid(Fl_Widget *w, void *data)
+{
+  gi.nMode = gGrid;
+  fi.fDoCast = fTrue;
+  if (fi.chart) fi.chart->redraw();
+}
+
+void FMenuViewMidpoint(Fl_Widget *w, void *data)
+{
+  gi.nMode = gMidpoint;
+  fi.fDoCast = fTrue;
+  if (fi.chart) fi.chart->redraw();
+}
+
+void FMenuViewHorizon(Fl_Widget *w, void *data)
+{
+  gi.nMode = gHorizon;
+  fi.fDoCast = fTrue;
+  if (fi.chart) fi.chart->redraw();
+}
+
+void FMenuViewOrbit(Fl_Widget *w, void *data)
+{
+  gi.nMode = gOrbit;
+  fi.fDoCast = fTrue;
+  if (fi.chart) fi.chart->redraw();
+}
+
+void FMenuViewAstroGraph(Fl_Widget *w, void *data)
+{
+  gi.nMode = gAstroGraph;
+  fi.fDoCast = fTrue;
+  if (fi.chart) fi.chart->redraw();
+}
+
+void FMenuViewGlobe(Fl_Widget *w, void *data)
+{
+  gi.nMode = gGlobe;
+  fi.fDoCast = fTrue;
+  if (fi.chart) fi.chart->redraw();
+}
+
+void FMenuViewWorldMap(Fl_Widget *w, void *data)
+{
+  gi.nMode = gWorldMap;
+  fi.fDoCast = fTrue;
+  if (fi.chart) fi.chart->redraw();
+}
+
+// Animate menu callbacks
+void FMenuAnimPause(Fl_Widget *w, void *data)
+{
+  inv(gi.fPause);
+}
+
+void FMenuAnimReverse(Fl_Widget *w, void *data)
+{
+  neg(gi.nDir);
+}
+
+void FMenuAnimForward(Fl_Widget *w, void *data)
+{
+  Animate(gs.nAnim, gi.nDir);
+  fi.fDoCast = fTrue;
+  if (fi.chart) fi.chart->redraw();
+}
+
+void FMenuAnimBack(Fl_Widget *w, void *data)
+{
+  Animate(gs.nAnim, -gi.nDir);
+  fi.fDoCast = fTrue;
+  if (fi.chart) fi.chart->redraw();
 }
 
 /*
