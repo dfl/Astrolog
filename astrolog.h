@@ -83,6 +83,7 @@
 #include <stdio.h>
 #ifdef __APPLE__
 // Silence macOS sprintf deprecation warning (1300+ calls impractical to convert)
+#pragma clang diagnostic ignored "-Wfortify-source"
 #define sprintf(buf, ...) snprintf(buf, __INT_MAX__, __VA_ARGS__)
 #endif
 #ifndef ATOF
