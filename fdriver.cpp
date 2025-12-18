@@ -57,6 +57,38 @@ void FMenuViewCairo(Fl_Widget *w, void *data)
 }
 #endif
 
+// Flag to enable OpenGL 3D rendering
+#ifdef OPENGL
+static int fUseOpenGL = fTrue;  // Default to OpenGL rendering when available
+
+void FMenuViewOpenGL(Fl_Widget *w, void *data)
+{
+  fUseOpenGL = !fUseOpenGL;
+
+  // Update menu checkmark
+  if (fi.menubar) {
+    Fl_Menu_Item *item = (Fl_Menu_Item *)fi.menubar->find_item(FMenuViewOpenGL);
+    if (item) {
+      if (fUseOpenGL)
+        item->set();
+      else
+        item->clear();
+    }
+  }
+
+  // If currently in a 3D mode, switch widgets accordingly
+  if (fi.window && FIs3DChartMode(gi.nMode)) {
+    fi.window->switchTo3D(fUseOpenGL);
+  }
+}
+
+// Check if OpenGL rendering is enabled
+int FUseOpenGL(void)
+{
+  return fUseOpenGL;
+}
+#endif
+
 // Convert Astrolog color index to FLTK color
 // Astrolog stores colors as 0x00BBGGRR (Windows COLORREF format)
 Fl_Color FltkColorFromKI(int ki)
@@ -315,7 +347,13 @@ int ChartWidget::handle(int event)
     return 1;
 
   case FL_KEYDOWN:
-    return handleKey(Fl::event_key());
+    // Use event_text() to get the actual character typed (with Shift applied)
+    // Fall back to event_key() for special keys (arrows, function keys, etc.)
+    {
+      const char *text = Fl::event_text();
+      int key = (text && text[0] && !text[1]) ? (unsigned char)text[0] : Fl::event_key();
+      return handleKey(key);
+    }
 
   default:
     break;
@@ -917,6 +955,9 @@ void AstrologWindow::createMenus()
 #ifdef CAIRO
   menubar_->add("&View/Antialiased (&Cairo)", 0, FMenuViewCairo, 0, FL_MENU_TOGGLE|FL_MENU_VALUE);
 #endif
+#ifdef OPENGL
+  menubar_->add("&View/3D with &OpenGL", 0, FMenuViewOpenGL, 0, FL_MENU_TOGGLE|FL_MENU_VALUE);
+#endif
 
   // Settings menu
   menubar_->add("Se&ttings/&Calculation Settings...", 0, FMenuCalcSettings);
@@ -1217,7 +1258,7 @@ void FMenuViewGlobe(Fl_Widget *w, void *data)
   gi.nMode = gGlobe;
   fi.fDoCast = fTrue;
 #ifdef OPENGL
-  if (fi.window) fi.window->switchTo3D(true);
+  if (fi.window) fi.window->switchTo3D(fUseOpenGL);
 #else
   if (fi.chart) fi.chart->redraw();
 #endif
@@ -1228,7 +1269,7 @@ void FMenuViewSphere(Fl_Widget *w, void *data)
   gi.nMode = gSphere;
   fi.fDoCast = fTrue;
 #ifdef OPENGL
-  if (fi.window) fi.window->switchTo3D(true);
+  if (fi.window) fi.window->switchTo3D(fUseOpenGL);
 #else
   if (fi.chart) fi.chart->redraw();
 #endif
@@ -1239,7 +1280,7 @@ void FMenuViewLocal(Fl_Widget *w, void *data)
   gi.nMode = gLocal;
   fi.fDoCast = fTrue;
 #ifdef OPENGL
-  if (fi.window) fi.window->switchTo3D(true);
+  if (fi.window) fi.window->switchTo3D(fUseOpenGL);
 #else
   if (fi.chart) fi.chart->redraw();
 #endif
@@ -1250,7 +1291,7 @@ void FMenuViewTelescope(Fl_Widget *w, void *data)
   gi.nMode = gTelescope;
   fi.fDoCast = fTrue;
 #ifdef OPENGL
-  if (fi.window) fi.window->switchTo3D(true);
+  if (fi.window) fi.window->switchTo3D(fUseOpenGL);
 #else
   if (fi.chart) fi.chart->redraw();
 #endif
@@ -1261,7 +1302,7 @@ void FMenuViewPolar(Fl_Widget *w, void *data)
   gi.nMode = gPolar;
   fi.fDoCast = fTrue;
 #ifdef OPENGL
-  if (fi.window) fi.window->switchTo3D(true);
+  if (fi.window) fi.window->switchTo3D(fUseOpenGL);
 #else
   if (fi.chart) fi.chart->redraw();
 #endif
