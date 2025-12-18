@@ -106,6 +106,9 @@ void FMenuIncludeMoons(Fl_Widget *w, void *data);
 void FMenuIncludeCOB(Fl_Widget *w, void *data);
 void FMenuIncludeStars(Fl_Widget *w, void *data);
 
+// Forward declarations for other menu callbacks (used by handleKey)
+void FMenuChartNow(Fl_Widget *w, void *data);
+
 /*
 ******************************************************************************
 ** ChartWidget Implementation
@@ -718,14 +721,7 @@ int ChartWidget::handleKey(int key)
     return 1;
 
   // Set current time
-#ifdef TIME
-  case 'n':
-    Animate(10, 0);
-    ciMain = ciCore;
-    fi.fDoCast = fTrue;
-    redraw();
-    return 1;
-#endif
+  case 'n': FMenuChartNow(NULL, NULL); return 1;
 
   // Toggle continuous animation
   case 'N':
@@ -1052,6 +1048,7 @@ void AstrologWindow::createMenus()
 
   // Info menu
   menubar_->add("&Info/Set &Chart Info...", FL_COMMAND+'i', FMenuInfoChart);
+  menubar_->add("&Info/Chart for &Now", 'n', FMenuChartNow);
   menubar_->add("&Info/Set Chart #&2 Info...", 0, FMenuInfoChart2);
 
   // View menu - using legacy uppercase key mappings
@@ -1248,6 +1245,16 @@ void FMenuInfoChart(Fl_Widget *w, void *data)
 void FMenuInfoChart2(Fl_Widget *w, void *data)
 {
   FShowDlgInfo(2);
+}
+
+void FMenuChartNow(Fl_Widget *w, void *data)
+{
+#ifdef TIME
+  Animate(10, 0);
+  ciMain = ciCore;
+  fi.fDoCast = fTrue;
+  if (fi.chart) fi.chart->redraw();
+#endif
 }
 
 void FMenuCommand(Fl_Widget *w, void *data)
