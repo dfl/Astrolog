@@ -357,52 +357,67 @@ void AdjustGlyph(int *ch, int *x, int *y, int *fi, int *nScale,
 #endif
 
 
-#ifdef WINANY
+#ifdef ISG
 // Draw an astrology character from a special font on the screen. Used to draw
 // sign, planet, aspect, and Nakshatra glyphs from these fonts within charts.
+// Returns fTrue if glyph was drawn, fFalse to fall back to vector drawing.
 
 flag DrawGlyph(int ch, int x, int y, int fi, int nScale)
 {
-  HFONT hfont, hfontPrev;
-  SIZE size;
-  char sz[3];
-  WCHAR wz[2];
-  KV kvSav;
-  int cch = 1 + (fi == fiArial && ch < 0), nSav;
+  // First try the graphics backend's glyph rendering
+  if (GBDrawGlyph(ch, x, y, fi, nScale))
+    return fTrue;
 
-  // Fonts: 1=Wingdings, 2=Astro, 3=EnigmaAstrology, 4=HamburgSymbols,
-  // 5=Astronomicon, 6=Courier New, 7=Consolas, 8=Arial, 9=HanksNakshatra
-  hfont = CreateFont(12*gi.nScale*nScale/100, 0, 0, 0, !gs.fThick ? 400 : 800,
-    fFalse, fFalse, fFalse, FBetween(fi, fiCourier, fiArial) ?
-    DEFAULT_CHARSET : (fi >= fiAstro && fi != fiNakshatr ? ANSI_CHARSET :
-    SYMBOL_CHARSET), OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, PROOF_QUALITY,
-    VARIABLE_PITCH | FF_DECORATIVE, rgszFontName[fi]);
-  if (hfont == NULL)
-    return fFalse;
-  hfontPrev = (HFONT)SelectObject(wi.hdc, hfont);
-  kvSav = GetTextColor(wi.hdc);
-  SetTextColor(wi.hdc, rgbbmp[gi.kiCur]);
-  nSav = SetBkMode(wi.hdc, TRANSPARENT);
-  if (FBetween(fi, fiCourier, fiArial) && cch <= 1) {
-    wz[0] = ch; wz[1] = chNull;
-    GetTextExtentPointW(wi.hdc, wz, cch, &size);
-    TextOutW(wi.hdc, x - (size.cx >> 1), y - (size.cy >> 1), wz, cch);
-  } else {
-    if (cch <= 1) {
-      sz[0] = ch; sz[1] = chNull;
-    } else
-      sprintf(sz, "%d", -ch);
-    GetTextExtentPoint(wi.hdc, sz, cch, &size);
-    TextOut(wi.hdc, x - (size.cx >> 1), y - (size.cy >> 1), sz, cch);
+#ifdef WINANY
+  // Fall back to Windows GDI font rendering
+  {
+    HFONT hfont, hfontPrev;
+    SIZE size;
+    char sz[3];
+    WCHAR wz[2];
+    KV kvSav;
+    int cch = 1 + (fi == fiArial && ch < 0), nSav;
+
+    // Fonts: 1=Wingdings, 2=Astro, 3=EnigmaAstrology, 4=HamburgSymbols,
+    // 5=Astronomicon, 6=Courier New, 7=Consolas, 8=Arial, 9=HanksNakshatra
+    hfont = CreateFont(12*gi.nScale*nScale/100, 0, 0, 0, !gs.fThick ? 400 : 800,
+      fFalse, fFalse, fFalse, FBetween(fi, fiCourier, fiArial) ?
+      DEFAULT_CHARSET : (fi >= fiAstro && fi != fiNakshatr ? ANSI_CHARSET :
+      SYMBOL_CHARSET), OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, PROOF_QUALITY,
+      VARIABLE_PITCH | FF_DECORATIVE, rgszFontName[fi]);
+    if (hfont == NULL)
+      return fFalse;
+    hfontPrev = (HFONT)SelectObject(wi.hdc, hfont);
+    kvSav = GetTextColor(wi.hdc);
+    SetTextColor(wi.hdc, rgbbmp[gi.kiCur]);
+    nSav = SetBkMode(wi.hdc, TRANSPARENT);
+    if (FBetween(fi, fiCourier, fiArial) && cch <= 1) {
+      wz[0] = ch; wz[1] = chNull;
+      GetTextExtentPointW(wi.hdc, wz, cch, &size);
+      TextOutW(wi.hdc, x - (size.cx >> 1), y - (size.cy >> 1), wz, cch);
+    } else {
+      if (cch <= 1) {
+        sz[0] = ch; sz[1] = chNull;
+      } else
+        sprintf(sz, "%d", -ch);
+      GetTextExtentPoint(wi.hdc, sz, cch, &size);
+      TextOut(wi.hdc, x - (size.cx >> 1), y - (size.cy >> 1), sz, cch);
+    }
+    SetBkMode(wi.hdc, nSav);
+    SetTextColor(wi.hdc, kvSav);
+    SelectObject(wi.hdc, hfontPrev);
+    DeleteObject(hfont);
+    return fTrue;
   }
-  SetBkMode(wi.hdc, nSav);
-  SetTextColor(wi.hdc, kvSav);
-  SelectObject(wi.hdc, hfontPrev);
-  DeleteObject(hfont);
-  return fTrue;
+#else
+  // No Windows fallback available, use vector glyphs
+  return fFalse;
+#endif
 }
+#endif // ISG
 
 
+#ifdef WINANY
 // Clear and erase the entire graphics screen on Windows.
 
 void WinClearScreen(KI ki)
@@ -413,7 +428,7 @@ void WinClearScreen(KI ki)
   SelectObject(wi.hdc, GetStockObject(NULL_BRUSH));
   DeleteObject(wi.hbrush);
 }
-#endif
+#endif // WINANY
 
 
 // Clear and erase the graphics screen or bitmap contents.
@@ -1137,7 +1152,7 @@ void DrawSign(int i, int x, int y)
   fDoThin = gs.fThick && nFont == 0 && ch <= 0 && gi.nScale <= gi.nScaleT;
   if (fDoThin)
     DrawThick(fFalse);
-#ifdef WINANY
+#ifdef ISG
   if (!gi.fFile && ch > 0) {
     if (DrawGlyph(ch, x, y, nFont, nScale))
       return;
@@ -1200,7 +1215,7 @@ void DrawHouse(int i, int x, int y)
   fDoThin = gs.fThick && nFont == 0 && ch <= 0 && gi.nScale <= gi.nScaleT;
   if (fDoThin)
     DrawThick(fFalse);
-#ifdef WINANY
+#ifdef ISG
   if (!gi.fFile && ch > 0) {
     if (nFont == fiArial)
       ch = (i <= 9 ? '0' + i : -i);
@@ -1342,7 +1357,7 @@ void DrawObject(int obj, int x, int y)
   fDoThin = gs.fThick && nFont == 0 && ch <= 0 && gi.nScale <= gi.nScaleT;
   if (fDoThin)
     DrawThick(fFalse);
-#ifdef WINANY
+#ifdef ISG
   if (!gi.fFile && ch > 0) {
     if (DrawGlyph(ch, x, y, nFont, nScale))
       return;
@@ -1543,7 +1558,7 @@ void DrawAspect(int asp, int x, int y)
   fDoThin = gs.fThick && nFont == 0 && ch <= 0 && gi.nScale <= gi.nScaleT;
   if (fDoThin)
     DrawThick(fFalse);
-#ifdef WINANY
+#ifdef ISG
   if (!gi.fFile && ch > 0) {
     if (DrawGlyph(ch, x, y, nFont, nScale))
       return;
@@ -1601,7 +1616,7 @@ void DrawNakshatra(int i, int x, int y)
   fDoThin = gs.fThick && nFont == 0 && ch <= 0 && gi.nScale <= gi.nScaleT;
   if (fDoThin)
     DrawThick(fFalse);
-#ifdef WINANY
+#ifdef ISG
   if (!gi.fFile && ch != -1) {
     if (DrawGlyph(ch, x, y, nFont, nScale))
       return;

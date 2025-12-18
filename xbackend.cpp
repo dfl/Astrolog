@@ -343,6 +343,105 @@ static void FltkDrawEllipse(int x, int y, int w, int h)
   fl_pie(x, y, w, h, 0.0, 360.0);
 }
 
+// Map Astrolog font index to FLTK font. Returns Fl_Font or -1 if not available.
+static Fl_Font FltkFontFromFI(int fi)
+{
+  // Fonts: 0=Astrolog vector, 1=Wingdings, 2=Astro, 3=EnigmaAstrology,
+  //        4=HamburgSymbols, 5=Astronomicon, 6=Courier New, 7=Consolas,
+  //        8=Arial, 9=HanksNakshatra
+  switch (fi) {
+  case fiCourier:  return FL_COURIER;
+  case fiConsolas: return FL_SCREEN;       // Monospace alternative
+  case fiArial:    return FL_HELVETICA;    // Sans-serif alternative
+  default:
+    // Astrology symbol fonts - try to load by name
+    // Most systems won't have these, so we'll return -1 to fall back
+    break;
+  }
+  return (Fl_Font)-1;
+}
+
+// Draw a single glyph using FLTK fonts
+// Returns 1 if drawn, 0 to fall back to vector rendering
+static int FltkPutGlyph(int ch, int x, int y, int nFont, int nScale)
+{
+  Fl_Font font;
+  int fontSize;
+  char sz[8];
+  int w, h;
+
+  // Check for astrology symbol fonts - these typically aren't available on Linux
+  // For these, return 0 to fall back to vector drawing
+  if (nFont >= fiWingding && nFont <= fiAstronom)
+    return 0;  // Fall back to vector glyphs
+  if (nFont == fiNakshatr)
+    return 0;  // Nakshatra font not typically available
+
+  font = FltkFontFromFI(nFont);
+  if (font == (Fl_Font)-1)
+    return 0;  // Font not available, use vector fallback
+
+  // Calculate font size based on scale
+  fontSize = 12 * gi.nScale * nScale / 100;
+  if (fontSize < 6)
+    fontSize = 6;
+
+  fl_font(font, fontSize);
+
+  // Handle Unicode characters for text fonts
+  if (nFont >= fiCourier && ch > 127) {
+    // Convert Unicode codepoint to UTF-8
+    if (ch < 0x80) {
+      sz[0] = (char)ch;
+      sz[1] = '\0';
+    } else if (ch < 0x800) {
+      sz[0] = (char)(0xC0 | (ch >> 6));
+      sz[1] = (char)(0x80 | (ch & 0x3F));
+      sz[2] = '\0';
+    } else {
+      sz[0] = (char)(0xE0 | (ch >> 12));
+      sz[1] = (char)(0x80 | ((ch >> 6) & 0x3F));
+      sz[2] = (char)(0x80 | (ch & 0x3F));
+      sz[3] = '\0';
+    }
+  } else {
+    sz[0] = (char)ch;
+    sz[1] = '\0';
+  }
+
+  // Measure text to center it
+  fl_measure(sz, w, h, 0);
+  fl_draw(sz, x - w/2, y + h/2 - fl_descent());
+
+  return 1;  // Successfully rendered
+}
+
+// Draw a text string using FLTK fonts
+// Returns 1 if drawn, 0 to fall back to vector rendering
+static int FltkPutText(const char *sz, int x, int y, int nFont, int nScale)
+{
+  Fl_Font font;
+  int fontSize;
+  int w, h;
+
+  font = FltkFontFromFI(nFont);
+  if (font == (Fl_Font)-1)
+    return 0;  // Font not available, use vector fallback
+
+  // Calculate font size based on scale
+  fontSize = 6 * nScale;
+  if (fontSize < 6)
+    fontSize = 6;
+
+  fl_font(font, fontSize);
+
+  // Measure text to center it
+  fl_measure(sz, w, h, 0);
+  fl_draw(sz, x - w/2, y + h/2 - fl_descent());
+
+  return 1;  // Successfully rendered
+}
+
 static void FltkClearScreen(int ki)
 {
   fl_color(FltkColorFromKI(ki));
@@ -365,8 +464,8 @@ static GB gbFltk = {
   FltkDrawRect,
   FltkDrawArc,
   FltkDrawEllipse,
-  NULL,  // PutGlyph - FLTK uses vector fallback for now
-  NULL,  // PutText - FLTK uses vector fallback for now
+  FltkPutGlyph,
+  FltkPutText,
   FltkClearScreen,
   FltkFlush,
   NULL
