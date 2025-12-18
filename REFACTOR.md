@@ -119,7 +119,7 @@ Replace `sprintf()` with `snprintf()` throughout the codebase.
    #define SO(pch, sz) (pch), (sizeof(sz) - ((pch) - (sz)))
    #endif
    ```
-   Opt-in for new code with explicit buffer size passing via `S()` and `SO()` helpers.
+   Used in 7 places (io.cpp, calc.cpp) for environment variable paths where input length is unpredictable. Keeping as-is to minimize diff with upstream.
 
 ### 6. Enable Compiler Warnings
 
