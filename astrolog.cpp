@@ -202,10 +202,16 @@ LNextLine:
   // Here either do a normal chart or some kind of relationship chart.
 
   if (!us.nRel) {
-#ifndef WIN
+#if !defined(WIN) && !defined(FLTK)
     // If chart info not in memory yet, then prompt the user for it.
     if (!is.fHaveInfo && !FInputData(szTtyCore))
       return;
+    ciMain = ciCore;
+    CastChart(1);
+#elif defined(FLTK)
+    // FLTK GUI: use current time if no chart info yet
+    if (!is.fHaveInfo)
+      FInputData(szNowCore);
     ciMain = ciCore;
     CastChart(1);
 #else
@@ -3300,6 +3306,10 @@ int main()
 #ifdef SWITCHES
   is.szProgName = argv[0];
 #endif
+#ifdef FLTK
+  // FLTK builds default to graphics mode (like Windows GUI)
+  us.fGraphics = fTrue;
+#endif
   FProcessSwitchFile(DEFAULT_INFOFILE, NULL);
   ciTran = ciHexa = ciFive = ciFour = ciThre = ciTwin = ciMain = ciCore;
 #ifdef BETA
@@ -3312,10 +3322,17 @@ int main()
 #endif
 
 LBegin:
+#ifdef FLTK
+  // FLTK GUI mode - skip text prompt, go directly to graphics
+  if (us.fNoSwitches) {
+    us.fNoSwitches = fFalse;
+  }
+#else
   if (us.fNoSwitches) {                             // Go prompt for switches
     argc = NPromptSwitches(szCommandLine, rgsz);    // if don't have them.
     argv = rgsz;
   }
+#endif
   is.szProgName = argv[0];
   if (FProcessSwitches(argc, argv)) {
     if (!us.fNoSwitches && us.fLoopInit) {
