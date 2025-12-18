@@ -1657,19 +1657,21 @@ void DrawTurtle(CONST char *sz, int x0, int y0)
   char szErr[cchSzDef], chCmd;
 
   gi.xTurtle = x0; gi.yTurtle = y0;
-  while (chCmd = ChCap(*sz)) {
+  while ((chCmd = ChCap(*sz)) != '\0') {
     sz++;
 
     // 'B' prefixing a command means just move the cursor, and don't draw.
 
-    if (fBlank = (chCmd == 'B')) {
+    fBlank = (chCmd == 'B');
+    if (fBlank) {
       chCmd = ChCap(*sz);
       sz++;
     }
 
     // 'N' prefixing a command means don't update cursor when done drawing.
 
-    if (fNoupdate = (chCmd == 'N')) {
+    fNoupdate = (chCmd == 'N');
+    if (fNoupdate) {
       chCmd = ChCap(*sz);
       sz++;
     }

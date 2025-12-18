@@ -1396,7 +1396,7 @@ enum _terminationcode {
 #define PrintL2() PrintSz("\n\n")
 #define PrintF(sz) fprintf(file, "%s", sz)
 #define SwapTemp(v1, v2, vT) vT = v1; v1 = v2; v2 = vT
-#define SwapN(n1, n2) (n1)^=(n2)^=(n1)^=(n2)
+#define SwapN(n1, n2) do { int _swapT = (n1); (n1) = (n2); (n2) = _swapT; } while(0)
 #define FSwitchF(f) ((((f) || fOr) && !fAnd) != fNot)
 #define FSwitchF2(f) (((f) || (fOr || fNot)) && !fAnd)
 #define SwitchF(f) f = FSwitchF(f)
