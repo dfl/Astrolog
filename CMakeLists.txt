@@ -50,6 +50,7 @@ set(SWISS_SOURCES
 
 # Graphics sources
 set(GRAPHICS_SOURCES
+  xbackend.cpp
   xcharts0.cpp
   xcharts1.cpp
   xcharts2.cpp

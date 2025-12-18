@@ -991,6 +991,7 @@ extern void XChartBiorhythm P((void));
 
 extern void InitColorPalette P((int));
 extern void InitColorsX P((void));
+extern void InitGraphicsBackend P((void));
 #ifdef ISG
 extern void ResizeWindowToChart P((void));
 extern void BeginX P((void));

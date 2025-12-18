@@ -384,6 +384,11 @@
 #ifdef SWISS
 #endif // SWISS
 
+// Include graphics backend abstraction layer
+#ifdef GRAPH
+#include "xbackend.h"
+#endif
+
 #ifdef PC
 #define sprintf2 snprintf
 #define S(sz) (sz), (int)sizeof(sz)
