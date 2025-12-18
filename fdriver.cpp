@@ -85,6 +85,9 @@ Fl_Color FltkColorFromKI(int ki)
   return fl_rgb_color(r, g, b);
 }
 
+// Forward declarations for helper functions
+static void UpdateMenuCheck(Fl_Callback *cb, flag f);
+
 // Forward declarations for view menu callbacks (used by handleKey)
 void FMenuViewWheel(Fl_Widget *w, void *data);
 void FMenuViewGrid(Fl_Widget *w, void *data);
@@ -154,6 +157,11 @@ void FMenuRelDate(Fl_Widget *w, void *data);
 void FMenuRelBiorhythm(Fl_Widget *w, void *data);
 void FMenuRelTransit(Fl_Widget *w, void *data);
 void FMenuRelProgressed(Fl_Widget *w, void *data);
+void FMenuHouseSystem(Fl_Widget *w, void *data);
+void FMenuHouseSolar(Fl_Widget *w, void *data);
+void FMenuHouse3D(Fl_Widget *w, void *data);
+void FMenuHouseDecan(Fl_Widget *w, void *data);
+void FMenuHouseFlip(Fl_Widget *w, void *data);
 
 /*
 ******************************************************************************
@@ -194,6 +202,14 @@ void ChartWidget::draw()
     gi.nScale = gs.nScale / 100;
   } else if (gi.nMode == gGrid) {
     // Auto-scale for aspect grid to fill window smoothly
+    // First calculate gi.nGridCell (number of planets shown) if not already set
+    if (gs.nGridCell > 0)
+      gi.nGridCell = gs.nGridCell;
+    else {
+      gi.nGridCell = 0;
+      for (int i = 0; i <= is.nObj; i++)
+        gi.nGridCell += FProper(i);
+    }
     // Grid base size is nGridCell * CELLSIZE (14 pixels per cell at 100%)
     int nCells = gi.nGridCell + (us.nRel <= rcDual);
     if (nCells > 0) {
@@ -1094,6 +1110,33 @@ void AstrologWindow::createMenus()
   // Settings menu
   menubar_->add("Se&ttings/&Sidereal Zodiac", 's', FMenuSidereal, 0, FL_MENU_TOGGLE);
   menubar_->add("Se&ttings/&Heliocentric", 'h', FMenuHeliocentric, 0, FL_MENU_TOGGLE|FL_MENU_DIVIDER);
+  // House System submenu
+  menubar_->add("Se&ttings/House System/&Placidus", FL_COMMAND+'p', FMenuHouseSystem, (void*)hsPlacidus);
+  menubar_->add("Se&ttings/House System/&Koch", FL_COMMAND+'k', FMenuHouseSystem, (void*)hsKoch);
+  menubar_->add("Se&ttings/House System/&Campanus", 0, FMenuHouseSystem, (void*)hsCampanus);
+  menubar_->add("Se&ttings/House System/&Regiomontanus", FL_COMMAND+'r', FMenuHouseSystem, (void*)hsRegiomontanus);
+  menubar_->add("Se&ttings/House System/&Topocentric", FL_COMMAND+'t', FMenuHouseSystem, (void*)hsTopocentric);
+  menubar_->add("Se&ttings/House System/Alca&bitius", 0, FMenuHouseSystem, (void*)hsAlcabitius);
+  menubar_->add("Se&ttings/House System/Kr&usinski", 0, FMenuHouseSystem, (void*)hsKrusinski);
+  menubar_->add("Se&ttings/House System/A&.P.C.", 0, FMenuHouseSystem, (void*)hsAPC, FL_MENU_DIVIDER);
+  menubar_->add("Se&ttings/House System/Porph&yry", FL_COMMAND+'y', FMenuHouseSystem, (void*)hsPorphyry);
+  menubar_->add("Se&ttings/House System/Pullen (S.Rati&o)", FL_COMMAND+'o', FMenuHouseSystem, (void*)hsSineRatio);
+  menubar_->add("Se&ttings/House System/Pullen (S.&Delta)", FL_COMMAND+'d', FMenuHouseSystem, (void*)hsSineDelta, FL_MENU_DIVIDER);
+  menubar_->add("Se&ttings/House System/&Meridian", FL_COMMAND+'m', FMenuHouseSystem, (void*)hsMeridian);
+  menubar_->add("Se&ttings/House System/Morinu&s", FL_COMMAND+'u', FMenuHouseSystem, (void*)hsMorinus);
+  menubar_->add("Se&ttings/House System/Hori&zon", FL_COMMAND+'h', FMenuHouseSystem, (void*)hsHorizon);
+  menubar_->add("Se&ttings/House System/Carter& P.Equat.", FL_COMMAND+'g', FMenuHouseSystem, (void*)hsCarter);
+  menubar_->add("Se&ttings/House System/Suns&hine", FL_COMMAND+'j', FMenuHouseSystem, (void*)hsSunshine);
+  menubar_->add("Se&ttings/House System/Sr&ipati", 0, FMenuHouseSystem, (void*)hsSripati, FL_MENU_DIVIDER);
+  menubar_->add("Se&ttings/House System/&Equal", FL_COMMAND+'e', FMenuHouseSystem, (void*)hsEqual);
+  menubar_->add("Se&ttings/House System/E&qual (MC)", FL_COMMAND+'q', FMenuHouseSystem, (void*)hsEqualMC);
+  menubar_->add("Se&ttings/House System/&Whole", FL_COMMAND+'w', FMenuHouseSystem, (void*)hsWhole);
+  menubar_->add("Se&ttings/House System/&Vedic", FL_COMMAND+'v', FMenuHouseSystem, (void*)hsVedic);
+  menubar_->add("Se&ttings/House System/&Null", FL_COMMAND+'n', FMenuHouseSystem, (void*)hsNull, FL_MENU_DIVIDER);
+  menubar_->add("Se&ttings/House System/&Solar Chart", 0, FMenuHouseSolar, 0, FL_MENU_TOGGLE);
+  menubar_->add("Se&ttings/House System/&3D Houses", 'a', FMenuHouse3D, 0, FL_MENU_TOGGLE);
+  menubar_->add("Se&ttings/House System/Show &Decans", 'g', FMenuHouseDecan, 0, FL_MENU_TOGGLE);
+  menubar_->add("Se&ttings/House System/&Flip Signs with Houses", 'f', FMenuHouseFlip, 0, FL_MENU_TOGGLE);
   menubar_->add("Se&ttings/&Calculation Settings...", 0, FMenuCalcSettings);
   menubar_->add("Se&ttings/&Display Settings...", 0, FMenuDisplaySettings);
   menubar_->add("Se&ttings/&Graphics Settings...", 0, FMenuGraphicsSettings);
@@ -1374,6 +1417,46 @@ void FMenuRelTransit(Fl_Widget *w, void *data)
 void FMenuRelProgressed(Fl_Widget *w, void *data)
 {
   FSetRel(rcProgress);
+}
+
+// House system callbacks
+void FMenuHouseSystem(Fl_Widget *w, void *data)
+{
+  us.nHouseSystem = (int)(long)data;
+  fi.fDoCast = fTrue;
+  if (fi.chart) fi.chart->redraw();
+}
+
+void FMenuHouseSolar(Fl_Widget *w, void *data)
+{
+  us.objOnAsc = us.objOnAsc ? 0 : oSun+1;
+  UpdateMenuCheck(FMenuHouseSolar, us.objOnAsc);
+  fi.fDoCast = fTrue;
+  if (fi.chart) fi.chart->redraw();
+}
+
+void FMenuHouse3D(Fl_Widget *w, void *data)
+{
+  inv(us.fHouse3D);
+  UpdateMenuCheck(FMenuHouse3D, us.fHouse3D);
+  fi.fDoCast = fTrue;
+  if (fi.chart) fi.chart->redraw();
+}
+
+void FMenuHouseDecan(Fl_Widget *w, void *data)
+{
+  inv(us.fDecan);
+  UpdateMenuCheck(FMenuHouseDecan, us.fDecan);
+  fi.fDoCast = fTrue;
+  if (fi.chart) fi.chart->redraw();
+}
+
+void FMenuHouseFlip(Fl_Widget *w, void *data)
+{
+  inv(us.fFlip);
+  UpdateMenuCheck(FMenuHouseFlip, us.fFlip);
+  fi.fDoCast = fTrue;
+  if (fi.chart) fi.chart->redraw();
 }
 
 void FMenuCommand(Fl_Widget *w, void *data)
