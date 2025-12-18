@@ -56,6 +56,8 @@ set(GRAPHICS_SOURCES
   xcharts2.cpp
   xdata.cpp
   xdevice.cpp
+  xdialog.cpp
+  xevent.cpp
   xgeneral.cpp
   xscreen.cpp
 )

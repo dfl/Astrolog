@@ -12,6 +12,7 @@
 */
 
 #include "astrolog.h"
+#include "xdialog.h"
 
 #ifdef FLTK
 #include "fdriver.h"
@@ -184,35 +185,13 @@ static void cb_InfoSet(Fl_Widget *w, void *data)
 // Callback for OK button
 static void cb_InfoOK(Fl_Widget *w, void *data)
 {
+  const char *szError;
+
   ReadInfoFields(s_ciEdit);
 
-  // Validate inputs
-  if (!FValidMon(s_ciEdit.mon)) {
-    fl_alert("Invalid month value.");
-    return;
-  }
-  if (!FValidYea(s_ciEdit.yea)) {
-    fl_alert("Invalid year value.");
-    return;
-  }
-  if (!FValidDay(s_ciEdit.day, s_ciEdit.mon, s_ciEdit.yea)) {
-    fl_alert("Invalid day value.");
-    return;
-  }
-  if (!FValidTim(s_ciEdit.tim)) {
-    fl_alert("Invalid time value.");
-    return;
-  }
-  if (!FValidZon(s_ciEdit.zon)) {
-    fl_alert("Invalid time zone value.");
-    return;
-  }
-  if (!FValidLon(s_ciEdit.lon)) {
-    fl_alert("Invalid longitude value.");
-    return;
-  }
-  if (!FValidLat(s_ciEdit.lat)) {
-    fl_alert("Invalid latitude value.");
+  // Validate inputs using shared helper
+  if (!FValidateCI(&s_ciEdit, &szError)) {
+    fl_alert("%s", szError);
     return;
   }
 

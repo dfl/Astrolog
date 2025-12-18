@@ -12,6 +12,7 @@
 */
 
 #include "astrolog.h"
+#include "xevent.h"
 
 #ifdef FLTK
 #include "fdriver.h"
@@ -89,17 +90,7 @@ int ChartWidget::handle(int event)
       if (Fl::event_state() & FL_ALT) {
         // Alt+click: relocate chart on map
         if (fMap && !gs.fConstel && !gs.fMollewide) {
-          Lon = rDegHalf - Mod((real)(mx - gi.xOffset) /
-            (real)gs.xWin * rDegMax - gs.rRot);
-          if (Lon < -rDegHalf)
-            Lon = -rDegHalf;
-          else if (Lon > rDegHalf)
-            Lon = rDegHalf;
-          Lat = rDegQuad - (real)(my - gi.yOffset) / (real)gs.yWin * rDegHalf;
-          if (Lat < -rDegQuad)
-            Lat = -rDegQuad;
-          else if (Lat > rDegQuad)
-            Lat = rDegQuad;
+          CalculateMapCoords(mx, my, &Lon, &Lat);
           fi.xMouse = -1;
           ciCore = ciMain;
           fi.fDoCast = fTrue;
@@ -127,22 +118,21 @@ int ChartWidget::handle(int event)
   case FL_DRAG:
     if (Fl::event_button() == FL_RIGHT_MOUSE) {
       // Right mouse drag: rotate/tilt globe views
-      if (us.fGraphics && (fMap || gi.nMode == gMidpoint ||
-          gi.nMode == gLocal || gi.nMode == gSphere ||
-          gi.nMode == gGlobe || gi.nMode == gPolar || gi.nMode == gTelescope)) {
-        gs.rRot += (real)(mx - mousex_) * rDegHalf / (real)gs.xWin *
-          (gi.nMode == gLocal || gi.nMode == gTelescope ? -gi.zViewRatio : 1.0);
-        gs.rTilt += (real)(my - mousey_) * rDegHalf / (real)gs.yWin *
-          (gi.nMode == gLocal || gi.nMode == gTelescope ? gi.zViewRatio :
-          (gi.nMode == gGlobe ? -1.0 : 1.0));
-        while (gs.rRot >= rDegMax)
-          gs.rRot -= rDegMax;
-        while (gs.rRot < 0.0)
-          gs.rRot += rDegMax;
-        while (gs.rTilt > rDegQuad)
-          gs.rTilt = rDegQuad;
-        while (gs.rTilt < -rDegQuad)
-          gs.rTilt = -rDegQuad;
+      if (us.fGraphics && FSupportsRotation(gi.nMode)) {
+        // Calculate rotation delta with mode-specific factor
+        real rFactor = (gi.nMode == gLocal || gi.nMode == gTelescope) ?
+          -gi.zViewRatio : 1.0;
+        gs.rRot += (real)(mx - mousex_) * rDegHalf / (real)gs.xWin * rFactor;
+
+        // Calculate tilt delta with mode-specific factor
+        rFactor = (gi.nMode == gLocal || gi.nMode == gTelescope) ? gi.zViewRatio :
+          (gi.nMode == gGlobe ? -1.0 : 1.0);
+        gs.rTilt += (real)(my - mousey_) * rDegHalf / (real)gs.yWin * rFactor;
+
+        // Clamp values using shared helpers
+        ClampRotation();
+        ClampTilt();
+
         if (gi.nMode == gMidpoint || gi.nMode == gTelescope) {
           if (gi.nMode == gMidpoint && gs.objTrack >= 0)
             gs.rRot = planet[gs.objTrack];
@@ -170,21 +160,9 @@ int ChartWidget::handle(int event)
     {
       int dy = Fl::event_dy();
       if (dy != 0) {
-        // Zoom in/out
-        int nScale = gs.nScale;
-        if (dy < 0)
-          nScale = nScale * 11 / 10;  // Zoom in
-        else
-          nScale = nScale * 10 / 11;  // Zoom out
-        if (nScale < 100)
-          nScale = 100;
-        else if (nScale > MAXSCALE)
-          nScale = MAXSCALE;
-        if (nScale != gs.nScale) {
-          gs.nScale = nScale;
-          gi.nScale = gs.nScale / 100;
+        // Zoom in (dy < 0) or out (dy > 0)
+        if (FAdjustZoom(dy < 0 ? 1 : -1))
           redraw();
-        }
       }
     }
     return 1;
