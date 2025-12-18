@@ -910,6 +910,7 @@ AstrologWindow::AstrologWindow(int w, int h, const char *title)
 
   // Create menu bar
   menubar_ = new Fl_Menu_Bar(0, 0, w, 25);
+  fi.menubar = menubar_;  // Set global before createMenus so UpdateMenuCheck works
   createMenus();
 
   // Create chart widget below menu bar (2D)
@@ -930,7 +931,7 @@ AstrologWindow::AstrologWindow(int w, int h, const char *title)
 #ifdef OPENGL
   fi.chart3D = chart3D_;
 #endif
-  fi.menubar = menubar_;
+  // fi.menubar already set before createMenus()
   fi.xClient = w;
   fi.yClient = h;
 
