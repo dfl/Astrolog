@@ -1167,11 +1167,11 @@ void AstrologWindow::createMenus()
   menubar_->add("Se&ttings/&Transit Restrictions...", 0, FMenuRestrictTransit);
   menubar_->add("Se&ttings/Co&lor Settings...", 0, FMenuColorSettings, 0, FL_MENU_DIVIDER);
   // Glyph Fonts submenu
-  menubar_->add("Se&ttings/Glyph &Fonts/&Default (Built-in)", 0, FMenuGlyphFont, (void*)0);
+  menubar_->add("Se&ttings/Glyph &Fonts/Astrono&micon (Default)", 0, FMenuGlyphFont, (void*)5);
   menubar_->add("Se&ttings/Glyph &Fonts/&Astro", 0, FMenuGlyphFont, (void*)2);
   menubar_->add("Se&ttings/Glyph &Fonts/&Enigma", 0, FMenuGlyphFont, (void*)3);
   menubar_->add("Se&ttings/Glyph &Fonts/&Hamburg", 0, FMenuGlyphFont, (void*)4);
-  menubar_->add("Se&ttings/Glyph &Fonts/Astrono&micon", 0, FMenuGlyphFont, (void*)5, FL_MENU_DIVIDER);
+  menubar_->add("Se&ttings/Glyph &Fonts/&Built-in", 0, FMenuGlyphFont, (void*)0, FL_MENU_DIVIDER);
   menubar_->add("Se&ttings/Include &Minors", 'R', FMenuIncludeMinors, 0, FL_MENU_TOGGLE);
   menubar_->add("Se&ttings/Include &Cusps", 'C', FMenuIncludeCusps, 0, FL_MENU_TOGGLE);
   menubar_->add("Se&ttings/Include &Uranians", 'u', FMenuIncludeUranians, 0, FL_MENU_TOGGLE);
@@ -1253,6 +1253,28 @@ void AstrologWindow::createMenus()
   menubar_->add("&Help/List O&bscure Switches", 0, FMenuHelpObscure);
   menubar_->add("&Help/List &Keystrokes", '?', FMenuHelpKeystroke);
   menubar_->add("&Help/List Cr&edits", 0, FMenuHelpCredit);
+
+  // Initialize menu checkbox states based on current settings
+  flag fMinors = fFalse;
+  for (int i = oChi; i <= oVes && !fMinors; i++)
+    fMinors = !ignore[i];
+  UpdateMenuCheck(FMenuIncludeMinors, fMinors);
+  UpdateMenuCheck(FMenuIncludeCusps, us.fCusp);
+  UpdateMenuCheck(FMenuIncludeUranians, us.fUranian);
+  UpdateMenuCheck(FMenuIncludeDwarfs, us.fDwarf);
+  UpdateMenuCheck(FMenuIncludeMoons, us.fMoons);
+  UpdateMenuCheck(FMenuIncludeCOB, us.fCOB);
+  UpdateMenuCheck(FMenuIncludeStars, us.fStar);
+  UpdateMenuCheck(FMenuGraphicsReverse, gs.fInverse);
+  UpdateMenuCheck(FMenuGraphicsMonochrome, !gs.fColor);
+  UpdateMenuCheck(FMenuGraphicsBorder, gs.fBorder);
+  UpdateMenuCheck(FMenuGraphicsText, gs.fText);
+  UpdateMenuCheck(FMenuGraphicsThick, gs.fThick);
+  UpdateMenuCheck(FMenuGraphicsLabel, gs.fLabel);
+  UpdateMenuCheck(FMenuGraphicsLabelAsp, gs.fLabelAsp);
+  UpdateMenuCheck(FMenuGraphicsModify, gs.fAlt);
+  UpdateMenuCheck(FMenuGraphicsHouseExtra, gs.fHouseExtra);
+  UpdateMenuCheck(FMenuGraphicsEquator, gs.fEquator);
 }
 
 /*
@@ -2194,6 +2216,9 @@ void FMenuGraphicsEquator(Fl_Widget *w, void *data)
 
 void BeginFltk()
 {
+  // Initialize graphics backend (loads bundled fonts on macOS)
+  InitGraphicsBackend();
+
   // FLTK/Cairo can't draw 24 bit color bitmaps directly like Windows can.
   // Setting this to false tells globe/map rendering code to skip bitmap ops.
   gi.fBmp = fFalse;

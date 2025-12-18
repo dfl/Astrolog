@@ -170,7 +170,20 @@ if(APPLE AND USE_FLTK)
   set_source_files_properties(${APP_ICON_MACOS} PROPERTIES
     MACOSX_PACKAGE_LOCATION "Resources"
   )
-  target_sources(astrolog PRIVATE ${APP_ICON_MACOS})
+
+  # Bundle astrology fonts
+  set(ASTROLOGY_FONTS
+    "${CMAKE_CURRENT_SOURCE_DIR}/resources/astfont/Astro.ttf"
+    "${CMAKE_CURRENT_SOURCE_DIR}/resources/astfont/Astronomicon.ttf"
+    "${CMAKE_CURRENT_SOURCE_DIR}/resources/astfont/EnigmaAstrology.ttf"
+    "${CMAKE_CURRENT_SOURCE_DIR}/resources/astfont/HamburgSymbols.ttf"
+    "${CMAKE_CURRENT_SOURCE_DIR}/resources/astfont/HanksNakshatra.ttf"
+  )
+  set_source_files_properties(${ASTROLOGY_FONTS} PROPERTIES
+    MACOSX_PACKAGE_LOCATION "Resources/Fonts"
+  )
+
+  target_sources(astrolog PRIVATE ${APP_ICON_MACOS} ${ASTROLOGY_FONTS})
   set_target_properties(astrolog PROPERTIES
     MACOSX_BUNDLE TRUE
     MACOSX_BUNDLE_BUNDLE_NAME "Astrolog"
@@ -198,6 +211,10 @@ if(USE_FLTK)
     # Using pkg-config results
     target_include_directories(astrolog PRIVATE ${FLTK_INCLUDE_DIRS})
     target_link_libraries(astrolog ${FLTK_LDFLAGS})
+  endif()
+  if(APPLE)
+    # CoreText for loading bundled fonts
+    target_link_libraries(astrolog "-framework CoreText" "-framework CoreFoundation")
   endif()
 endif()
 

@@ -11,6 +11,13 @@
 ** Platform Abstraction Layer - Backend Implementations
 */
 
+// Include macOS frameworks before astrolog.h to avoid macro conflicts
+// (astrolog defines 'space' as a macro which conflicts with macOS SDK headers)
+#ifdef __APPLE__
+#include <CoreFoundation/CoreFoundation.h>
+#include <CoreText/CoreText.h>
+#endif
+
 #include "astrolog.h"
 
 #ifdef GRAPH
@@ -274,6 +281,105 @@ void InitBackendWin(void)
 */
 
 #ifdef FLTK
+
+// Astrology font indices for custom FLTK fonts (start after built-in fonts)
+// Initialize to -1 (unavailable) - will be set when fonts are loaded
+static Fl_Font rgFltkAstroFont[cFont] = {
+  (Fl_Font)-1, (Fl_Font)-1, (Fl_Font)-1, (Fl_Font)-1, (Fl_Font)-1,
+  (Fl_Font)-1, (Fl_Font)-1, (Fl_Font)-1, (Fl_Font)-1, (Fl_Font)-1
+};
+static flag fAstroFontsLoaded = fFalse;
+
+#ifdef __APPLE__
+// Load bundled fonts from the app bundle on macOS
+static void LoadBundledFonts(void)
+{
+  printf("LoadBundledFonts: starting...\n");
+  fflush(stdout);
+
+  CFBundleRef mainBundle = CFBundleGetMainBundle();
+  if (!mainBundle) {
+    printf("LoadBundledFonts: no main bundle found\n");
+    return;
+  }
+
+  CFURLRef resourcesURL = CFBundleCopyResourcesDirectoryURL(mainBundle);
+  if (!resourcesURL) {
+    printf("LoadBundledFonts: no resources directory found\n");
+    return;
+  }
+
+  // Debug: print resources path
+  char resourcesPath[1024];
+  if (CFURLGetFileSystemRepresentation(resourcesURL, true, (UInt8*)resourcesPath, sizeof(resourcesPath))) {
+    printf("LoadBundledFonts: resources path = %s\n", resourcesPath);
+  }
+
+  // Font file names and their corresponding font indices
+  static const struct {
+    const char *filename;
+    int fontIndex;
+    const char *fontName;
+  } fontFiles[] = {
+    {"Fonts/Astro.ttf", fiAstro, "Astro"},
+    {"Fonts/EnigmaAstrology.ttf", fiEnigma, "EnigmaAstrology"},
+    {"Fonts/HamburgSymbols.ttf", fiHamburg, "HamburgSymbols"},
+    {"Fonts/Astronomicon.ttf", fiAstronom, "Astronomicon"},
+    {"Fonts/HanksNakshatra.ttf", fiNakshatr, "HanksNakshatra"},
+  };
+
+  for (int i = 0; i < (int)(sizeof(fontFiles) / sizeof(fontFiles[0])); i++) {
+    CFStringRef fontFileName = CFStringCreateWithCString(NULL,
+      fontFiles[i].filename, kCFStringEncodingUTF8);
+    if (!fontFileName) {
+      printf("LoadBundledFonts: failed to create string for %s\n", fontFiles[i].filename);
+      continue;
+    }
+
+    CFURLRef fontURL = CFURLCreateCopyAppendingPathComponent(NULL,
+      resourcesURL, fontFileName, false);
+    CFRelease(fontFileName);
+    if (!fontURL) {
+      printf("LoadBundledFonts: failed to create URL for %s\n", fontFiles[i].filename);
+      continue;
+    }
+
+    // Debug: print font URL
+    char fontPath[1024];
+    if (CFURLGetFileSystemRepresentation(fontURL, true, (UInt8*)fontPath, sizeof(fontPath))) {
+      printf("LoadBundledFonts: trying to load %s\n", fontPath);
+    }
+
+    // Register the font with Core Text (process-scope only)
+    CFErrorRef error = NULL;
+    if (CTFontManagerRegisterFontsForURL(fontURL, kCTFontManagerScopeProcess,
+        &error)) {
+      // Font registered successfully - now set up FLTK to use it
+      Fl_Font fltkFont = FL_FREE_FONT + fontFiles[i].fontIndex;
+      Fl::set_font(fltkFont, fontFiles[i].fontName);
+      rgFltkAstroFont[fontFiles[i].fontIndex] = fltkFont;
+      printf("Loaded font: %s (FLTK font %d)\n", fontFiles[i].fontName, fltkFont);
+    } else {
+      if (error) {
+        CFStringRef desc = CFErrorCopyDescription(error);
+        if (desc) {
+          char buf[256];
+          CFStringGetCString(desc, buf, sizeof(buf), kCFStringEncodingUTF8);
+          printf("Failed to load font %s: %s\n", fontFiles[i].fontName, buf);
+          CFRelease(desc);
+        }
+        CFRelease(error);
+      }
+      rgFltkAstroFont[fontFiles[i].fontIndex] = (Fl_Font)-1;
+    }
+    CFRelease(fontURL);
+  }
+
+  CFRelease(resourcesURL);
+  fAstroFontsLoaded = fTrue;
+}
+#endif // __APPLE__
+
 static void FltkSetColor(int ki)
 {
   fl_color(FltkColorFromKI(ki));
@@ -353,12 +459,34 @@ static Fl_Font FltkFontFromFI(int fi)
   case fiCourier:  return FL_COURIER;
   case fiConsolas: return FL_SCREEN;       // Monospace alternative
   case fiArial:    return FL_HELVETICA;    // Sans-serif alternative
+  case fiAstro:
+  case fiEnigma:
+  case fiHamburg:
+  case fiAstronom:
+  case fiNakshatr:
+    // Check if bundled astrology fonts were loaded
+    if (fAstroFontsLoaded && rgFltkAstroFont[fi] != (Fl_Font)-1)
+      return rgFltkAstroFont[fi];
+    break;
   default:
-    // Astrology symbol fonts - try to load by name
-    // Most systems won't have these, so we'll return -1 to fall back
     break;
   }
   return (Fl_Font)-1;
+}
+
+// Get HiDPI scale factor for font rendering
+static float FltkGetFontScale(void)
+{
+  static float scale = 0.0f;
+  if (scale == 0.0f) {
+    scale = Fl::screen_scale(0);
+#ifdef __APPLE__
+    // On macOS Retina, FLTK often reports 1.0 but we need 2.0 for crisp fonts
+    if (scale < 1.5f)
+      scale = 2.0f;
+#endif
+  }
+  return scale;
 }
 
 // Draw a single glyph using FLTK fonts
@@ -370,21 +498,24 @@ static int FltkPutGlyph(int ch, int x, int y, int nFont, int nScale)
   char sz[8];
   int w, h;
 
-  // Check for astrology symbol fonts - these typically aren't available on Linux
-  // For these, return 0 to fall back to vector drawing
-  if (nFont >= fiWingding && nFont <= fiAstronom)
-    return 0;  // Fall back to vector glyphs
-  if (nFont == fiNakshatr)
-    return 0;  // Nakshatra font not typically available
-
+  // Check if font is available
   font = FltkFontFromFI(nFont);
   if (font == (Fl_Font)-1)
     return 0;  // Font not available, use vector fallback
 
   // Calculate font size based on scale
-  fontSize = 12 * gi.nScale * nScale / 100;
-  if (fontSize < 6)
-    fontSize = 6;
+  // Use larger base size (16) for symbol fonts which need to be clearly visible
+  // The nScale factor (typically 85-135) adjusts relative size
+  int baseSize = (nFont >= fiAstro && nFont <= fiNakshatr) ? 16 : 12;
+  fontSize = baseSize * gi.nScale * nScale / 100;
+  if (fontSize < 8)
+    fontSize = 8;
+
+  // On HiDPI displays, increase font size for crisp rendering
+  // FLTK's coordinate system is 1:1 with logical pixels, so we scale up
+  float hiDpiScale = FltkGetFontScale();
+  if (hiDpiScale > 1.0f)
+    fontSize = (int)(fontSize * hiDpiScale);
 
   fl_font(font, fontSize);
 
@@ -473,6 +604,10 @@ static GB gbFltk = {
 
 void InitBackendFltk(void)
 {
+#ifdef __APPLE__
+  // Load bundled astrology fonts from app bundle
+  LoadBundledFonts();
+#endif
   gpBackend = &gbFltk;
 }
 #endif // FLTK
@@ -597,6 +732,80 @@ static void CairoFlush(void)
   cairo_surface_flush(gi_surface);
 }
 
+// Get font name for Cairo from Astrolog font index
+static const char *CairoFontName(int fi)
+{
+  switch (fi) {
+  case fiAstro:    return "Astro";
+  case fiEnigma:   return "EnigmaAstrology";
+  case fiHamburg:  return "HamburgSymbols";
+  case fiAstronom: return "Astronomicon";
+  case fiNakshatr: return "HanksNakshatra";
+  case fiCourier:  return "Courier New";
+  case fiConsolas: return "Consolas";
+  case fiArial:    return "Arial";
+  default:         return NULL;
+  }
+}
+
+// Draw a single glyph using Cairo fonts
+// Returns 1 if drawn, 0 to fall back to vector rendering
+static int CairoPutGlyph(int ch, int x, int y, int nFont, int nScale)
+{
+  const char *fontName = CairoFontName(nFont);
+  if (!fontName)
+    return 0;  // Unknown font, use vector fallback
+
+  // Calculate font size - use larger base for symbol fonts
+  int baseSize = (nFont >= fiAstro && nFont <= fiNakshatr) ? 16 : 12;
+  double fontSize = (double)(baseSize * gi.nScale * nScale) / 100.0;
+  if (fontSize < 8.0)
+    fontSize = 8.0;
+
+  // Select font
+  cairo_select_font_face(gi_cr, fontName, CAIRO_FONT_SLANT_NORMAL,
+    gs.fThick ? CAIRO_FONT_WEIGHT_BOLD : CAIRO_FONT_WEIGHT_NORMAL);
+  cairo_set_font_size(gi_cr, fontSize);
+
+  // Build the character string - convert to UTF-8 for Cairo
+  // The astrology fonts use characters 0x80-0xFF which need to be
+  // encoded as UTF-8 (2 bytes for characters >= 0x80)
+  char sz[8];
+  if (ch < 0x80) {
+    // ASCII - pass through
+    sz[0] = (char)ch;
+    sz[1] = '\0';
+  } else if (ch < 0x100) {
+    // High byte - encode as UTF-8 (Latin-1 to UTF-8 conversion)
+    // Characters 0x80-0xFF map to Unicode U+0080-U+00FF
+    sz[0] = (char)(0xC0 | ((ch >> 6) & 0x1F));
+    sz[1] = (char)(0x80 | (ch & 0x3F));
+    sz[2] = '\0';
+  } else {
+    // Unicode > 0xFF (shouldn't happen for these fonts)
+    sz[0] = (char)(0xE0 | ((ch >> 12) & 0x0F));
+    sz[1] = (char)(0x80 | ((ch >> 6) & 0x3F));
+    sz[2] = (char)(0x80 | (ch & 0x3F));
+    sz[3] = '\0';
+  }
+
+  // Measure text to center it
+  cairo_text_extents_t extents;
+  cairo_text_extents(gi_cr, sz, &extents);
+
+  // Check if glyph exists (width > 0)
+  if (extents.width < 0.5)
+    return 0;  // Glyph not found, fall back to vector
+
+  // Draw centered at (x, y)
+  double dx = x - (extents.width / 2.0 + extents.x_bearing);
+  double dy = y + (extents.height / 2.0);
+  cairo_move_to(gi_cr, dx, dy);
+  cairo_show_text(gi_cr, sz);
+
+  return 1;  // Successfully rendered
+}
+
 static GB gbCairo = {
   "Cairo",
   CairoSetColor,
@@ -608,7 +817,7 @@ static GB gbCairo = {
   CairoDrawRect,
   CairoDrawArc,
   CairoDrawEllipse,
-  NULL,  // PutGlyph - use vector fallback for now (TODO: implement with Cairo fonts)
+  CairoPutGlyph,
   NULL,  // PutText - use vector fallback for now
   CairoClearScreen,
   CairoFlush,
