@@ -1056,8 +1056,8 @@ void AstrologWindow::createMenus()
 
   // View menu - using legacy uppercase key mappings
   menubar_->add("&View/&Wheel Chart", 'V', FMenuViewWheel);
-  menubar_->add("&View/&Aspect Grid", 'A', FMenuViewGrid);
-  menubar_->add("&View/&Midpoint Grid", 0, FMenuViewMidpoint);
+  menubar_->add("&View/&Aspect Midpoint Grid", 'A', FMenuViewGrid);
+  menubar_->add("&View/Midpoint &Dial", 0, FMenuViewMidpoint);
   menubar_->add("&View/&Horizon Chart", 'Z', FMenuViewHorizon);
   menubar_->add("&View/&Orbit Chart", 'S', FMenuViewOrbit);
   menubar_->add("&View/Astro-Graph", 'L', FMenuViewAstroGraph);
