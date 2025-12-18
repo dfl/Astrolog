@@ -120,6 +120,11 @@ void FMenuGraphicsLabelAsp(Fl_Widget *w, void *data);
 void FMenuGraphicsModify(Fl_Widget *w, void *data);
 void FMenuGraphicsHouseExtra(Fl_Widget *w, void *data);
 void FMenuGraphicsEquator(Fl_Widget *w, void *data);
+void FMenuViewSector(Fl_Widget *w, void *data);
+void FMenuViewCalendar(Fl_Widget *w, void *data);
+void FMenuViewInfluence(Fl_Widget *w, void *data);
+void FMenuViewEphemeris(Fl_Widget *w, void *data);
+void FMenuViewRising(Fl_Widget *w, void *data);
 void FMenuAnimToggle(Fl_Widget *w, void *data);
 void FMenuAnimNow(Fl_Widget *w, void *data);
 void FMenuAnimRate1(Fl_Widget *w, void *data);
@@ -1038,7 +1043,12 @@ void AstrologWindow::createMenus()
   menubar_->add("&View/Midpoint &Dial", 0, FMenuViewMidpoint);
   menubar_->add("&View/&Horizon Chart", 'Z', FMenuViewHorizon);
   menubar_->add("&View/&Orbit Chart", 'S', FMenuViewOrbit);
+  menubar_->add("&View/&Gauquelin Sectors", 'H', FMenuViewSector);
+  menubar_->add("&View/&Calendar", 'K', FMenuViewCalendar);
+  menubar_->add("&View/Inf&luence", 'J', FMenuViewInfluence);
   menubar_->add("&View/Astro-Graph", 'L', FMenuViewAstroGraph);
+  menubar_->add("&View/&Ephemeris", 'E', FMenuViewEphemeris);
+  menubar_->add("&View/R&ising and Setting", 'I', FMenuViewRising, 0, FL_MENU_DIVIDER);
   menubar_->add("&View/&Globe", 'G', FMenuViewGlobe);
   menubar_->add("&View/&Sphere", 'X', FMenuViewSphere);
   menubar_->add("&View/&Local Horizon", 0, FMenuViewLocal);
@@ -1459,6 +1469,42 @@ void FMenuViewWorldMap(Fl_Widget *w, void *data)
 #else
   if (fi.chart) fi.chart->redraw();
 #endif
+}
+
+// Additional chart type callbacks
+void FMenuViewSector(Fl_Widget *w, void *data)
+{
+  gi.nMode = gSector;
+  fi.fDoCast = fTrue;
+  if (fi.chart) fi.chart->redraw();
+}
+
+void FMenuViewCalendar(Fl_Widget *w, void *data)
+{
+  gi.nMode = gCalendar;
+  fi.fDoCast = fTrue;
+  if (fi.chart) fi.chart->redraw();
+}
+
+void FMenuViewInfluence(Fl_Widget *w, void *data)
+{
+  gi.nMode = gDisposit;
+  fi.fDoCast = fTrue;
+  if (fi.chart) fi.chart->redraw();
+}
+
+void FMenuViewEphemeris(Fl_Widget *w, void *data)
+{
+  gi.nMode = gEphemeris;
+  fi.fDoCast = fTrue;
+  if (fi.chart) fi.chart->redraw();
+}
+
+void FMenuViewRising(Fl_Widget *w, void *data)
+{
+  gi.nMode = gRising;
+  fi.fDoCast = fTrue;
+  if (fi.chart) fi.chart->redraw();
 }
 
 // Animate menu callbacks
