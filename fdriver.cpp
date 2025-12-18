@@ -33,28 +33,9 @@
 // Global FLTK state
 FI fi = {0};
 
-// Flag to enable Cairo rendering (for antialiased graphics)
+// Cairo rendering is always enabled when available (no toggle)
 #ifdef CAIRO
-static int fUseCairo = fTrue;  // Default to Cairo rendering when available
-
-void FMenuViewCairo(Fl_Widget *w, void *data)
-{
-  fUseCairo = !fUseCairo;
-
-  // Update menu checkmark
-  if (fi.menubar) {
-    Fl_Menu_Item *item = (Fl_Menu_Item *)fi.menubar->find_item(FMenuViewCairo);
-    if (item) {
-      if (fUseCairo)
-        item->set();
-      else
-        item->clear();
-    }
-  }
-
-  if (fi.chart)
-    fi.chart->redraw();
-}
+static int fUseCairo = fTrue;
 #endif
 
 // Flag to enable OpenGL 3D rendering
@@ -115,6 +96,15 @@ void FMenuViewSphere(Fl_Widget *w, void *data);
 void FMenuViewTelescope(Fl_Widget *w, void *data);
 void FMenuViewPolar(Fl_Widget *w, void *data);
 void FMenuViewWorldMap(Fl_Widget *w, void *data);
+
+// Forward declarations for include toggles (used by handleKey)
+void FMenuIncludeMinors(Fl_Widget *w, void *data);
+void FMenuIncludeCusps(Fl_Widget *w, void *data);
+void FMenuIncludeUranians(Fl_Widget *w, void *data);
+void FMenuIncludeDwarfs(Fl_Widget *w, void *data);
+void FMenuIncludeMoons(Fl_Widget *w, void *data);
+void FMenuIncludeCOB(Fl_Widget *w, void *data);
+void FMenuIncludeStars(Fl_Widget *w, void *data);
 
 /*
 ******************************************************************************
@@ -302,6 +292,24 @@ int ChartWidget::handle(int event)
           fi.fDoCast = fTrue;
           redraw();
         }
+      } else if (gi.nMode == gMidpoint && !gs.fEquator) {
+        // Click on midpoint dial: orient arrow to clicked position
+        // Match center calculation from XChartMidpoint
+        int chartWidth = gs.xWin;
+        if (gs.fText && gs.fDoSidebar)
+          chartWidth -= xSideT;
+        int cx = chartWidth / 2 - 1;
+        int cy = gs.yWin / 2 - 1;
+        real dx = (real)(mx - cx);
+        real dy = (real)(my - cy);
+        if (dx != 0.0 || dy != 0.0) {
+          // Convert screen position to angle (270 is top, clockwise positive)
+          real screenAngle = RAngleD(dx, dy);
+          real rxi = !us.fIndian ? 1.0 : -1.0;
+          gs.rRot = Mod((270.0 - screenAngle) * rxi);
+          gs.objTrack = -1;  // Clear any tracked object
+          redraw();
+        }
       }
       return 1;
     } else if (Fl::event_button() == FL_RIGHT_MOUSE) {
@@ -325,24 +333,41 @@ int ChartWidget::handle(int event)
     // Both left and right mouse drag can rotate globe/map views
     if (us.fGraphics && FSupportsRotation(gi.nMode) &&
         !(Fl::event_state() & (FL_SHIFT | FL_ALT))) {
-      // Calculate rotation delta with mode-specific factor
-      real rFactor = (gi.nMode == gLocal || gi.nMode == gTelescope) ?
-        -gi.zViewRatio : 1.0;
-      gs.rRot += (real)(mx - mousex_) * rDegHalf / (real)gs.xWin * rFactor;
-
-      // Calculate tilt delta with mode-specific factor
-      rFactor = (gi.nMode == gLocal || gi.nMode == gTelescope) ? gi.zViewRatio :
-        (gi.nMode == gGlobe ? -1.0 : 1.0);
-      gs.rTilt += (real)(my - mousey_) * rDegHalf / (real)gs.yWin * rFactor;
-
-      // Clamp values using shared helpers
-      ClampRotation();
-      ClampTilt();
-
-      if (gi.nMode == gMidpoint || gi.nMode == gTelescope) {
-        if (gi.nMode == gMidpoint && gs.objTrack >= 0)
-          gs.rRot = planet[gs.objTrack];
+      if (gi.nMode == gMidpoint && !gs.fEquator) {
+        // Midpoint dial: use angular rotation around center
+        int chartWidth = gs.xWin;
+        if (gs.fText && gs.fDoSidebar)
+          chartWidth -= xSideT;
+        int cx = chartWidth / 2 - 1;
+        int cy = gs.yWin / 2 - 1;
+        real prevAngle = RAngleD((real)(mousex_ - cx), (real)(mousey_ - cy));
+        real currAngle = RAngleD((real)(mx - cx), (real)(my - cy));
+        real deltaAngle = currAngle - prevAngle;
+        // Handle wraparound at 0/360 boundary
+        if (deltaAngle > 180.0) deltaAngle -= 360.0;
+        else if (deltaAngle < -180.0) deltaAngle += 360.0;
+        // Apply angular change (rxi handles Indian vs Western)
+        real rxi = !us.fIndian ? 1.0 : -1.0;
+        gs.rRot -= deltaAngle * rxi;
+        ClampRotation();
         gs.objTrack = -1;
+      } else {
+        // Calculate rotation delta with mode-specific factor
+        real rFactor = (gi.nMode == gLocal || gi.nMode == gTelescope) ?
+          -gi.zViewRatio : 1.0;
+        gs.rRot += (real)(mx - mousex_) * rDegHalf / (real)gs.xWin * rFactor;
+
+        // Calculate tilt delta with mode-specific factor
+        rFactor = (gi.nMode == gLocal || gi.nMode == gTelescope) ? gi.zViewRatio :
+          (gi.nMode == gGlobe ? -1.0 : 1.0);
+        gs.rTilt += (real)(my - mousey_) * rDegHalf / (real)gs.yWin * rFactor;
+
+        // Clamp values using shared helpers
+        ClampRotation();
+        ClampTilt();
+
+        if (gi.nMode == gTelescope)
+          gs.objTrack = -1;
       }
       mousex_ = mx;
       mousey_ = my;
@@ -600,70 +625,14 @@ int ChartWidget::handleKey(int key)
     redraw();
     return 1;
 
-  // Object restrictions
-  case 'R':
-    for (i = oChi; i <= oVes; i++)
-      inv(ignore[i]);
-    for (i = oSou; i <= oEP; i++)
-      inv(ignore[i]);
-    AdjustRestrictions();
-    fi.fDoCast = fTrue;
-    redraw();
-    return 1;
-
-  case 'C':
-    inv(us.fCusp);
-    for (i = cuspLo; i <= cuspHi; i++)
-      ignore[i] = !us.fCusp || !ignore[i];
-    AdjustRestrictions();
-    fi.fDoCast = fTrue;
-    redraw();
-    return 1;
-
-  case 'u':
-    inv(us.fUranian);
-    for (i = uranLo; i <= uranHi; i++)
-      ignore[i] = !us.fUranian || !ignore[i];
-    AdjustRestrictions();
-    fi.fDoCast = fTrue;
-    redraw();
-    return 1;
-
-  case 'y':
-    inv(us.fDwarf);
-    for (i = dwarfLo; i <= dwarfHi; i++)
-      ignore[i] = !us.fDwarf || !ignore[i];
-    AdjustRestrictions();
-    fi.fDoCast = fTrue;
-    redraw();
-    return 1;
-
-  case '`':
-    inv(us.fMoons);
-    for (i = moonsLo; i <= moonsHi; i++)
-      ignore[i] = !us.fMoons || !ignore[i];
-    AdjustRestrictions();
-    fi.fDoCast = fTrue;
-    redraw();
-    return 1;
-
-  case '~':
-    inv(us.fCOB);
-    for (i = cobLo; i <= cobHi; i++)
-      ignore[i] = !us.fCOB || !ignore[i];
-    AdjustRestrictions();
-    fi.fDoCast = fTrue;
-    redraw();
-    return 1;
-
-  case 'U':
-    inv(us.fStar);
-    for (i = starLo; i <= starHi; i++)
-      ignore[i] = !us.fStar || !ignore[i];
-    AdjustRestrictions();
-    fi.fDoCast = fTrue;
-    redraw();
-    return 1;
+  // Object restrictions - delegate to menu callbacks
+  case 'R': FMenuIncludeMinors(NULL, NULL); return 1;
+  case 'C': FMenuIncludeCusps(NULL, NULL); return 1;
+  case 'u': FMenuIncludeUranians(NULL, NULL); return 1;
+  case 'y': FMenuIncludeDwarfs(NULL, NULL); return 1;
+  case '`': FMenuIncludeMoons(NULL, NULL); return 1;
+  case '~': FMenuIncludeCOB(NULL, NULL); return 1;
+  case 'U': FMenuIncludeStars(NULL, NULL); return 1;
 
   // Scale adjustments
   case '<':
@@ -1098,9 +1067,6 @@ void AstrologWindow::createMenus()
   menubar_->add("&View/&Telescope", 'T', FMenuViewTelescope);
   menubar_->add("&View/&Polar", 'P', FMenuViewPolar);
   menubar_->add("&View/&World Map", 'W', FMenuViewWorldMap);
-#ifdef CAIRO
-  menubar_->add("&View/Antialiased (&Cairo)", 0, FMenuViewCairo, 0, FL_MENU_TOGGLE|FL_MENU_VALUE);
-#endif
 #ifdef OPENGL
   menubar_->add("&View/3D with &OpenGL", 0, FMenuViewOpenGL, 0, FL_MENU_TOGGLE|FL_MENU_VALUE);
 #endif
@@ -1112,7 +1078,14 @@ void AstrologWindow::createMenus()
   menubar_->add("Se&ttings/&Aspect Settings...", 0, FMenuAspectSettings);
   menubar_->add("Se&ttings/&Object Restrictions...", 0, FMenuRestrict);
   menubar_->add("Se&ttings/&Transit Restrictions...", 0, FMenuRestrictTransit);
-  menubar_->add("Se&ttings/Co&lor Settings...", 0, FMenuColorSettings);
+  menubar_->add("Se&ttings/Co&lor Settings...", 0, FMenuColorSettings, 0, FL_MENU_DIVIDER);
+  menubar_->add("Se&ttings/Include &Minors", 'R', FMenuIncludeMinors, 0, FL_MENU_TOGGLE);
+  menubar_->add("Se&ttings/Include &Cusps", 'C', FMenuIncludeCusps, 0, FL_MENU_TOGGLE);
+  menubar_->add("Se&ttings/Include &Uranians", 'u', FMenuIncludeUranians, 0, FL_MENU_TOGGLE);
+  menubar_->add("Se&ttings/Include &Dwarfs", 'y', FMenuIncludeDwarfs, 0, FL_MENU_TOGGLE);
+  menubar_->add("Se&ttings/Include &Moons", '`', FMenuIncludeMoons, 0, FL_MENU_TOGGLE);
+  menubar_->add("Se&ttings/Include &Body Centers", '~', FMenuIncludeCOB, 0, FL_MENU_TOGGLE);
+  menubar_->add("Se&ttings/Include Fixed &Stars", 'U', FMenuIncludeStars, 0, FL_MENU_TOGGLE);
 
   // View menu - add Chart Type
   menubar_->add("&View/Chart &Type...", 0, FMenuChartType);
@@ -1487,6 +1460,110 @@ void FMenuAnimBack(Fl_Widget *w, void *data)
 {
   Animate(gs.nAnim, -gi.nDir);
   fi.fDoCast = fTrue;
+  if (fi.chart) fi.chart->redraw();
+}
+
+// Helper to update menu checkbox state
+static void UpdateMenuCheck(Fl_Callback *cb, flag f)
+{
+  if (fi.menubar) {
+    Fl_Menu_Item *item = (Fl_Menu_Item *)fi.menubar->find_item(cb);
+    if (item) {
+      if (f)
+        item->set();
+      else
+        item->clear();
+    }
+  }
+}
+
+// Include menu callbacks
+void FMenuIncludeMinors(Fl_Widget *w, void *data)
+{
+  int i;
+  for (i = oChi; i <= oVes; i++)
+    inv(ignore[i]);
+  for (i = oSou; i <= oEP; i++)
+    inv(ignore[i]);
+  AdjustRestrictions();
+  fi.fDoCast = fTrue;
+  // Check if any minor is shown to set the menu checkmark
+  flag fMinors = fFalse;
+  for (i = oChi; i <= oVes && !fMinors; i++)
+    fMinors = !ignore[i];
+  UpdateMenuCheck(FMenuIncludeMinors, fMinors);
+  if (fi.chart) fi.chart->redraw();
+}
+
+void FMenuIncludeCusps(Fl_Widget *w, void *data)
+{
+  int i;
+  inv(us.fCusp);
+  for (i = cuspLo; i <= cuspHi; i++)
+    ignore[i] = !us.fCusp || !ignore[i];
+  AdjustRestrictions();
+  fi.fDoCast = fTrue;
+  UpdateMenuCheck(FMenuIncludeCusps, us.fCusp);
+  if (fi.chart) fi.chart->redraw();
+}
+
+void FMenuIncludeUranians(Fl_Widget *w, void *data)
+{
+  int i;
+  inv(us.fUranian);
+  for (i = uranLo; i <= uranHi; i++)
+    ignore[i] = !us.fUranian || !ignore[i];
+  AdjustRestrictions();
+  fi.fDoCast = fTrue;
+  UpdateMenuCheck(FMenuIncludeUranians, us.fUranian);
+  if (fi.chart) fi.chart->redraw();
+}
+
+void FMenuIncludeDwarfs(Fl_Widget *w, void *data)
+{
+  int i;
+  inv(us.fDwarf);
+  for (i = dwarfLo; i <= dwarfHi; i++)
+    ignore[i] = !us.fDwarf || !ignore[i];
+  AdjustRestrictions();
+  fi.fDoCast = fTrue;
+  UpdateMenuCheck(FMenuIncludeDwarfs, us.fDwarf);
+  if (fi.chart) fi.chart->redraw();
+}
+
+void FMenuIncludeMoons(Fl_Widget *w, void *data)
+{
+  int i;
+  inv(us.fMoons);
+  for (i = moonsLo; i <= moonsHi; i++)
+    ignore[i] = !us.fMoons || !ignore[i];
+  AdjustRestrictions();
+  fi.fDoCast = fTrue;
+  UpdateMenuCheck(FMenuIncludeMoons, us.fMoons);
+  if (fi.chart) fi.chart->redraw();
+}
+
+void FMenuIncludeCOB(Fl_Widget *w, void *data)
+{
+  int i;
+  inv(us.fCOB);
+  for (i = cobLo; i <= cobHi; i++)
+    ignore[i] = !us.fCOB || !ignore[i];
+  AdjustRestrictions();
+  fi.fDoCast = fTrue;
+  UpdateMenuCheck(FMenuIncludeCOB, us.fCOB);
+  if (fi.chart) fi.chart->redraw();
+}
+
+void FMenuIncludeStars(Fl_Widget *w, void *data)
+{
+  int i;
+  inv(us.fStar);
+  for (i = starLo; i <= starHi; i++)
+    ignore[i] = !us.fStar || !ignore[i];
+  AdjustRestrictions();
+  fi.fDoCast = fTrue;
+  UpdateMenuCheck(FMenuIncludeStars, us.fStar);
   if (fi.chart) fi.chart->redraw();
 }
 
