@@ -9,6 +9,7 @@ option(USE_FLTK "Build with FLTK GUI" ON)
 option(USE_X11 "Build with X11 GUI (Unix only)" OFF)
 option(USE_WIN "Build with Win32 GUI (Windows only)" OFF)
 option(USE_CAIRO "Build with Cairo for vector rendering (SVG/PDF export)" ON)
+option(USE_OPENGL "Build with OpenGL for 3D chart rendering" ON)
 
 # Make GUI options mutually exclusive
 if(USE_FLTK AND (USE_X11 OR USE_WIN))
@@ -147,6 +148,18 @@ if(USE_CAIRO)
   endif()
 endif()
 
+# OpenGL Backend (optional, for 3D chart rendering)
+if(USE_OPENGL AND USE_FLTK)
+  find_package(OpenGL)
+  if(OpenGL_FOUND)
+    list(APPEND SOURCES fgl.cpp)
+    list(APPEND COMPILE_DEFS OPENGL)
+    message(STATUS "Building with OpenGL 3D rendering support")
+  else()
+    message(STATUS "OpenGL not found - 3D chart rendering will be disabled")
+  endif()
+endif()
+
 # Create executable
 add_executable(astrolog ${SOURCES})
 
@@ -198,6 +211,14 @@ if(USE_CAIRO AND CAIRO_FOUND)
   target_link_libraries(astrolog ${CAIRO_LIBRARIES})
 endif()
 
+if(USE_OPENGL AND USE_FLTK AND OpenGL_FOUND)
+  target_link_libraries(astrolog OpenGL::GL)
+  if(APPLE)
+    # macOS needs the OpenGL framework
+    target_link_libraries(astrolog "-framework OpenGL")
+  endif()
+endif()
+
 if(USE_WIN)
   target_link_libraries(astrolog
     comdlg32
@@ -239,4 +260,5 @@ message(STATUS "FLTK Backend: ${USE_FLTK}")
 message(STATUS "X11 Backend: ${USE_X11}")
 message(STATUS "Win32 Backend: ${USE_WIN}")
 message(STATUS "Cairo Support: ${CAIRO_FOUND}")
+message(STATUS "OpenGL Support: ${OpenGL_FOUND}")
 message(STATUS "")

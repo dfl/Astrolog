@@ -78,6 +78,8 @@ void FMenuViewOpenGL(Fl_Widget *w, void *data)
 
   // If currently in a 3D mode, switch widgets accordingly
   if (fi.window && FIs3DChartMode(gi.nMode)) {
+    // Set fDoCast to ensure chart data is available
+    fi.fDoCast = fTrue;
     fi.window->switchTo3D(fUseOpenGL);
   }
 }
@@ -868,6 +870,16 @@ void AstrologWindow::switchTo3D(bool use3D)
   if (!chart_ || !chart3D_)
     return;
 
+  // Ensure chart data is calculated before rendering
+  if (fi.fDoCast) {
+    fi.fDoCast = fFalse;
+    ciCore = ciMain;
+    if (us.nRel)
+      CastRelation();
+    else
+      CastChart(0);
+  }
+
   if (use3D) {
     // Switch to OpenGL 3D widget
     if (chart_->visible())
@@ -1378,6 +1390,10 @@ void FMenuAnimBack(Fl_Widget *w, void *data)
 
 void BeginFltk()
 {
+  // FLTK/Cairo can't draw 24 bit color bitmaps directly like Windows can.
+  // Setting this to false tells globe/map rendering code to skip bitmap ops.
+  gi.fBmp = fFalse;
+
   // Initialize FLTK scheme for modern look
   Fl::scheme("gtk+");
 

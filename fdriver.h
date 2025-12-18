@@ -25,12 +25,18 @@
 // Forward declarations
 class ChartWidget;
 class AstrologWindow;
+#ifdef OPENGL
+class Globe3DWidget;
+#endif
 
 // FLTK-specific global state
 // Note: Using int instead of flag since this header is included early
 typedef struct _FltkInfo {
   AstrologWindow *window;    // Main application window
-  ChartWidget *chart;        // Chart drawing widget
+  ChartWidget *chart;        // Chart drawing widget (2D)
+#ifdef OPENGL
+  Globe3DWidget *chart3D;    // OpenGL 3D chart widget
+#endif
   Fl_Menu_Bar *menubar;      // Menu bar
   int xClient;               // Client area width
   int yClient;               // Client area height
@@ -69,6 +75,10 @@ public:
   virtual ~AstrologWindow();
 
   ChartWidget *chartWidget() { return chart_; }
+#ifdef OPENGL
+  Globe3DWidget *chart3DWidget() { return chart3D_; }
+  void switchTo3D(bool use3D);  // Switch between 2D and 3D widgets
+#endif
   Fl_Menu_Bar *menuBar() { return menubar_; }
 
   void resize(int x, int y, int w, int h) FL_OVERRIDE;
@@ -79,6 +89,9 @@ public:
 
 private:
   ChartWidget *chart_;
+#ifdef OPENGL
+  Globe3DWidget *chart3D_;
+#endif
   Fl_Menu_Bar *menubar_;
   bool animating_;
   double aspectRatio_;    // Initial aspect ratio (width/height)
