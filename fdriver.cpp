@@ -17,6 +17,9 @@
 
 #ifdef FLTK
 #include "fdriver.h"
+#ifdef OPENGL
+#include "fgl.h"
+#endif
 #include <FL/Fl_File_Chooser.H>
 #include <FL/Fl_RGB_Image.H>
 #include <FL/fl_ask.H>
@@ -325,6 +328,10 @@ int ChartWidget::handleKey(int key)
 {
   int i;
 
+  // Let Cmd/Ctrl modified keys pass through to menu shortcuts
+  if (Fl::event_state() & FL_COMMAND)
+    return 0;
+
 #ifdef EXPRESS
   // Allow AstroExpression to adjust the key
   if (!us.fExpOff && FSzSet(us.szExpKey)) {
@@ -337,11 +344,8 @@ int ChartWidget::handleKey(int key)
   switch (key) {
   // Basic controls
   case ' ':
-    redraw();
-    return 1;
-
   case 'p':
-    inv(gi.fPause);
+    inv(gi.fPause);  // Spacebar or 'p' toggles pause/play
     return 1;
 
   case 'r':
@@ -742,6 +746,10 @@ void FMenuViewHorizon(Fl_Widget *w, void *data);
 void FMenuViewOrbit(Fl_Widget *w, void *data);
 void FMenuViewAstroGraph(Fl_Widget *w, void *data);
 void FMenuViewGlobe(Fl_Widget *w, void *data);
+void FMenuViewSphere(Fl_Widget *w, void *data);
+void FMenuViewLocal(Fl_Widget *w, void *data);
+void FMenuViewTelescope(Fl_Widget *w, void *data);
+void FMenuViewPolar(Fl_Widget *w, void *data);
 void FMenuViewWorldMap(Fl_Widget *w, void *data);
 void FMenuAnimPause(Fl_Widget *w, void *data);
 void FMenuAnimReverse(Fl_Widget *w, void *data);
@@ -755,7 +763,11 @@ void FMenuAnimBack(Fl_Widget *w, void *data);
 */
 
 AstrologWindow::AstrologWindow(int w, int h, const char *title)
-  : Fl_Double_Window(w, h + 25, title), animating_(false),
+  : Fl_Double_Window(w, h + 25, title),
+#ifdef OPENGL
+    chart3D_(NULL),
+#endif
+    animating_(false),
     aspectRatio_((double)w / (double)h)
 {
   // Set background to black to avoid white gaps during resize
@@ -765,8 +777,14 @@ AstrologWindow::AstrologWindow(int w, int h, const char *title)
   menubar_ = new Fl_Menu_Bar(0, 0, w, 25);
   createMenus();
 
-  // Create chart widget below menu bar
+  // Create chart widget below menu bar (2D)
   chart_ = new ChartWidget(0, 25, w, h);
+
+#ifdef OPENGL
+  // Create OpenGL 3D widget (initially hidden)
+  chart3D_ = new Globe3DWidget(0, 25, w, h);
+  chart3D_->hide();
+#endif
 
   end();
   resizable(chart_);
@@ -774,6 +792,9 @@ AstrologWindow::AstrologWindow(int w, int h, const char *title)
   // Store in global state
   fi.window = this;
   fi.chart = chart_;
+#ifdef OPENGL
+  fi.chart3D = chart3D_;
+#endif
   fi.menubar = menubar_;
   fi.xClient = w;
   fi.yClient = h;
@@ -784,8 +805,31 @@ AstrologWindow::~AstrologWindow()
   stopAnimation();
   fi.window = NULL;
   fi.chart = NULL;
+#ifdef OPENGL
+  fi.chart3D = NULL;
+#endif
   fi.menubar = NULL;
 }
+
+#ifdef OPENGL
+void AstrologWindow::switchTo3D(bool use3D)
+{
+  if (use3D) {
+    // Switch to OpenGL 3D widget
+    chart_->hide();
+    chart3D_->setChartMode(gi.nMode);
+    chart3D_->show();
+    chart3D_->redraw();
+    resizable(chart3D_);
+  } else {
+    // Switch to 2D FLTK widget
+    chart3D_->hide();
+    chart_->show();
+    chart_->redraw();
+    resizable(chart_);
+  }
+}
+#endif
 
 void AstrologWindow::resize(int x, int y, int w, int h)
 {
@@ -837,23 +881,24 @@ void AstrologWindow::stopAnimation()
 void AstrologWindow::createMenus()
 {
   // File menu
-  menubar_->add("&File/&Open Chart...", FL_CTRL+'o', FMenuFileOpen);
-  menubar_->add("&File/&Save Chart...", FL_CTRL+'s', FMenuFileSave);
+  // FL_COMMAND maps to Cmd on macOS, Ctrl on Windows/Linux
+  menubar_->add("&File/&Open Chart...", FL_COMMAND+'o', FMenuFileOpen);
+  menubar_->add("&File/&Save Chart...", FL_COMMAND+'s', FMenuFileSave);
   menubar_->add("&File/Save &As...", 0, FMenuFileSaveAs);
 #ifdef CAIRO
   menubar_->add("&File/Export/&SVG...", 0, FMenuExportSVG);
   menubar_->add("&File/Export/&PDF...", 0, FMenuExportPDF);
 #endif
   menubar_->add("&File/Export/&Bitmap...", 0, FMenuExportBitmap);
-  menubar_->add("&File/E&xit", FL_CTRL+'q', FMenuFileExit);
+  menubar_->add("&File/E&xit", FL_COMMAND+'q', FMenuFileExit);
 
   // Edit menu
-  menubar_->add("&Edit/&Copy", FL_CTRL+'c', FMenuEditCopy);
-  menubar_->add("&Edit/&Paste", FL_CTRL+'v', (Fl_Callback*)NULL);
+  menubar_->add("&Edit/&Copy", FL_COMMAND+'c', FMenuEditCopy);
+  menubar_->add("&Edit/&Paste", FL_COMMAND+'v', (Fl_Callback*)NULL);
   menubar_->add("&Edit/Command &Line...", FL_F+2, FMenuCommand);
 
   // Info menu
-  menubar_->add("&Info/Set &Chart Info...", FL_CTRL+'i', FMenuInfoChart);
+  menubar_->add("&Info/Set &Chart Info...", FL_COMMAND+'i', FMenuInfoChart);
   menubar_->add("&Info/Set Chart #&2 Info...", 0, FMenuInfoChart2);
 
   // View menu - using legacy uppercase key mappings
@@ -864,6 +909,10 @@ void AstrologWindow::createMenus()
   menubar_->add("&View/&Orbit Chart", 'S', FMenuViewOrbit);
   menubar_->add("&View/Astro-Graph", 'L', FMenuViewAstroGraph);
   menubar_->add("&View/&Globe", 'G', FMenuViewGlobe);
+  menubar_->add("&View/&Sphere", 'X', FMenuViewSphere);
+  menubar_->add("&View/&Local Horizon", 0, FMenuViewLocal);
+  menubar_->add("&View/&Telescope", 'T', FMenuViewTelescope);
+  menubar_->add("&View/&Polar", 'P', FMenuViewPolar);
   menubar_->add("&View/&World Map", 'W', FMenuViewWorldMap);
 #ifdef CAIRO
   menubar_->add("&View/Antialiased (&Cairo)", 0, FMenuViewCairo, 0, FL_MENU_TOGGLE|FL_MENU_VALUE);
@@ -883,7 +932,7 @@ void AstrologWindow::createMenus()
 
   // Animate menu
   menubar_->add("&Animate/Animation &Settings...", 0, FMenuAnimSettings);
-  menubar_->add("&Animate/&Pause", 'p', FMenuAnimPause);
+  menubar_->add("&Animate/&Pause/Play", ' ', FMenuAnimPause);
   menubar_->add("&Animate/&Reverse", 'r', FMenuAnimReverse);
   menubar_->add("&Animate/Jump &Forward", 0, FMenuAnimForward);
   menubar_->add("&Animate/Jump &Back", 0, FMenuAnimBack);
@@ -1101,56 +1150,132 @@ void FMenuViewWheel(Fl_Widget *w, void *data)
 {
   gi.nMode = gWheel;
   fi.fDoCast = fTrue;
+#ifdef OPENGL
+  if (fi.window) fi.window->switchTo3D(false);
+#else
   if (fi.chart) fi.chart->redraw();
+#endif
 }
 
 void FMenuViewGrid(Fl_Widget *w, void *data)
 {
   gi.nMode = gGrid;
   fi.fDoCast = fTrue;
+#ifdef OPENGL
+  if (fi.window) fi.window->switchTo3D(false);
+#else
   if (fi.chart) fi.chart->redraw();
+#endif
 }
 
 void FMenuViewMidpoint(Fl_Widget *w, void *data)
 {
   gi.nMode = gMidpoint;
   fi.fDoCast = fTrue;
+#ifdef OPENGL
+  if (fi.window) fi.window->switchTo3D(false);
+#else
   if (fi.chart) fi.chart->redraw();
+#endif
 }
 
 void FMenuViewHorizon(Fl_Widget *w, void *data)
 {
   gi.nMode = gHorizon;
   fi.fDoCast = fTrue;
+#ifdef OPENGL
+  if (fi.window) fi.window->switchTo3D(false);
+#else
   if (fi.chart) fi.chart->redraw();
+#endif
 }
 
 void FMenuViewOrbit(Fl_Widget *w, void *data)
 {
   gi.nMode = gOrbit;
   fi.fDoCast = fTrue;
+#ifdef OPENGL
+  if (fi.window) fi.window->switchTo3D(false);
+#else
   if (fi.chart) fi.chart->redraw();
+#endif
 }
 
 void FMenuViewAstroGraph(Fl_Widget *w, void *data)
 {
   gi.nMode = gAstroGraph;
   fi.fDoCast = fTrue;
+#ifdef OPENGL
+  if (fi.window) fi.window->switchTo3D(false);
+#else
   if (fi.chart) fi.chart->redraw();
+#endif
 }
 
 void FMenuViewGlobe(Fl_Widget *w, void *data)
 {
   gi.nMode = gGlobe;
   fi.fDoCast = fTrue;
+#ifdef OPENGL
+  if (fi.window) fi.window->switchTo3D(true);
+#else
   if (fi.chart) fi.chart->redraw();
+#endif
+}
+
+void FMenuViewSphere(Fl_Widget *w, void *data)
+{
+  gi.nMode = gSphere;
+  fi.fDoCast = fTrue;
+#ifdef OPENGL
+  if (fi.window) fi.window->switchTo3D(true);
+#else
+  if (fi.chart) fi.chart->redraw();
+#endif
+}
+
+void FMenuViewLocal(Fl_Widget *w, void *data)
+{
+  gi.nMode = gLocal;
+  fi.fDoCast = fTrue;
+#ifdef OPENGL
+  if (fi.window) fi.window->switchTo3D(true);
+#else
+  if (fi.chart) fi.chart->redraw();
+#endif
+}
+
+void FMenuViewTelescope(Fl_Widget *w, void *data)
+{
+  gi.nMode = gTelescope;
+  fi.fDoCast = fTrue;
+#ifdef OPENGL
+  if (fi.window) fi.window->switchTo3D(true);
+#else
+  if (fi.chart) fi.chart->redraw();
+#endif
+}
+
+void FMenuViewPolar(Fl_Widget *w, void *data)
+{
+  gi.nMode = gPolar;
+  fi.fDoCast = fTrue;
+#ifdef OPENGL
+  if (fi.window) fi.window->switchTo3D(true);
+#else
+  if (fi.chart) fi.chart->redraw();
+#endif
 }
 
 void FMenuViewWorldMap(Fl_Widget *w, void *data)
 {
   gi.nMode = gWorldMap;
   fi.fDoCast = fTrue;
+#ifdef OPENGL
+  if (fi.window) fi.window->switchTo3D(false);
+#else
   if (fi.chart) fi.chart->redraw();
+#endif
 }
 
 // Animate menu callbacks
