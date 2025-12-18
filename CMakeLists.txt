@@ -238,8 +238,6 @@ endif()
 if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
   target_compile_options(astrolog PRIVATE
     -Wall
-    -Wno-write-strings
-    -Wno-format-security
   )
 endif()
 

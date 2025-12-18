@@ -4527,8 +4527,8 @@ static int read_const(int ifno, char *serr)
   double doubles[20];
   struct plan_data *pdp;
   struct file_data *fdp = &swed.fidat[ifno];
-  char *serr_file_damage = "Ephemeris file %s is damaged (0%s). ";
-  char *smsg = "";
+  const char *serr_file_damage = "Ephemeris file %s is damaged (0%s). ";
+  const char *smsg = "";
   int nbytes_ipl = 2;
   fp = fdp->fptr;
   /************************************* 
@@ -6181,7 +6181,7 @@ static int32 save_star_in_struct(int nrecs, struct fixed_star *fstp, char *serr)
 {
   int sizestru = sizeof(struct fixed_star);
   struct fixed_star *ftarget;
-  char *serr_alloc = "error in function load_all_fixed_stars(): could not resize fixed stars array";
+  const char *serr_alloc = "error in function load_all_fixed_stars(): could not resize fixed stars array";
   if ((swed.fixed_stars = (struct fixed_star *) realloc(swed.fixed_stars, nrecs * sizestru)) == NULL) {
     if (serr != NULL) strcpy(serr, serr_alloc);
     return ERR;

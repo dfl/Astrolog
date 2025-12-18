@@ -1210,7 +1210,7 @@ void ChartTransitGraph(flag fTrans, flag fProg)
   // Print chart header row(s).
   AnsiColor(kWhiteA);
   if (!fMonth)
-    sprintf(sz, SzDate(ciT.mon, ciT.day, ciT.yea, fFalse));
+    sprintf(sz, "%s", SzDate(ciT.mon, ciT.day, ciT.yea, fFalse));
   else if (!fYear)
     sprintf(sz, "%3.3s%5d", szMonth[ciT.mon], ciT.yea);
   else if (us.nEphemYears <= 1)

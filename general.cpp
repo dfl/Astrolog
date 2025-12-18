@@ -1566,7 +1566,7 @@ void AnsiColor(int k)
       PrintSz(szColorHTML[k]);
     else {
       kv = rgbbmp[k];
-      sprintf(sz, "#%06x", Rgb(RgbB(kv), RgbG(kv), RgbR(kv)));
+      sprintf(sz, "#%06lx", Rgb(RgbB(kv), RgbG(kv), RgbR(kv)));
       PrintSz(sz);
     }
 #else
