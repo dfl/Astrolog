@@ -93,6 +93,7 @@ static void X11Flush(void)
 static GB gbX11 = {
   "X11",
   X11SetColor,
+  NULL,  // PutColorAlpha - X11 doesn't support alpha
   X11DrawPixel,
   X11DrawPixelThick,
   X11DrawLine,
@@ -245,6 +246,7 @@ static void WinFlush(void)
 static GB gbWin = {
   "Windows",
   WinSetColor,
+  NULL,  // PutColorAlpha - Windows doesn't support alpha
   WinDrawPixel,
   WinDrawPixelThick,
   WinDrawLine,
@@ -332,6 +334,7 @@ static void FltkFlush(void)
 static GB gbFltk = {
   "FLTK",
   FltkSetColor,
+  NULL,  // PutColorAlpha - FLTK doesn't support alpha natively
   FltkDrawPixel,
   FltkDrawPixelThick,
   FltkDrawLine,
@@ -376,6 +379,18 @@ static void CairoSetColor(int ki)
     (double)RgbR(kv) / 255.0,
     (double)RgbG(kv) / 255.0,
     (double)RgbB(kv) / 255.0);
+}
+
+static void CairoSetColorAlpha(int ki, int alpha)
+{
+  if (ki < 0 || ki >= cColor)
+    ki = 0;
+  KV kv = rgbbmp[ki];
+  cairo_set_source_rgba(gi_cr,
+    (double)RgbR(kv) / 255.0,
+    (double)RgbG(kv) / 255.0,
+    (double)RgbB(kv) / 255.0,
+    (double)alpha / 255.0);
 }
 
 static void CairoDrawPixel(int x, int y)
@@ -463,6 +478,7 @@ static void CairoFlush(void)
 static GB gbCairo = {
   "Cairo",
   CairoSetColor,
+  CairoSetColorAlpha,
   CairoDrawPixel,
   CairoDrawPixelThick,
   CairoDrawLine,

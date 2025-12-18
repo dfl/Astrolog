@@ -781,6 +781,7 @@ extern CONST char *szDrawObject[objMaxG], *szDrawObject2[objMaxG],
   DrawEllipse2((x)-(xr), (y)-(yr), (x)+(xr), (y)+(yr))
 
 extern void DrawColor P((KI));
+extern void DrawColorAlpha P((KI, int));
 extern void DrawThick P((flag));
 extern void DrawPoint P((int, int));
 extern void DrawSpot P((int, int));

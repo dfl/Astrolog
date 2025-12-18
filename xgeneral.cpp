@@ -93,6 +93,22 @@ void DrawColor(KI col)
 }
 
 
+// Set the current color with alpha transparency (0=transparent, 255=opaque).
+// Falls back to regular DrawColor for backends that don't support alpha.
+
+void DrawColorAlpha(KI col, int alpha)
+{
+  if (gi.fFile) {
+    // File output - just use regular color (no alpha support)
+    DrawColor(col);
+  } else {
+    // Screen output - use abstraction layer with alpha
+    GBSetColorAlpha(col, alpha);
+  }
+  gi.kiCur = col;
+}
+
+
 // Set the current line thickness to use when drawing graphics charts.
 
 void DrawThick(flag fThick)

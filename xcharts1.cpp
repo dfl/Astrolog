@@ -538,7 +538,11 @@ void XChartGrid(int x0, int y0)
         // If this is an aspect cell, draw glyph of aspect in effect.
         if (gs.fAlt ? x > y : x < y) {
           if (k) {
-            DrawColor(c = kAspB[k]);
+            // Use alpha transparency: Major aspects (1-5) fully opaque,
+            // Minor aspects (6-11) semi-transparent, Obscure (12+) more faded
+            int nAlpha = k <= 5 ? 255 : (k <= 11 ? 180 : 120);
+            c = kAspB[k];
+            DrawColorAlpha(c, nAlpha);
             DrawAspect(k + (NCheckEclipseAny(ig, k, jg, NULL) >
               etNone)*cAspect2, x0 + gi.xTurtle, y0 + gi.yTurtle);
           }
