@@ -102,6 +102,18 @@ Fl_Color FltkColorFromKI(int ki)
   return fl_rgb_color(r, g, b);
 }
 
+// Forward declarations for view menu callbacks (used by handleKey)
+void FMenuViewWheel(Fl_Widget *w, void *data);
+void FMenuViewGrid(Fl_Widget *w, void *data);
+void FMenuViewHorizon(Fl_Widget *w, void *data);
+void FMenuViewOrbit(Fl_Widget *w, void *data);
+void FMenuViewAstroGraph(Fl_Widget *w, void *data);
+void FMenuViewGlobe(Fl_Widget *w, void *data);
+void FMenuViewSphere(Fl_Widget *w, void *data);
+void FMenuViewTelescope(Fl_Widget *w, void *data);
+void FMenuViewPolar(Fl_Widget *w, void *data);
+void FMenuViewWorldMap(Fl_Widget *w, void *data);
+
 /*
 ******************************************************************************
 ** ChartWidget Implementation
@@ -687,23 +699,23 @@ int ChartWidget::handleKey(int key)
   case '*': gs.nAnim = -8; return 1;  // Centuries
   case '(': gs.nAnim = -9; return 1;  // Millennia
 
-  // Chart modes (uppercase letters)
-  case 'V': gi.nMode = gWheel;      redraw(); return 1;
-  case 'A': gi.nMode = gGrid;       redraw(); return 1;
-  case 'Z': gi.nMode = gHorizon;    redraw(); return 1;
-  case 'S': gi.nMode = gOrbit;      redraw(); return 1;
+  // Chart modes (uppercase letters) - use menu functions for proper widget switching
+  case 'V': FMenuViewWheel(NULL, NULL);      return 1;
+  case 'A': FMenuViewGrid(NULL, NULL);       return 1;
+  case 'Z': FMenuViewHorizon(NULL, NULL);    return 1;
+  case 'S': FMenuViewOrbit(NULL, NULL);      return 1;
   case 'H': gi.nMode = gSector;     redraw(); return 1;
   case 'K': gi.nMode = gCalendar;   redraw(); return 1;
   case 'J': gi.nMode = gDisposit;   redraw(); return 1;
-  case 'L': gi.nMode = gAstroGraph; redraw(); return 1;
+  case 'L': FMenuViewAstroGraph(NULL, NULL); return 1;
   case 'E': gi.nMode = gEphemeris;  redraw(); return 1;
   case 'I': gi.nMode = gRising;     redraw(); return 1;
   case 'M': gi.nMode = gMoons;      redraw(); return 1;
-  case 'X': gi.nMode = gSphere;     redraw(); return 1;
-  case 'W': gi.nMode = gWorldMap;   redraw(); return 1;
-  case 'G': gi.nMode = gGlobe;      redraw(); return 1;
-  case 'P': gi.nMode = gPolar;      redraw(); return 1;
-  case 'T': gi.nMode = gTelescope;  redraw(); return 1;
+  case 'X': FMenuViewSphere(NULL, NULL);     return 1;
+  case 'W': FMenuViewWorldMap(NULL, NULL);   return 1;
+  case 'G': FMenuViewGlobe(NULL, NULL);      return 1;
+  case 'P': FMenuViewPolar(NULL, NULL);      return 1;
+  case 'T': FMenuViewTelescope(NULL, NULL);  return 1;
 #ifdef BIORHYTHM
   case 'Y':
     us.nRel = rcBiorhythm;
@@ -852,17 +864,31 @@ AstrologWindow::~AstrologWindow()
 #ifdef OPENGL
 void AstrologWindow::switchTo3D(bool use3D)
 {
+  // Safety checks
+  if (!chart_ || !chart3D_)
+    return;
+
   if (use3D) {
     // Switch to OpenGL 3D widget
-    chart_->hide();
+    if (chart_->visible())
+      chart_->hide();
     chart3D_->setChartMode(gi.nMode);
-    chart3D_->show();
+    if (!chart3D_->visible())
+      chart3D_->show();
     chart3D_->redraw();
     resizable(chart3D_);
   } else {
     // Switch to 2D FLTK widget
-    chart3D_->hide();
-    chart_->show();
+    // Ensure OpenGL context is properly flushed before hiding
+    if (chart3D_->visible()) {
+      if (chart3D_->valid()) {
+        chart3D_->make_current();
+        glFinish();
+      }
+      chart3D_->hide();
+    }
+    if (!chart_->visible())
+      chart_->show();
     chart_->redraw();
     resizable(chart_);
   }
