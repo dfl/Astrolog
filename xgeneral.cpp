@@ -53,8 +53,8 @@
 
 #include "astrolog.h"
 
-
 #ifdef GRAPH
+#include "xbackend.h"
 /*
 ******************************************************************************
 ** Core Graphic Procedures.
@@ -65,11 +65,8 @@
 
 void DrawColor(KI col)
 {
-#ifdef WINANY
-  HPEN hpenT;
-#endif
-
   if (gi.fFile) {
+    // File output - PS, META, WIRE formats
 #ifdef PS
     if (gs.ft == ftPS) {
       if (gi.kiCur != col) {
@@ -88,30 +85,10 @@ void DrawColor(KI col)
     if (gs.ft == ftWire)
       gi.kiCur = col;
 #endif
+  } else {
+    // Screen output - use abstraction layer
+    GBSetColor(col);
   }
-#ifdef X11
-  else
-    XSetForeground(gi.disp, gi.gc, rgbind[col]);
-#endif
-#ifdef WINANY
-  else {
-    if (gi.kiCur != col) {
-      hpenT = wi.hpen;
-      wi.hpen = CreatePen(PS_SOLID, gi.nScaleT
-#ifdef WIN
-        * (1 + (gs.fThick && wi.hdcPrint != NULL))
-#endif
-        , (COLORREF)rgbbmp[col]);
-      SelectObject(wi.hdc, wi.hpen);
-      if (hpenT != (HPEN)NULL)
-        DeleteObject(hpenT);
-    }
-  }
-#endif
-#ifdef FLTK
-  else
-    fl_color(FltkColorFromKI(col));
-#endif
   gi.kiCur = col;
 }
 
@@ -152,6 +129,7 @@ void DrawPoint(int x, int y)
   if (!FOnWin(x, y))
     return;
   if (gi.fFile) {
+    // File output - BMP, PS, META, WIRE formats
     if (gs.ft == ftBmp) {
       if (!gi.fBmp) {
         BmSet(gi.bm, x, y, gi.kiCur);
@@ -201,52 +179,13 @@ void DrawPoint(int x, int y)
     else
       WirePoint(x, y, gi.zDefault);
 #endif
+  } else {
+    // Screen output - use abstraction layer
+    if (gs.fThick)
+      GBDrawPixelThick(x, y);
+    else
+      GBDrawPixel(x, y);
   }
-#ifdef X11
-  else {
-    XDrawPoint(gi.disp, gi.pmap, gi.gc, x, y);
-    if (gs.fThick) {
-      XDrawPoint(gi.disp, gi.pmap, gi.gc, x+1, y);
-      XDrawPoint(gi.disp, gi.pmap, gi.gc, x, y+1);
-      XDrawPoint(gi.disp, gi.pmap, gi.gc, x+1, y+1);
-    }
-  }
-#endif
-#ifdef WIN
-  else {
-    if (wi.hdcPrint == hdcNil) {
-      SetPixel(wi.hdc, x, y, (COLORREF)rgbbmp[gi.kiCur]);
-      if (gs.fThick) {
-        SetPixel(wi.hdc, x+1, y, (COLORREF)rgbbmp[gi.kiCur]);
-        SetPixel(wi.hdc, x, y+1, (COLORREF)rgbbmp[gi.kiCur]);
-        SetPixel(wi.hdc, x+1, y+1, (COLORREF)rgbbmp[gi.kiCur]);
-      }
-    } else {
-      MoveTo(wi.hdc, x,   y);
-      LineTo(wi.hdc, x+1, y);
-    }
-  }
-#endif
-#ifdef WCLI
-  else {
-    SetPixel(wi.hdc, x, y, (COLORREF)rgbbmp[gi.kiCur]);
-    if (gs.fThick) {
-      SetPixel(wi.hdc, x+1, y, (COLORREF)rgbbmp[gi.kiCur]);
-      SetPixel(wi.hdc, x, y+1, (COLORREF)rgbbmp[gi.kiCur]);
-      SetPixel(wi.hdc, x+1, y+1, (COLORREF)rgbbmp[gi.kiCur]);
-    }
-  }
-#endif
-#ifdef FLTK
-  else {
-    fl_point(x, y);
-    if (gs.fThick) {
-      fl_point(x+1, y);
-      fl_point(x, y+1);
-      fl_point(x+1, y+1);
-    }
-  }
-#endif
 }
 
 
@@ -339,24 +278,9 @@ void DrawBlock(int x1, int y1, int x2, int y2)
         WireLine(x1, y1, 0, x2, y2, 0);
     }
 #endif
+  } else {
+    GBDrawRect(x1, y1, x2-x1+1, y2-y1+1);
   }
-#ifdef X11
-  else
-    XFillRectangle(gi.disp, gi.pmap, gi.gc, x1, y1, x2-x1+1, y2-y1+1);
-#endif
-#ifdef WINANY
-  else {
-    wi.hbrush = CreateSolidBrush((COLORREF)rgbbmp[gi.kiCur]);
-    SelectObject(wi.hdc, wi.hbrush);
-    PatBlt(wi.hdc, x1, y1, x2-x1 + gi.nScaleT, y2-y1 + gi.nScaleT, PATCOPY);
-    SelectObject(wi.hdc, GetStockObject(NULL_BRUSH));
-    DeleteObject(wi.hbrush);
-  }
-#endif
-#ifdef FLTK
-  else
-    fl_rectf(x1, y1, x2-x1+1, y2-y1+1);
-#endif
 }
 
 
@@ -552,51 +476,11 @@ void DrawDash(int x1, int y1, int x2, int y2, int skip)
 #ifdef ISG
   if (!gi.fFile) {
     if (!skip) {
-#ifdef X11
-      // For non-dashed X window lines, have the Xlib do it.
-
-      XDrawLine(gi.disp, gi.pmap, gi.gc, x1, y1, x2, y2);
-      // Some XDrawLine implementations don't draw the last pixel.
-      XDrawPoint(gi.disp, gi.pmap, gi.gc, x2, y2);
-      if (gs.fThick) {
-        // Make the line thicker by drawing it four times.
-        XDrawLine(gi.disp, gi.pmap, gi.gc, x1+1, y1, x2+1, y2);
-        XDrawLine(gi.disp, gi.pmap, gi.gc, x1, y1+1, x2, y2+1);
-        XDrawLine(gi.disp, gi.pmap, gi.gc, x1+1, y1+1, x2+1, y2+1);
-        XDrawPoint(gi.disp, gi.pmap, gi.gc, x2+1, y2);
-        XDrawPoint(gi.disp, gi.pmap, gi.gc, x2, y2+1);
-        XDrawPoint(gi.disp, gi.pmap, gi.gc, x2+1, y2+1);
-      }
-#endif
-#ifdef WINANY
-      MoveTo(wi.hdc, x1, y1);
-      LineTo(wi.hdc, x2, y2);
-#ifdef WIN
-      if (wi.hdcPrint != NULL)
-        return;
-#endif
-      if (!gs.fThick) {
-        // For Windows lines, have to manually draw the last pixel.
-        SetPixel(wi.hdc, x2, y2, (COLORREF)rgbbmp[gi.kiCur]);
-      } else {
-        // Make the line thicker by drawing it four times.
-        LineTo(wi.hdc, x2+1, y2);
-        LineTo(wi.hdc, x1+1, y1);
-        LineTo(wi.hdc, x1, y1+1);
-        LineTo(wi.hdc, x2, y2+1);
-        LineTo(wi.hdc, x2+1, y2+1);
-        LineTo(wi.hdc, x1+1, y1+1);
-        LineTo(wi.hdc, x1, y1);
-      }
-#endif
-#ifdef FLTK
-      fl_line(x1, y1, x2, y2);
-      if (gs.fThick) {
-        fl_line(x1+1, y1, x2+1, y2);
-        fl_line(x1, y1+1, x2, y2+1);
-        fl_line(x1+1, y1+1, x2+1, y2+1);
-      }
-#endif
+      // For non-dashed screen lines, use the graphics backend
+      if (gs.fThick)
+        GBDrawLineThick(x1, y1, x2, y2);
+      else
+        GBDrawLine(x1, y1, x2, y2);
       return;
     }
 #ifdef WIN
@@ -854,45 +738,15 @@ void DrawArc(int x1, int y1, int x2, int y2, real rRotate, real t1, real t2)
       MetaEllipse(x1, y1, x2+gi.nPenWid*2, y2+gi.nPenWid*2);
     }
 #endif
-  }
-#ifdef X11
-  else {
-    i = nDegMax*64;
-    XDrawArc(gi.disp, gi.pmap, gi.gc, x1, y1, x2-x1, y2-y1, 0, i);
+  } else {
+    GBDrawArc(x1, y1, x2-x1, y2-y1, 0.0, 360.0);
     if (gs.fThick) {
       // Make the ellipse thicker by drawing it four times.
-      XDrawArc(gi.disp, gi.pmap, gi.gc, x1+1, y1, x2-x1, y2-y1, 0, i);
-      XDrawArc(gi.disp, gi.pmap, gi.gc, x1, y1+1, x2-x1, y2-y1, 0, i);
-      XDrawArc(gi.disp, gi.pmap, gi.gc, x1+1, y1+1, x2-x1, y2-y1, 0, i);
+      GBDrawArc(x1+1, y1, x2-x1, y2-y1, 0.0, 360.0);
+      GBDrawArc(x1, y1+1, x2-x1, y2-y1, 0.0, 360.0);
+      GBDrawArc(x1+1, y1+1, x2-x1, y2-y1, 0.0, 360.0);
     }
   }
-#endif
-#ifdef WINANY
-  else {
-    Ellipse(wi.hdc, x1, y1, x2+1, y2+1);
-#ifdef WIN
-    if (wi.hdcPrint != NULL)
-      return;
-#endif
-    if (gs.fThick) {
-      // Make the ellipse thicker by drawing it four times.
-      Ellipse(wi.hdc, x1+1, y1,   x2+2, y2+1);
-      Ellipse(wi.hdc, x1,   y1+1, x2+1, y2+2);
-      Ellipse(wi.hdc, x1+1, y1+1, x2+2, y2+2);
-    }
-  }
-#endif
-#ifdef FLTK
-  else {
-    // FLTK arc takes x, y, width, height, start angle, end angle
-    fl_arc(x1, y1, x2-x1, y2-y1, 0.0, 360.0);
-    if (gs.fThick) {
-      fl_arc(x1+1, y1, x2-x1, y2-y1, 0.0, 360.0);
-      fl_arc(x1, y1+1, x2-x1, y2-y1, 0.0, 360.0);
-      fl_arc(x1+1, y1+1, x2-x1, y2-y1, 0.0, 360.0);
-    }
-  }
-#endif
 }
 
 
@@ -946,24 +800,9 @@ void DrawEllipse2(int x1, int y1, int x2, int y2)
         x2+1+gi.nPenWid/3, y2+1+gi.nPenWid/3);
     }
 #endif
+  } else {
+    GBDrawEllipse(x1, y1, x2-x1, y2-y1);
   }
-#ifdef X11
-  else
-    XFillArc(gi.disp, gi.pmap, gi.gc, x1, y1, x2-x1, y2-y1, 0, nDegMax*64);
-#endif
-#ifdef WINANY
-  else {
-    wi.hbrush = CreateSolidBrush((COLORREF)rgbbmp[gi.kiCur]);
-    SelectObject(wi.hdc, wi.hbrush);
-    Ellipse(wi.hdc, x1, y1, x2+1, y2+1);
-    SelectObject(wi.hdc, GetStockObject(NULL_BRUSH));
-    DeleteObject(wi.hbrush);
-  }
-#endif
-#ifdef FLTK
-  else
-    fl_pie(x1, y1, x2-x1, y2-y1, 0.0, 360.0);
-#endif
 }
 
 

@@ -32,15 +32,15 @@ typedef struct _GraphicsBackend {
   // Backend identification
   const char *szName;
 
-  // Core drawing operations
-  void (*SetColor)(int ki);           // Set current drawing color
-  void (*DrawPixel)(int x, int y);    // Draw single pixel
-  void (*DrawPixelThick)(int x, int y); // Draw pixel with thickness
-  void (*DrawLine)(int x1, int y1, int x2, int y2);  // Draw line
-  void (*DrawLineThick)(int x1, int y1, int x2, int y2);  // Draw thick line
-  void (*DrawRect)(int x1, int y1, int w, int h);    // Draw filled rectangle
-  void (*DrawArc)(int x, int y, int w, int h, double deg1, double deg2);  // Draw arc
-  void (*DrawEllipse)(int x, int y, int w, int h);   // Draw filled ellipse
+  // Core drawing operations (using Put* naming to avoid macro conflicts)
+  void (*PutColor)(int ki);           // Set current drawing color
+  void (*PutPixel)(int x, int y);     // Draw single pixel
+  void (*PutPixelThick)(int x, int y); // Draw pixel with thickness
+  void (*PutLine)(int x1, int y1, int x2, int y2);  // Draw line
+  void (*PutLineThick)(int x1, int y1, int x2, int y2);  // Draw thick line
+  void (*PutRect)(int x1, int y1, int w, int h);    // Draw filled rectangle
+  void (*PutArc)(int x, int y, int w, int h, double deg1, double deg2);  // Draw arc
+  void (*PutEllipse)(int x, int y, int w, int h);   // Draw filled ellipse
 
   // Screen management
   void (*ClearScreen)(int ki);        // Clear screen with color
@@ -62,28 +62,28 @@ extern void InitBackendFltk(void);
 // These check if backend exists and call the appropriate function
 
 #define GBSetColor(ki) \
-  do { if (gpBackend && gpBackend->SetColor) gpBackend->SetColor(ki); } while(0)
+  do { if (gpBackend && gpBackend->PutColor) gpBackend->PutColor(ki); } while(0)
 
 #define GBDrawPixel(x, y) \
-  do { if (gpBackend && gpBackend->DrawPixel) gpBackend->DrawPixel(x, y); } while(0)
+  do { if (gpBackend && gpBackend->PutPixel) gpBackend->PutPixel(x, y); } while(0)
 
 #define GBDrawPixelThick(x, y) \
-  do { if (gpBackend && gpBackend->DrawPixelThick) gpBackend->DrawPixelThick(x, y); } while(0)
+  do { if (gpBackend && gpBackend->PutPixelThick) gpBackend->PutPixelThick(x, y); } while(0)
 
 #define GBDrawLine(x1, y1, x2, y2) \
-  do { if (gpBackend && gpBackend->DrawLine) gpBackend->DrawLine(x1, y1, x2, y2); } while(0)
+  do { if (gpBackend && gpBackend->PutLine) gpBackend->PutLine(x1, y1, x2, y2); } while(0)
 
 #define GBDrawLineThick(x1, y1, x2, y2) \
-  do { if (gpBackend && gpBackend->DrawLineThick) gpBackend->DrawLineThick(x1, y1, x2, y2); } while(0)
+  do { if (gpBackend && gpBackend->PutLineThick) gpBackend->PutLineThick(x1, y1, x2, y2); } while(0)
 
 #define GBDrawRect(x1, y1, w, h) \
-  do { if (gpBackend && gpBackend->DrawRect) gpBackend->DrawRect(x1, y1, w, h); } while(0)
+  do { if (gpBackend && gpBackend->PutRect) gpBackend->PutRect(x1, y1, w, h); } while(0)
 
 #define GBDrawArc(x, y, w, h, d1, d2) \
-  do { if (gpBackend && gpBackend->DrawArc) gpBackend->DrawArc(x, y, w, h, (double)(d1), (double)(d2)); } while(0)
+  do { if (gpBackend && gpBackend->PutArc) gpBackend->PutArc(x, y, w, h, (double)(d1), (double)(d2)); } while(0)
 
 #define GBDrawEllipse(x, y, w, h) \
-  do { if (gpBackend && gpBackend->DrawEllipse) gpBackend->DrawEllipse(x, y, w, h); } while(0)
+  do { if (gpBackend && gpBackend->PutEllipse) gpBackend->PutEllipse(x, y, w, h); } while(0)
 
 #define GBClearScreen(ki) \
   do { if (gpBackend && gpBackend->ClearScreen) gpBackend->ClearScreen(ki); } while(0)
