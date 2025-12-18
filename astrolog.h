@@ -337,6 +337,10 @@
 #define _CRT_SECURE_NO_DEPRECATE
 #define _CRT_NONSTDC_NO_DEPRECATE
 #include <stdio.h>
+#ifdef __APPLE__
+// Silence macOS sprintf deprecation warning (1300+ calls impractical to convert)
+#define sprintf(buf, ...) snprintf(buf, __INT_MAX__, __VA_ARGS__)
+#endif
 #ifndef ATOF
 #include <stdlib.h>
 #endif
