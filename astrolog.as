@@ -245,7 +245,7 @@ _XL              ; Show cities   ["=XL" shows them in charts, "_XL" doesn't  ]
 :YXS 0.0         ; Orbit radius in AU ["0.0" for autodetect]
 :YXj 0           ; Orbit trail count
 :YX7 600         ; Esoteric Ray column influence width
-:YXf 000000      ; Fonts to use [text, signs, houses, planets, aspects, naks.]
+:YXf 055555      ; Fonts to use [text, signs, houses, planets, aspects, naks.]
 :YXp 0           ; PostScript paper orientation ["-1" portrait, "1" landscape]
 :YXp0 8.5in 11in ; PostScript paper X and Y sizes
 
