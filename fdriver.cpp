@@ -141,14 +141,21 @@ void ChartWidget::draw()
   gs.xWin = w();
   gs.yWin = h();
 
-  // Auto-scale for map charts (World Map, AstroGraph) to fill window
-  // These charts use 360*nScale x 180*nScale coordinate system
+  // Auto-scale for map charts (World Map, AstroGraph) to fill window smoothly
+  // These charts use a 360x180 degree coordinate system
   if (gi.nMode == gWorldMap || gi.nMode == gAstroGraph) {
-    int scaleX = (gs.xWin * 100) / 360;  // Scale to fit width
-    int scaleY = (gs.yWin * 100) / 180;  // Scale to fit height
-    gs.nScale = Min(scaleX, scaleY);     // Use smaller to maintain aspect
-    gs.nScale = Max(gs.nScale, 100);     // Minimum scale of 100%
+    // Use floating-point scaling for smooth resize
+    gi.rScaleX = (real)gs.xWin / 360.0;
+    gi.rScaleY = (real)gs.yWin / 180.0;
+    // Keep integer scale for compatibility with other drawing functions
+    int scaleX = (gs.xWin * 100) / 360;
+    int scaleY = (gs.yWin * 100) / 180;
+    gs.nScale = Min(scaleX, scaleY);
+    gs.nScale = Max(gs.nScale, 100);
     gi.nScale = gs.nScale / 100;
+  } else {
+    // Non-map charts use uniform scaling
+    gi.rScaleX = gi.rScaleY = (real)gi.nScale;
   }
 
 #ifdef CAIRO
@@ -392,20 +399,28 @@ int ChartWidget::handle(int event)
           real r = gs.rspace;
           if (r < rSmall)
             r = (real)(1 << (4 - gi.nScale / gi.nScaleT));
-          // Apply magnification as a continuous scale factor
-          // mag > 0 means zoom in, mag < 0 means zoom out
-          r *= (1.0 - mag * 0.5);  // Scale factor for smooth zooming
+          // Use same zoom factor as mousewheel but scaled by magnification
+          // mag is typically -1.0 to 1.0 range for full pinch gesture
+          if (mag > 0)
+            r /= (1.0 + mag * 0.02);  // Zoom in (pinch out)
+          else
+            r *= (1.0 - mag * 0.02);  // Zoom out (pinch in)
           if (FValidZoom(r)) {
             gs.rspace = r;
             fChanged = fTrue;
           }
         } else {
           // Other views use gs.nScale for zoom
-          // Convert continuous magnification to discrete zoom steps
-          if (mag > 0.02)
+          // Accumulate magnification for discrete zoom steps
+          static float accumMag = 0.0f;
+          accumMag += mag;
+          if (accumMag > 0.3f) {
             fChanged = FAdjustZoom(1);   // Zoom in
-          else if (mag < -0.02)
+            accumMag = 0.0f;
+          } else if (accumMag < -0.3f) {
             fChanged = FAdjustZoom(-1);  // Zoom out
+            accumMag = 0.0f;
+          }
         }
         if (fChanged)
           redraw();

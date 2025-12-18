@@ -1521,10 +1521,12 @@ flag FMapCalc(real x1, real y1, int *xp, int *yp, flag fGlobe, flag fSky,
     j = FGlobeCalc(x1, y1, &u, &v, pcr, deg) ? nNegative : u;
     k = v;
   } else {
-    j = (int)(x1 * (real)nScl);
-    k = (int)(y1 * (real)nScl);
+    // Use floating-point scales for smooth map resizing
+    j = (int)(x1 * gi.rScaleX);
+    k = (int)(y1 * gi.rScaleY);
     if (gs.fMollewide)
-      j = 180*nScl + (int)((x1-180.0) * RMollewide(y1-90.0) / 180.0 + rRound);
+      j = (int)(180.0 * gi.rScaleX) +
+        (int)((x1-180.0) * RMollewide(y1-90.0) / 180.0 * gi.rScaleX + rRound);
   }
   *xp = j; *yp = k;
   return (j == nNegative);
@@ -1794,7 +1796,7 @@ void DrawMap(flag fSky, flag fGlobe, real deg)
         rT = (real)xT+deg;
         if (rT >= rDegMax)
           rT -= rDegMax;
-        DrawPoint((int)(rT*(real)nScl), yT*nScl);
+        DrawPoint((int)(rT * gi.rScaleX), (int)((real)yT * gi.rScaleY));
       }
 #endif
 
@@ -1864,13 +1866,14 @@ void DrawMap(flag fSky, flag fGlobe, real deg)
       // proportional to internal coordinates. For the Mollewide projection
       // have to apply a factor to the horizontal positioning though.
 
-      m = (int)(Mod((real)xold + deg)*(real)nScl);
-      u = (int)(Mod((real)x + deg)*(real)nScl);
-      if (NAbs(u-m) <= nDegHalf) {
-        n = yold*nScl;
-        v = y*nScl;
+      // Use floating-point scales for smooth map resizing
+      m = (int)(Mod((real)xold + deg) * gi.rScaleX);
+      u = (int)(Mod((real)x + deg) * gi.rScaleX);
+      if (NAbs(u-m) <= (int)(nDegHalf * gi.rScaleX)) {
+        n = (int)((real)yold * gi.rScaleY);
+        v = (int)((real)y * gi.rScaleY);
         if (gs.fMollewide && gi.nMode != gAstroGraph) {
-          j = nDegHalf*nScl;
+          j = (int)(nDegHalf * gi.rScaleX);
           m = j + NMultDiv(m-j, NMollewide(yold-90), j);
           u = j + NMultDiv(u-j, NMollewide(y   -90), j);
         }
@@ -1897,8 +1900,10 @@ LAfter:
         for (j = -1; j <= 1; j += 2)
           for (xold = 0, y = 89; y >= 0; y--, xold = x)
             for (x = NMollewide(y), i = -1; i <= 1; i += 2)
-              DrawLine(180*nScl + i*xold - (i==1), (90+j*(y+1))*nScl - (j==1),
-                180*nScl + i*x - (i==1), (90+j*y)*nScl - (j==1));
+              DrawLine((int)(180.0*gi.rScaleX) + i*xold - (i==1),
+                (int)((90+j*(y+1))*gi.rScaleY) - (j==1),
+                (int)(180.0*gi.rScaleX) + i*x - (i==1),
+                (int)((90+j*y)*gi.rScaleY) - (j==1));
     } else
       DrawEllipse(0, 0, gs.xWin-1, gs.yWin-1);
   }
@@ -2283,6 +2288,14 @@ void DrawChartX()
   flag fAltWire = fFalse, fSky, fSav;
 
   gi.nScale = gs.nScale/100;
+  // Initialize floating-point scales for map chart smooth resizing
+  // For map charts, use full window dimensions; for others, use integer scale
+  if (gi.nMode == gWorldMap || gi.nMode == gAstroGraph) {
+    gi.rScaleX = (real)gs.xWin / 360.0;
+    gi.rScaleY = (real)gs.yWin / 180.0;
+  } else {
+    gi.rScaleX = gi.rScaleY = (real)gi.nScale;
+  }
 
   if (gs.ft == ftBmp || gs.ft == ftWmf || gs.ft == ftWire)
     PrintProgress("Creating graphics chart in memory.");

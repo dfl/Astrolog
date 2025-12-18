@@ -153,8 +153,9 @@ void XChartAstroGraph()
   // Erase top and bottom parts of map. We don't draw the astro-graph lines
   // above certain latitudes, and this gives us room for glyph labels, too.
 
-  y1 = (90-lat1)*gi.nScale;
-  y2 = (90-lat2)*gi.nScale;
+  // Use floating-point scales for smooth resizing
+  y1 = (int)((90-lat1)*gi.rScaleY);
+  y2 = (int)((90-lat2)*gi.rScaleY);
   DrawColor(gi.kiOff);
   DrawBlock(0, 1, gs.xWin-1, y2-1);
   DrawBlock(0, y1+1, gs.xWin-1, gs.yWin-2);
@@ -172,20 +173,20 @@ void XChartAstroGraph()
 
   DrawColor(gi.kiLite);
   for (i = lat1+5; i < lat2; i += 5) {
-    j = (90-i)*gi.nScale;
+    j = (int)((90-i)*gi.rScaleY);
     k = (2+(i%10 == 0)+2*(i%30 == 0))*gi.nScaleT;
     DrawLine(1, j, k, j);
     DrawLine(gs.xWin-2, j, gs.xWin-1-k, j);
   }
   for (i = -nDegHalf+5; i < nDegHalf; i += 5) {
-    j = (nDegHalf-i)*gi.nScale;
+    j = (int)((nDegHalf-i)*gi.rScaleX);
     k = (2+(i%10 == 0)+2*(i%30 == 0)+(i%90 == 0))*gi.nScaleT;
     DrawLine(j, y2+1, j, y2+k);
     DrawLine(j, y1-1, j, y1-k);
   }
   if (us.fLatitudeCross) {
     DrawColor(kPurpleB);
-    i = (int)((rDegQuad - Lat)*(real)gi.nScale);
+    i = (int)((rDegQuad - Lat)*gi.rScaleY);
     DrawLine(0, i, gs.xWin-1, i);
   }
 
@@ -210,14 +211,14 @@ void XChartAstroGraph()
     z = lon + x;
     if (z > rDegHalf)
       z -= rDegMax;
-    j = (int)(Mod(rDegHalf-z+gs.rRot)*(real)gi.nScale);
+    j = (int)(Mod(rDegHalf-z+gs.rRot)*gi.rScaleX);
     if (!ignorez[arMC]) {
       DrawColor(kElemB[eEar]);
       DrawLine(j, y1+unit*4, j, y2-unit*1);
     }
     end2[i*2] = (real)j;
     y = planet2[i];
-    k = (int)((rDegQuad-y)*(real)gi.nScale);
+    k = (int)((rDegQuad-y)*gi.rScaleY);
     if (FBetween((int)y, lat1, lat2) && !ignorez[arMC]) {
       DrawColor(gi.kiLite);
       DrawBlock(j-gi.nScaleT, k-gi.nScaleT, j+gi.nScaleT, k+gi.nScaleT);
@@ -228,7 +229,7 @@ void XChartAstroGraph()
     // Draw Nadir lines assuming we aren't in bonus chart mode.
 
     if (!gs.fAlt && !ignorez[arIC]) {
-      j += 180*gi.nScale;
+      j += (int)(180.0*gi.rScaleX);
       if (j >= gs.xWin)
         j -= gs.xWin;
       end1[i*2] = (real)j;
@@ -258,7 +259,7 @@ void XChartAstroGraph()
 
       // First compute and draw the current segment of Ascendant line.
 
-      j = (int)((rDegQuad-lat)*(real)gi.nScale);
+      j = (int)((rDegQuad-lat)*gi.rScaleY);
       ad = RTanD(planet2[i])*RTanD(lat);
       if (ad*ad > 1.0)
         ad = rLarge;
@@ -275,7 +276,7 @@ void XChartAstroGraph()
           z += rDegMax;
         if (z > rDegHalf)
           z -= rDegMax;
-        k = (int)(Mod(rDegHalf-z+gs.rRot)*(real)gi.nScale);
+        k = (int)(Mod(rDegHalf-z+gs.rRot)*gi.rScaleX);
         if (!fVector || !l) {
           if (!ignorez[arAsc]) {
             DrawColor(kElemB[eFir]);
@@ -327,7 +328,7 @@ void XChartAstroGraph()
           z += rDegMax;
         if (z > rDegHalf)
           z -= rDegMax;
-        k = (int)(Mod(rDegHalf-z+gs.rRot)*(real)gi.nScale);
+        k = (int)(Mod(rDegHalf-z+gs.rRot)*gi.rScaleX);
         if (xold2 < 0 && lat > (real)lat1 && (!fVector || l) &&
           !ignorez[arDes]) {
           xmid = (xold1+k)/2;
@@ -370,8 +371,8 @@ void XChartAstroGraph()
   // Plot chart location.
 
   DrawColor(kMagentaB);
-  i = (int)(Mod(rDegHalf - Lon + gs.rRot)*(real)gi.nScale);
-  j = (int)((rDegQuad - Lat)*(real)gi.nScale);
+  i = (int)(Mod(rDegHalf - Lon + gs.rRot)*gi.rScaleX);
+  j = (int)((rDegQuad - Lat)*gi.rScaleY);
   if (us.fLatitudeCross)
     DrawSpot(i, j);
   else
