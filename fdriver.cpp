@@ -18,6 +18,7 @@
 #ifdef FLTK
 #include "fdriver.h"
 #include <FL/Fl_File_Chooser.H>
+#include <FL/Fl_RGB_Image.H>
 #include <FL/fl_ask.H>
 
 #ifdef CAIRO
@@ -32,6 +33,25 @@ FI fi = {0};
 // Flag to enable Cairo rendering (for antialiased graphics)
 #ifdef CAIRO
 static int fUseCairo = fTrue;  // Default to Cairo rendering when available
+
+void FMenuViewCairo(Fl_Widget *w, void *data)
+{
+  fUseCairo = !fUseCairo;
+
+  // Update menu checkmark
+  if (fi.menubar) {
+    Fl_Menu_Item *item = (Fl_Menu_Item *)fi.menubar->find_item(FMenuViewCairo);
+    if (item) {
+      if (fUseCairo)
+        item->set();
+      else
+        item->clear();
+    }
+  }
+
+  if (fi.chart)
+    fi.chart->redraw();
+}
 #endif
 
 // Convert Astrolog color index to FLTK color
@@ -74,12 +94,32 @@ void ChartWidget::draw()
 
 #ifdef CAIRO
   if (fUseCairo) {
+    // Get HiDPI scale factor (2.0 on Retina displays)
+    float scale = Fl::screen_scale(Fl::screen_num(x(), y()));
+    if (scale < 1.0f) scale = 1.0f;
+
+    // Debug: print scale factor once
+    static int debugOnce = 0;
+    if (!debugOnce) {
+      printf("Cairo rendering: scale=%.2f, widget=%dx%d\n", scale, w(), h());
+      debugOnce = 1;
+    }
+
+    int surfW = (int)(w() * scale);
+    int surfH = (int)(h() * scale);
+
     // Cairo rendering path - antialiased, resolution-independent
     cairo_surface_t *surface = cairo_image_surface_create(
-      CAIRO_FORMAT_ARGB32, w(), h());
+      CAIRO_FORMAT_ARGB32, surfW, surfH);
 
     // Switch to Cairo backend
     InitBackendCairo(surface);
+
+    // Scale the context for HiDPI
+    cairo_t *cr = CairoContext();
+    if (scale != 1.0f) {
+      cairo_scale(cr, scale, scale);
+    }
 
     // Clear background
     GBClearScreen(gi.kiOff);
@@ -89,16 +129,15 @@ void ChartWidget::draw()
     DrawChartX();
 
     // Blit Cairo surface to FLTK widget
-    // Cairo uses ARGB32 (premultiplied alpha), FLTK expects RGBA
     cairo_surface_flush(surface);
     unsigned char *data = cairo_image_surface_get_data(surface);
     int stride = cairo_image_surface_get_stride(surface);
 
     // Convert BGRA to RGBA for fl_draw_image
     // Cairo on little-endian is BGRA in memory
-    for (int row = 0; row < h(); row++) {
+    for (int row = 0; row < surfH; row++) {
       unsigned char *p = data + row * stride;
-      for (int col = 0; col < w(); col++) {
+      for (int col = 0; col < surfW; col++) {
         unsigned char b = p[0];
         unsigned char g = p[1];
         unsigned char r = p[2];
@@ -111,7 +150,11 @@ void ChartWidget::draw()
       }
     }
 
-    fl_draw_image(data, x(), y(), w(), h(), 4, stride);
+    // Draw scaled image to widget
+    // Use Fl_RGB_Image for proper scaling on HiDPI
+    Fl_RGB_Image img(data, surfW, surfH, 4, stride);
+    img.scale(w(), h(), 1, 1);  // Scale with high quality
+    img.draw(x(), y());
 
     // Clean up
     EndBackendCairo();
@@ -781,15 +824,18 @@ void AstrologWindow::createMenus()
   menubar_->add("&Info/Set &Chart Info...", FL_CTRL+'i', FMenuInfoChart);
   menubar_->add("&Info/Set Chart #&2 Info...", 0, FMenuInfoChart2);
 
-  // View menu
-  menubar_->add("&View/&Wheel Chart", 'v', FMenuViewWheel);
-  menubar_->add("&View/&Aspect Grid", 'g', FMenuViewGrid);
+  // View menu - using legacy uppercase key mappings
+  menubar_->add("&View/&Wheel Chart", 'V', FMenuViewWheel);
+  menubar_->add("&View/&Aspect Grid", 'A', FMenuViewGrid);
   menubar_->add("&View/&Midpoint Grid", 0, FMenuViewMidpoint);
-  menubar_->add("&View/&Horizon Chart", 'z', FMenuViewHorizon);
-  menubar_->add("&View/&Orbit Chart", 0, FMenuViewOrbit);
-  menubar_->add("&View/&Astro-Graph", 'a', FMenuViewAstroGraph);
-  menubar_->add("&View/&Globe", 0, FMenuViewGlobe);
-  menubar_->add("&View/&World Map", 'w', FMenuViewWorldMap);
+  menubar_->add("&View/&Horizon Chart", 'Z', FMenuViewHorizon);
+  menubar_->add("&View/&Orbit Chart", 'S', FMenuViewOrbit);
+  menubar_->add("&View/Astro-Graph", 'L', FMenuViewAstroGraph);
+  menubar_->add("&View/&Globe", 'G', FMenuViewGlobe);
+  menubar_->add("&View/&World Map", 'W', FMenuViewWorldMap);
+#ifdef CAIRO
+  menubar_->add("&View/Antialiased (&Cairo)", 0, FMenuViewCairo, 0, FL_MENU_TOGGLE|FL_MENU_VALUE);
+#endif
 
   // Settings menu
   menubar_->add("Se&ttings/&Calculation Settings...", 0, FMenuCalcSettings);
