@@ -82,15 +82,17 @@ Many features have been implemented - marked with [x] below.
 - [x] Progressions... dialog
 - [x] Chart Settings... dialog
 
+- [x] Window Settings submenu items:
+  - [x] Size Chart to Window
+  - [x] Size Window to Chart
+  - [x] Full Screen (F11)
+
 ### Windows Has (FLTK Missing)
 - [ ] Window Settings submenu items:
   - [ ] Buffer Redraws
   - [ ] Hourglass on Redraw
   - [ ] Chart Resizes Window
   - [ ] Window Resizes Chart
-  - [ ] Size Chart to Window
-  - [ ] Size Window to Chart
-  - [ ] Size Window Full Screen
   - [ ] Scroll Page Up/Down/Home/End
 - [ ] Colored Text
 - [ ] Set Colors...

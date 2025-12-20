@@ -261,6 +261,11 @@ void FMenuHelpWebsite(Fl_Widget *w, void *data);
 void FMenuHelpChanges(Fl_Widget *w, void *data);
 void FMenuHelpLicense(Fl_Widget *w, void *data);
 
+// Forward declarations for window settings callbacks
+void FMenuSizeChartToWindow(Fl_Widget *w, void *data);
+void FMenuSizeWindowToChart(Fl_Widget *w, void *data);
+void FMenuFullScreen(Fl_Widget *w, void *data);
+
 /*
 ******************************************************************************
 ** ChartWidget Implementation
@@ -1220,6 +1225,9 @@ void AstrologWindow::createMenus()
 #endif
   menubar_->add("&View/Window Settings/&Redraw Screen", ' ', FMenuRedraw);
   menubar_->add("&View/Window Settings/&Clear Screen", FL_Delete, FMenuClear, 0, FL_MENU_DIVIDER);
+  menubar_->add("&View/Window Settings/Size Chart to &Window", 0, FMenuSizeChartToWindow);
+  menubar_->add("&View/Window Settings/Size &Window to Chart", 0, FMenuSizeWindowToChart);
+  menubar_->add("&View/Window Settings/&Full Screen", FL_F+11, FMenuFullScreen);
   menubar_->add("&View/Show &Interpretations", 0, FMenuInterpret, 0, FL_MENU_TOGGLE);
   menubar_->add("&View/Print &Nearest Second", 0, FMenuSecond, 0, FL_MENU_TOGGLE);
   menubar_->add("&View/&Parallel Aspects", 0, FMenuParallel, 0, FL_MENU_TOGGLE);
@@ -2000,6 +2008,49 @@ void FMenuHelpLicense(Fl_Widget *w, void *data)
     "these routines provided these credits and notices remain\n"
     "unmodified with any altered or distributed versions of the program."
   );
+}
+
+void FMenuSizeChartToWindow(Fl_Widget *w, void *data)
+{
+  // Set chart size to match window client area
+  gs.xWin = fi.xClient;
+  gs.yWin = fi.yClient;
+  us.fGraphics = fTrue;
+  fi.fDoCast = fTrue;
+  if (fi.chart)
+    fi.chart->redraw();
+}
+
+void FMenuSizeWindowToChart(Fl_Widget *w, void *data)
+{
+  // Resize window to match chart size
+  if (fi.window) {
+    int menuH = 25;  // Menu bar height
+    fi.window->size(gs.xWin, gs.yWin + menuH);
+  }
+}
+
+void FMenuFullScreen(Fl_Widget *w, void *data)
+{
+  if (fi.window) {
+    static int savedX = 0, savedY = 0, savedW = 0, savedH = 0;
+    static bool isFullScreen = false;
+
+    if (!isFullScreen) {
+      // Save current position and size
+      savedX = fi.window->x();
+      savedY = fi.window->y();
+      savedW = fi.window->w();
+      savedH = fi.window->h();
+      // Go fullscreen
+      fi.window->fullscreen();
+      isFullScreen = true;
+    } else {
+      // Restore previous size
+      fi.window->fullscreen_off(savedX, savedY, savedW, savedH);
+      isFullScreen = false;
+    }
+  }
 }
 
 void FMenuGlyphFont(Fl_Widget *w, void *data)
