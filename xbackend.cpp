@@ -503,13 +503,34 @@ static int FltkPutGlyph(int ch, int x, int y, int nFont, int nScale)
   if (font == (Fl_Font)-1)
     return 0;  // Font not available, use vector fallback
 
-  // Calculate font size based on scale
-  // Use larger base size (16) for symbol fonts which need to be clearly visible
-  // The nScale factor (typically 85-135) adjusts relative size
+  // Calculate font size with smooth scaling based on window size.
+  // Same sidebar detection logic as CairoPutGlyph.
   int baseSize = (nFont >= fiAstro && nFont <= fiNakshatr) ? 16 : 12;
-  fontSize = baseSize * gi.nScale * nScale / 100;
-  if (fontSize < 8)
-    fontSize = 8;
+
+  // Sidebar detection: same logic as CairoPutGlyph
+  static int fltkLastXWin = 0;
+  static int fltkInSidebarMode = 0;
+
+  if (fltkLastXWin == 0) {
+    fltkLastXWin = gs.xWin;
+    fltkInSidebarMode = 0;
+  } else if (gs.xWin > fltkLastXWin + 100) {
+    fltkInSidebarMode = 1;
+  } else if (gs.xWin < fltkLastXWin - 100) {
+    fltkInSidebarMode = 0;
+  }
+  fltkLastXWin = gs.xWin;
+
+  int isSidebarGlyph = fltkInSidebarMode;
+
+  if (isSidebarGlyph) {
+    fontSize = 9 * nScale / 100;
+  } else {
+    fontSize = baseSize * gs.nScale * nScale / 10000;
+  }
+
+  if (fontSize < 6)
+    fontSize = 6;
 
   // On HiDPI displays, increase font size for crisp rendering
   // FLTK's coordinate system is 1:1 with logical pixels, so we scale up
@@ -756,11 +777,46 @@ static int CairoPutGlyph(int ch, int x, int y, int nFont, int nScale)
   if (!fontName)
     return 0;  // Unknown font, use vector fallback
 
-  // Calculate font size - use larger base for symbol fonts
+  // Calculate font size with smooth scaling based on window size.
+  // Detect sidebar: track gs.xWin changes. During chart drawing, gs.xWin is
+  // reduced. When DrawSidebar runs, it increases gs.xWin back. Sidebar glyphs
+  // have x >= the chart width (stored xWin before increase).
   int baseSize = (nFont >= fiAstro && nFont <= fiNakshatr) ? 16 : 12;
-  double fontSize = (double)(baseSize * gi.nScale * nScale) / 100.0;
-  if (fontSize < 8.0)
-    fontSize = 8.0;
+  double fontSize;
+
+  // Sidebar detection: DrawSidebar temporarily increases gs.xWin by ~160 (xSideT).
+  // Detect this by tracking the previous xWin value within a draw cycle.
+  // Key insight: sidebar increase happens WITHIN a frame, then reverts.
+  // Window resize changes xWin BETWEEN frames and stays at new value.
+  static int lastXWin = 0;
+  static int inSidebarMode = 0;
+
+  if (lastXWin == 0) {
+    lastXWin = gs.xWin;
+    inSidebarMode = 0;
+  } else if (gs.xWin > lastXWin + 100) {
+    // Large sudden jump (>100) within draw cycle = sidebar started
+    inSidebarMode = 1;
+  } else if (gs.xWin < lastXWin - 100) {
+    // Large sudden drop = sidebar ended, back to chart
+    inSidebarMode = 0;
+  }
+  // Small changes (window resize) don't affect sidebar mode
+  lastXWin = gs.xWin;
+
+  int isSidebarGlyph = inSidebarMode;
+
+  if (isSidebarGlyph) {
+    // Sidebar - use small fixed size to fit 10-pixel line spacing
+    fontSize = 9.0 * nScale / 100.0;
+  } else {
+    // Chart area - use gs.nScale for smooth proportional scaling
+    // gs.nScale is percentage (100 = 1x, 150 = 1.5x, 200 = 2x)
+    fontSize = (double)(baseSize * gs.nScale * nScale) / 10000.0;
+  }
+
+  if (fontSize < 6.0)
+    fontSize = 6.0;
 
   // Select font
   cairo_select_font_face(gi_cr, fontName, CAIRO_FONT_SLANT_NORMAL,

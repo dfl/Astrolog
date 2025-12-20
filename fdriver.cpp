@@ -336,14 +336,9 @@ void ChartWidget::draw()
     int defDim = Min(DEFAULTX, DEFAULTY);
     gi.rScaleX = gi.rScaleY = (real)minDim / (real)defDim;
     gi.nScale = Max((int)gi.rScaleX, 1);
-    gs.nScale = gi.nScale * 100;
+    // Use fractional scale for smooth glyph sizing (100 = 1x, 150 = 1.5x, etc.)
+    gs.nScale = Max((int)(gi.rScaleX * 100.0), 100);
   }
-
-  // Initialize text scale values (required for sidebar)
-  gi.nScaleT = 1;  // Screen rendering uses scale 1
-  gi.nScaleText = gs.nScaleText / 50;
-  gi.nScaleTextT2 = gi.nScaleText * gi.nScaleT;
-  gi.nScaleTextT = gi.nScaleTextT2 >> 1;
 
 #ifdef CAIRO
   if (fUseCairo) {
