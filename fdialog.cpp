@@ -558,6 +558,8 @@ static Fl_Choice *s_chHouse = NULL;
 static Fl_Check_Button *s_cbSidereal = NULL;
 static Fl_Check_Button *s_cbHelio = NULL;
 static Fl_Check_Button *s_cbTrueNode = NULL;
+static Fl_Input *s_inHarmonic = NULL;
+static Fl_Int_Input *s_inDwad = NULL;
 
 static void cb_CalcOK(Fl_Widget *w, void *data)
 {
@@ -569,6 +571,24 @@ static void cb_CalcOK(Fl_Widget *w, void *data)
     us.objCenter = s_cbHelio->value() ? oSun : oEar;
   if (s_cbTrueNode)
     us.fTrueNode = s_cbTrueNode->value();
+
+  // Harmonic chart factor - supports 'd' prefix for dial degrees
+  if (s_inHarmonic) {
+    const char *sz = s_inHarmonic->value();
+    int i = (ChCap(sz[0]) == 'D');
+    real rx = atof(sz + i);
+    if (i != 0 && rx != 0.0)
+      rx = rDegMax / rx;
+    if (FValidHarmonic(rx))
+      us.rHarmonic = rx;
+  }
+
+  // Dwad nesting level
+  if (s_inDwad) {
+    int n = atoi(s_inDwad->value());
+    if (FValidDwad(n))
+      us.nDwad = n;
+  }
 
   fi.fDoCast = fTrue;
   if (fi.chart)
@@ -586,7 +606,8 @@ static void cb_CalcCancel(Fl_Widget *w, void *data)
 
 void FShowDlgCalc()
 {
-  int w = 350, h = 220;
+  int w = 350, h = 290;
+  char sz[cchSzDef];
 
   s_dlgCalc = new Fl_Window(w, h, "Calculation Settings");
   s_dlgCalc->begin();
@@ -599,7 +620,22 @@ void FShowDlgCalc()
   for (int i = 0; i < cSystem; i++)
     s_chHouse->add(szSystem[i]);
   s_chHouse->value(us.nHouseSystem);
-  y += 40;
+  y += 35;
+
+  // Harmonic chart factor
+  new Fl_Box(10, y, 140, 25, "Harmonic Chart Factor:");
+  s_inHarmonic = new Fl_Input(160, y, 80, 25);
+  sprintf(sz, "%.6g", us.rHarmonic);
+  s_inHarmonic->value(sz);
+  s_inHarmonic->tooltip("Enter harmonic value (e.g., 4) or dial degrees with 'd' prefix (e.g., d90)");
+  y += 30;
+
+  // Dwad nesting level
+  new Fl_Box(10, y, 140, 25, "Dwad Nesting Level:");
+  s_inDwad = new Fl_Int_Input(160, y, 80, 25);
+  sprintf(sz, "%d", us.nDwad);
+  s_inDwad->value(sz);
+  y += 35;
 
   // Checkboxes
   s_cbSidereal = new Fl_Check_Button(10, y, 200, 25, "Sidereal zodiac");
@@ -632,6 +668,8 @@ void FShowDlgCalc()
   s_dlgCalc = NULL;
   s_chHouse = NULL;
   s_cbSidereal = s_cbHelio = s_cbTrueNode = NULL;
+  s_inHarmonic = NULL;
+  s_inDwad = NULL;
 }
 
 /*
@@ -1270,6 +1308,708 @@ void FShowDlgChartType()
   s_dlgChartType = NULL;
   s_chChartType = NULL;
   s_cbChartMono = s_cbChartGrid = s_cbChartHouse = NULL;
+}
+
+/*
+******************************************************************************
+** Transits Dialog
+******************************************************************************
+*/
+
+static Fl_Window *s_dlgTransit = NULL;
+static Fl_Choice *s_chTrMon = NULL;
+static Fl_Int_Input *s_inTrDay = NULL;
+static Fl_Int_Input *s_inTrYea = NULL;
+static Fl_Input *s_inTrTim = NULL;
+static Fl_Choice *s_chTrType = NULL;
+static Fl_Choice *s_chTrSpan = NULL;
+static Fl_Int_Input *s_inTrDiv = NULL;
+
+static void cb_TransitOK(Fl_Widget *w, void *data)
+{
+  // Get date/time
+  int mon = s_chTrMon ? s_chTrMon->value() + 1 : MonT;
+  int day = s_inTrDay ? atoi(s_inTrDay->value()) : DayT;
+  int yea = s_inTrYea ? atoi(s_inTrYea->value()) : YeaT;
+  real tim = s_inTrTim ? atof(s_inTrTim->value()) : TimT;
+  int div = s_inTrDiv ? atoi(s_inTrDiv->value()) : us.nDivision;
+
+  // Validate
+  if (!FValidMon(mon) || !FValidYea(yea) || !FValidDay(day, mon, yea) ||
+      !FValidTim(tim) || !FValidDivision(div)) {
+    fl_alert("Invalid date, time, or division value");
+    return;
+  }
+
+  // Set transit chart info
+  SetCI(ciTran, mon, day, yea, tim, ciDefa.dst, ciDefa.zon, ciDefa.lon, ciDefa.lat);
+  us.nDivision = div;
+
+  // Set transit type based on selection
+  int type = s_chTrType ? s_chTrType->value() : 0;
+  int span = s_chTrSpan ? s_chTrSpan->value() : 0;
+
+  // Clear all transit flags first
+  us.fInDay = us.fInDayInf = us.fInDayGra = fFalse;
+  us.fTransit = us.fTransitInf = us.fTransitGra = fFalse;
+
+  // Set span flags
+  us.fInDayMonth = span >= 1;
+  us.fInDayYear = span >= 2;
+
+  // Set chart mode based on type
+  switch (type) {
+  case 0:  // Transit Hits
+    us.fInDay = fTrue;
+    gi.nMode = gTraTraTim;
+    us.fGraphics = fFalse;
+    break;
+  case 1:  // Transit Influence
+    us.fInDayInf = fTrue;
+    gi.nMode = gTraTraInf;
+    break;
+  case 2:  // Transit Graph
+    us.fInDayGra = fTrue;
+    gi.nMode = gTraTraGra;
+    break;
+  case 3:  // Transit to Natal Hits
+    us.fTransit = fTrue;
+    gi.nMode = gTraNatTim;
+    us.fGraphics = fFalse;
+    break;
+  case 4:  // Transit to Natal Influence
+    us.fTransitInf = fTrue;
+    gi.nMode = gTraNatInf;
+    break;
+  case 5:  // Transit to Natal Graph
+    us.fTransitGra = fTrue;
+    gi.nMode = gTraNatGra;
+    break;
+  }
+
+  fi.fDoCast = fTrue;
+  if (fi.chart)
+    fi.chart->redraw();
+
+  if (s_dlgTransit)
+    s_dlgTransit->hide();
+}
+
+static void cb_TransitNow(Fl_Widget *w, void *data)
+{
+#ifdef TIME
+  int mon, day, yea;
+  real tim;
+  char sz[32];
+
+  GetTimeNow(&mon, &day, &yea, &tim, ciDefa.dst, ciDefa.zon);
+  if (s_chTrMon) s_chTrMon->value(mon - 1);
+  if (s_inTrDay) { sprintf(sz, "%d", day); s_inTrDay->value(sz); }
+  if (s_inTrYea) { sprintf(sz, "%d", yea); s_inTrYea->value(sz); }
+  if (s_inTrTim) { sprintf(sz, "%.2f", tim); s_inTrTim->value(sz); }
+#endif
+}
+
+static void cb_TransitCancel(Fl_Widget *w, void *data)
+{
+  if (s_dlgTransit)
+    s_dlgTransit->hide();
+}
+
+void FShowDlgTransit()
+{
+  int w = 380, h = 300;
+  char sz[64];
+
+  s_dlgTransit = new Fl_Window(w, h, "Transits");
+  s_dlgTransit->begin();
+
+  int y = 10;
+
+  // Date row
+  new Fl_Box(10, y, 50, 25, "Date:");
+  s_chTrMon = new Fl_Choice(60, y, 90, 25);
+  for (int i = 1; i <= cSign; i++)
+    s_chTrMon->add(szMonth[i]);
+  s_chTrMon->value(MonT - 1);
+
+  s_inTrDay = new Fl_Int_Input(155, y, 40, 25);
+  sprintf(sz, "%d", DayT);
+  s_inTrDay->value(sz);
+
+  s_inTrYea = new Fl_Int_Input(200, y, 60, 25);
+  sprintf(sz, "%d", YeaT);
+  s_inTrYea->value(sz);
+
+  Fl_Button *btnNow = new Fl_Button(270, y, 60, 25, "Now");
+  btnNow->callback(cb_TransitNow);
+  y += 35;
+
+  // Time row
+  new Fl_Box(10, y, 50, 25, "Time:");
+  s_inTrTim = new Fl_Input(60, y, 80, 25);
+  sprintf(sz, "%.2f", TimT);
+  s_inTrTim->value(sz);
+  y += 40;
+
+  // Transit type
+  new Fl_Box(10, y, 100, 25, "Transit Type:");
+  s_chTrType = new Fl_Choice(115, y, 200, 25);
+  s_chTrType->add("Transit Hits");
+  s_chTrType->add("Transit Influence");
+  s_chTrType->add("Transit Graph");
+  s_chTrType->add("Transit to Natal Hits");
+  s_chTrType->add("Transit to Natal Influence");
+  s_chTrType->add("Transit to Natal Graph");
+  s_chTrType->value(0);
+  y += 35;
+
+  // Time span
+  new Fl_Box(10, y, 100, 25, "Time Span:");
+  s_chTrSpan = new Fl_Choice(115, y, 120, 25);
+  s_chTrSpan->add("One Day");
+  s_chTrSpan->add("One Month");
+  s_chTrSpan->add("One Year");
+  s_chTrSpan->value(0);
+  y += 35;
+
+  // Division
+  new Fl_Box(10, y, 100, 25, "Divisions:");
+  s_inTrDiv = new Fl_Int_Input(115, y, 60, 25);
+  sprintf(sz, "%d", us.nDivision);
+  s_inTrDiv->value(sz);
+  y += 40;
+
+  // OK/Cancel buttons
+  Fl_Return_Button *btnOK = new Fl_Return_Button(w - 180, h - 40, 80, 30, "OK");
+  btnOK->callback(cb_TransitOK);
+
+  Fl_Button *btnCancel = new Fl_Button(w - 90, h - 40, 80, 30, "Cancel");
+  btnCancel->callback(cb_TransitCancel);
+
+  s_dlgTransit->end();
+  s_dlgTransit->set_modal();
+  s_dlgTransit->show();
+
+  while (s_dlgTransit->visible())
+    Fl::wait();
+
+  delete s_dlgTransit;
+  s_dlgTransit = NULL;
+  s_chTrMon = NULL;
+  s_inTrDay = s_inTrYea = s_inTrDiv = NULL;
+  s_inTrTim = NULL;
+  s_chTrType = s_chTrSpan = NULL;
+}
+
+/*
+******************************************************************************
+** Progressions Dialog
+******************************************************************************
+*/
+
+static Fl_Window *s_dlgProgress = NULL;
+static Fl_Choice *s_chPrMon = NULL;
+static Fl_Int_Input *s_inPrDay = NULL;
+static Fl_Int_Input *s_inPrYea = NULL;
+static Fl_Input *s_inPrTim = NULL;
+static Fl_Choice *s_chPrType = NULL;
+static Fl_Float_Input *s_inPrCusp = NULL;
+
+static void cb_ProgressOK(Fl_Widget *w, void *data)
+{
+  // Get date/time
+  int mon = s_chPrMon ? s_chPrMon->value() + 1 : MonT;
+  int day = s_inPrDay ? atoi(s_inPrDay->value()) : DayT;
+  int yea = s_inPrYea ? atoi(s_inPrYea->value()) : YeaT;
+  real tim = s_inPrTim ? atof(s_inPrTim->value()) : TimT;
+  real cusp = s_inPrCusp ? atof(s_inPrCusp->value()) : us.rProgCusp;
+
+  // Validate
+  if (!FValidMon(mon) || !FValidYea(yea) || !FValidDay(day, mon, yea) ||
+      !FValidTim(tim)) {
+    fl_alert("Invalid date or time value");
+    return;
+  }
+
+  // Set progression chart info
+  SetCI(ciTran, mon, day, yea, tim, ciDefa.dst, ciDefa.zon, ciDefa.lon, ciDefa.lat);
+  us.rProgCusp = cusp;
+
+  // Set progression type
+  int type = s_chPrType ? s_chPrType->value() : 0;
+  us.fProgress = fTrue;
+  us.nProgress = (type == 0) ? ptCast : ((type == 1) ? ptSolarArc : ptMixed);
+
+  // Set relationship mode
+  us.nRel = rcProgress;
+
+  fi.fDoCast = fTrue;
+  if (fi.chart)
+    fi.chart->redraw();
+
+  if (s_dlgProgress)
+    s_dlgProgress->hide();
+}
+
+static void cb_ProgressNow(Fl_Widget *w, void *data)
+{
+#ifdef TIME
+  int mon, day, yea;
+  real tim;
+  char sz[32];
+
+  GetTimeNow(&mon, &day, &yea, &tim, ciDefa.dst, ciDefa.zon);
+  if (s_chPrMon) s_chPrMon->value(mon - 1);
+  if (s_inPrDay) { sprintf(sz, "%d", day); s_inPrDay->value(sz); }
+  if (s_inPrYea) { sprintf(sz, "%d", yea); s_inPrYea->value(sz); }
+  if (s_inPrTim) { sprintf(sz, "%.2f", tim); s_inPrTim->value(sz); }
+#endif
+}
+
+static void cb_ProgressCancel(Fl_Widget *w, void *data)
+{
+  if (s_dlgProgress)
+    s_dlgProgress->hide();
+}
+
+void FShowDlgProgress()
+{
+  int w = 380, h = 260;
+  char sz[64];
+
+  s_dlgProgress = new Fl_Window(w, h, "Progressions");
+  s_dlgProgress->begin();
+
+  int y = 10;
+
+  // Date row
+  new Fl_Box(10, y, 80, 25, "Progress to:");
+  s_chPrMon = new Fl_Choice(95, y, 90, 25);
+  for (int i = 1; i <= cSign; i++)
+    s_chPrMon->add(szMonth[i]);
+  s_chPrMon->value(MonT - 1);
+
+  s_inPrDay = new Fl_Int_Input(190, y, 40, 25);
+  sprintf(sz, "%d", DayT);
+  s_inPrDay->value(sz);
+
+  s_inPrYea = new Fl_Int_Input(235, y, 60, 25);
+  sprintf(sz, "%d", YeaT);
+  s_inPrYea->value(sz);
+
+  Fl_Button *btnNow = new Fl_Button(305, y, 60, 25, "Now");
+  btnNow->callback(cb_ProgressNow);
+  y += 35;
+
+  // Time row
+  new Fl_Box(10, y, 50, 25, "Time:");
+  s_inPrTim = new Fl_Input(95, y, 80, 25);
+  sprintf(sz, "%.2f", TimT);
+  s_inPrTim->value(sz);
+  y += 40;
+
+  // Progression type
+  new Fl_Box(10, y, 100, 25, "Progression Type:");
+  s_chPrType = new Fl_Choice(120, y, 180, 25);
+  s_chPrType->add("Secondary (Day for Year)");
+  s_chPrType->add("Solar Arc");
+  s_chPrType->add("Mixed (Solar + Lunar)");
+  s_chPrType->value(us.nProgress);
+  y += 35;
+
+  // Cusp progression factor
+  new Fl_Box(10, y, 120, 25, "Cusp Prog Factor:");
+  s_inPrCusp = new Fl_Float_Input(135, y, 80, 25);
+  sprintf(sz, "%.6g", us.rProgCusp);
+  s_inPrCusp->value(sz);
+  y += 40;
+
+  // OK/Cancel buttons
+  Fl_Return_Button *btnOK = new Fl_Return_Button(w - 180, h - 40, 80, 30, "OK");
+  btnOK->callback(cb_ProgressOK);
+
+  Fl_Button *btnCancel = new Fl_Button(w - 90, h - 40, 80, 30, "Cancel");
+  btnCancel->callback(cb_ProgressCancel);
+
+  s_dlgProgress->end();
+  s_dlgProgress->set_modal();
+  s_dlgProgress->show();
+
+  while (s_dlgProgress->visible())
+    Fl::wait();
+
+  delete s_dlgProgress;
+  s_dlgProgress = NULL;
+  s_chPrMon = NULL;
+  s_inPrDay = s_inPrYea = NULL;
+  s_inPrTim = NULL;
+  s_chPrType = NULL;
+  s_inPrCusp = NULL;
+}
+
+/*
+******************************************************************************
+** Chart Settings Dialog
+******************************************************************************
+*/
+
+static Fl_Window *s_dlgChartSettings = NULL;
+static Fl_Check_Button *s_chVelocity = NULL;
+static Fl_Int_Input *s_inWheelRows = NULL;
+static Fl_Check_Button *s_chWheelReverse = NULL;
+static Fl_Check_Button *s_chGridConfig = NULL;
+static Fl_Check_Button *s_chGridMidpoint = NULL;
+static Fl_Check_Button *s_chAspSummary = NULL;
+static Fl_Check_Button *s_chMidSummary = NULL;
+static Fl_Check_Button *s_chMidAspect = NULL;
+static Fl_Check_Button *s_chPrimeVert = NULL;
+static Fl_Check_Button *s_chSectorApprox = NULL;
+static Fl_Check_Button *s_chCalendarYear = NULL;
+static Fl_Check_Button *s_chInfluenceSign = NULL;
+static Fl_Int_Input *s_inAstroStep = NULL;
+static Fl_Check_Button *s_chLatCross = NULL;
+static Fl_Check_Button *s_chEphemYear = NULL;
+static Fl_Int_Input *s_inArabicParts = NULL;
+static Fl_Check_Button *s_chArabicFlip = NULL;
+static Fl_Int_Input *s_inNearestCity = NULL;
+static Fl_Int_Input *s_inBioday = NULL;
+
+static void cb_ChartSettingsOK(Fl_Widget *w, void *data)
+{
+  if (s_inWheelRows) {
+    int n = atoi(s_inWheelRows->value());
+    if (FValidWheel(n))
+      us.nWheelRows = n;
+  }
+  if (s_inAstroStep) {
+    int n = atoi(s_inAstroStep->value());
+    if (FValidAstrograph(n))
+      us.nAstroGraphStep = n;
+  }
+  if (s_inArabicParts) {
+    int n = atoi(s_inArabicParts->value());
+    if (FValidPart(n))
+      us.nArabicParts = n;
+  }
+  if (s_inNearestCity) {
+    int n = atoi(s_inNearestCity->value());
+    if (n >= 0)
+      us.nAtlasList = n;
+  }
+  if (s_inBioday) {
+    int n = atoi(s_inBioday->value());
+    if (FValidBioday(n))
+      us.nBioday = n;
+  }
+
+  us.fVelocity = s_chVelocity ? s_chVelocity->value() : us.fVelocity;
+  us.fWheelReverse = s_chWheelReverse ? s_chWheelReverse->value() : us.fWheelReverse;
+  us.fGridConfig = s_chGridConfig ? s_chGridConfig->value() : us.fGridConfig;
+  us.fGridMidpoint = s_chGridMidpoint ? s_chGridMidpoint->value() : us.fGridMidpoint;
+  us.fAspSummary = s_chAspSummary ? s_chAspSummary->value() : us.fAspSummary;
+  us.fMidSummary = s_chMidSummary ? s_chMidSummary->value() : us.fMidSummary;
+  us.fMidAspect = s_chMidAspect ? s_chMidAspect->value() : us.fMidAspect;
+  us.fPrimeVert = s_chPrimeVert ? s_chPrimeVert->value() : us.fPrimeVert;
+  us.fSectorApprox = s_chSectorApprox ? s_chSectorApprox->value() : us.fSectorApprox;
+  us.fCalendarYear = s_chCalendarYear ? s_chCalendarYear->value() : us.fCalendarYear;
+  us.fInfluenceSign = s_chInfluenceSign ? s_chInfluenceSign->value() : us.fInfluenceSign;
+  us.fLatitudeCross = s_chLatCross ? s_chLatCross->value() : us.fLatitudeCross;
+  us.nEphemYears = s_chEphemYear ? s_chEphemYear->value() : us.nEphemYears;
+  us.fArabicFlip = s_chArabicFlip ? s_chArabicFlip->value() : us.fArabicFlip;
+
+  fi.fDoCast = fTrue;
+  if (fi.chart)
+    fi.chart->redraw();
+
+  if (s_dlgChartSettings)
+    s_dlgChartSettings->hide();
+}
+
+static void cb_ChartSettingsCancel(Fl_Widget *w, void *data)
+{
+  if (s_dlgChartSettings)
+    s_dlgChartSettings->hide();
+}
+
+void FShowDlgChartSettings()
+{
+  int w = 420, h = 440;
+  char sz[64];
+
+  s_dlgChartSettings = new Fl_Window(w, h, "Chart Settings");
+  s_dlgChartSettings->begin();
+
+  int y = 10;
+  int col1 = 10, col2 = 210;
+
+  // Column 1 - Display options
+  s_chVelocity = new Fl_Check_Button(col1, y, 190, 25, "Show Velocity in Listing");
+  s_chVelocity->value(us.fVelocity);
+  y += 25;
+
+  s_chWheelReverse = new Fl_Check_Button(col1, y, 190, 25, "Reverse Wheel Rotation");
+  s_chWheelReverse->value(us.fWheelReverse);
+  y += 25;
+
+  s_chGridConfig = new Fl_Check_Button(col1, y, 190, 25, "Grid Config Display");
+  s_chGridConfig->value(us.fGridConfig);
+  y += 25;
+
+  s_chGridMidpoint = new Fl_Check_Button(col1, y, 190, 25, "Grid Midpoints");
+  s_chGridMidpoint->value(us.fGridMidpoint);
+  y += 25;
+
+  s_chAspSummary = new Fl_Check_Button(col1, y, 190, 25, "Aspect Summary");
+  s_chAspSummary->value(us.fAspSummary);
+  y += 25;
+
+  s_chMidSummary = new Fl_Check_Button(col1, y, 190, 25, "Midpoint Summary");
+  s_chMidSummary->value(us.fMidSummary);
+  y += 25;
+
+  s_chMidAspect = new Fl_Check_Button(col1, y, 190, 25, "Midpoint Aspects");
+  s_chMidAspect->value(us.fMidAspect);
+  y += 25;
+
+  s_chPrimeVert = new Fl_Check_Button(col1, y, 190, 25, "Prime Vertical");
+  s_chPrimeVert->value(us.fPrimeVert);
+  y += 25;
+
+  s_chSectorApprox = new Fl_Check_Button(col1, y, 190, 25, "Sector Approximation");
+  s_chSectorApprox->value(us.fSectorApprox);
+  y += 25;
+
+  s_chCalendarYear = new Fl_Check_Button(col1, y, 190, 25, "Calendar Year Mode");
+  s_chCalendarYear->value(us.fCalendarYear);
+  y += 25;
+
+  s_chInfluenceSign = new Fl_Check_Button(col1, y, 190, 25, "Influence By Sign");
+  s_chInfluenceSign->value(us.fInfluenceSign);
+  y += 25;
+
+  s_chLatCross = new Fl_Check_Button(col1, y, 190, 25, "Show Latitude Crossings");
+  s_chLatCross->value(us.fLatitudeCross);
+  y += 25;
+
+  s_chEphemYear = new Fl_Check_Button(col1, y, 190, 25, "Ephemeris Year Mode");
+  s_chEphemYear->value(us.nEphemYears != 0);
+  y += 25;
+
+  s_chArabicFlip = new Fl_Check_Button(col1, y, 190, 25, "Flip Arabic Parts");
+  s_chArabicFlip->value(us.fArabicFlip);
+
+  // Column 2 - Number inputs
+  y = 10;
+  new Fl_Box(col2, y, 100, 25, "Wheel Rows:");
+  s_inWheelRows = new Fl_Int_Input(col2 + 105, y, 50, 25);
+  sprintf(sz, "%d", us.nWheelRows);
+  s_inWheelRows->value(sz);
+  y += 35;
+
+  new Fl_Box(col2, y, 100, 25, "Astro Step:");
+  s_inAstroStep = new Fl_Int_Input(col2 + 105, y, 50, 25);
+  sprintf(sz, "%d", us.nAstroGraphStep);
+  s_inAstroStep->value(sz);
+  y += 35;
+
+  new Fl_Box(col2, y, 100, 25, "Arabic Parts:");
+  s_inArabicParts = new Fl_Int_Input(col2 + 105, y, 50, 25);
+  sprintf(sz, "%d", us.nArabicParts);
+  s_inArabicParts->value(sz);
+  y += 35;
+
+  new Fl_Box(col2, y, 100, 25, "Nearest Cities:");
+  s_inNearestCity = new Fl_Int_Input(col2 + 105, y, 50, 25);
+  sprintf(sz, "%d", us.nAtlasList);
+  s_inNearestCity->value(sz);
+  y += 35;
+
+  new Fl_Box(col2, y, 100, 25, "Biorhythm Days:");
+  s_inBioday = new Fl_Int_Input(col2 + 105, y, 50, 25);
+  sprintf(sz, "%d", us.nBioday);
+  s_inBioday->value(sz);
+
+  // OK/Cancel buttons
+  Fl_Return_Button *btnOK = new Fl_Return_Button(w - 180, h - 40, 80, 30, "OK");
+  btnOK->callback(cb_ChartSettingsOK);
+
+  Fl_Button *btnCancel = new Fl_Button(w - 90, h - 40, 80, 30, "Cancel");
+  btnCancel->callback(cb_ChartSettingsCancel);
+
+  s_dlgChartSettings->end();
+  s_dlgChartSettings->set_modal();
+  s_dlgChartSettings->show();
+
+  while (s_dlgChartSettings->visible())
+    Fl::wait();
+
+  delete s_dlgChartSettings;
+  s_dlgChartSettings = NULL;
+  s_chVelocity = NULL;
+  s_inWheelRows = NULL;
+  s_chWheelReverse = NULL;
+  s_chGridConfig = NULL;
+  s_chGridMidpoint = NULL;
+  s_chAspSummary = NULL;
+  s_chMidSummary = NULL;
+  s_chMidAspect = NULL;
+  s_chPrimeVert = NULL;
+  s_chSectorApprox = NULL;
+  s_chCalendarYear = NULL;
+  s_chInfluenceSign = NULL;
+  s_inAstroStep = NULL;
+  s_chLatCross = NULL;
+  s_chEphemYear = NULL;
+  s_inArabicParts = NULL;
+  s_chArabicFlip = NULL;
+  s_inNearestCity = NULL;
+  s_inBioday = NULL;
+}
+
+/*
+******************************************************************************
+** Default Chart Info Dialog
+******************************************************************************
+*/
+
+static Fl_Window *s_dlgDefaultInfo = NULL;
+static Fl_Input *s_inDefDst = NULL;
+static Fl_Input *s_inDefZon = NULL;
+static Fl_Input *s_inDefLon = NULL;
+static Fl_Input *s_inDefLat = NULL;
+static Fl_Input *s_inDefNam = NULL;
+static Fl_Input *s_inDefLoc = NULL;
+
+static void cb_DefaultInfoOK(Fl_Widget *w, void *data)
+{
+  real dst, zon, lon, lat;
+  const char *sz;
+
+  // Parse the input values
+  sz = s_inDefDst ? s_inDefDst->value() : "";
+  dst = RParseSz(sz, pmDst);
+  if (!FValidDst(dst)) {
+    fl_alert("Invalid daylight saving value");
+    return;
+  }
+
+  sz = s_inDefZon ? s_inDefZon->value() : "";
+  zon = RParseSz(sz, pmZon);
+  if (!FValidZon(zon)) {
+    fl_alert("Invalid time zone value");
+    return;
+  }
+
+  sz = s_inDefLon ? s_inDefLon->value() : "";
+  lon = RParseSz(sz, pmLon);
+  if (!FValidLon(lon)) {
+    fl_alert("Invalid longitude value");
+    return;
+  }
+
+  sz = s_inDefLat ? s_inDefLat->value() : "";
+  lat = RParseSz(sz, pmLat);
+  if (!FValidLat(lat)) {
+    fl_alert("Invalid latitude value");
+    return;
+  }
+
+  // Apply values to default chart info
+  ciDefa.dst = dst;
+  ciDefa.zon = zon;
+  ciDefa.lon = lon;
+  ciDefa.lat = lat;
+  if (s_inDefNam)
+    ciDefa.nam = SzClone((char *)s_inDefNam->value());
+  if (s_inDefLoc)
+    ciDefa.loc = SzClone((char *)s_inDefLoc->value());
+
+  if (s_dlgDefaultInfo)
+    s_dlgDefaultInfo->hide();
+}
+
+static void cb_DefaultInfoCancel(Fl_Widget *w, void *data)
+{
+  if (s_dlgDefaultInfo)
+    s_dlgDefaultInfo->hide();
+}
+
+void FShowDlgDefaultInfo()
+{
+  int w = 400, h = 280;
+  char sz[cchSzDef];
+
+  s_dlgDefaultInfo = new Fl_Window(w, h, "Default Chart Info");
+  s_dlgDefaultInfo->begin();
+
+  int y = 10, lw = 100;
+
+  // DST row
+  new Fl_Box(10, y, lw, 25, "Daylight Saving:");
+  s_inDefDst = new Fl_Input(115, y, 120, 25);
+  sprintf(sz, "%s", SzZone(ciDefa.dst));
+  s_inDefDst->value(sz);
+  y += 35;
+
+  // Time zone row
+  new Fl_Box(10, y, lw, 25, "Time Zone:");
+  s_inDefZon = new Fl_Input(115, y, 120, 25);
+  sprintf(sz, "%s", SzZone(ciDefa.zon));
+  s_inDefZon->value(sz);
+  y += 35;
+
+  // Longitude row
+  new Fl_Box(10, y, lw, 25, "Longitude:");
+  s_inDefLon = new Fl_Input(115, y, 160, 25);
+  sprintf(sz, "%s", SzLocation(ciDefa.lon, ciDefa.lat));
+  // Extract just longitude from location string
+  char *p = strchr(sz, ' ');
+  if (p) *p = '\0';
+  s_inDefLon->value(sz);
+  y += 35;
+
+  // Latitude row
+  new Fl_Box(10, y, lw, 25, "Latitude:");
+  s_inDefLat = new Fl_Input(115, y, 160, 25);
+  sprintf(sz, "%s", SzLocation(ciDefa.lon, ciDefa.lat));
+  p = strchr(sz, ' ');
+  s_inDefLat->value(p ? p + 1 : "");
+  y += 35;
+
+  // Name row
+  new Fl_Box(10, y, lw, 25, "Name:");
+  s_inDefNam = new Fl_Input(115, y, 270, 25);
+  s_inDefNam->value(ciDefa.nam ? ciDefa.nam : "");
+  y += 35;
+
+  // Location row
+  new Fl_Box(10, y, lw, 25, "Location:");
+  s_inDefLoc = new Fl_Input(115, y, 270, 25);
+  s_inDefLoc->value(ciDefa.loc ? ciDefa.loc : "");
+
+  // OK/Cancel buttons
+  Fl_Return_Button *btnOK = new Fl_Return_Button(w - 180, h - 40, 80, 30, "OK");
+  btnOK->callback(cb_DefaultInfoOK);
+
+  Fl_Button *btnCancel = new Fl_Button(w - 90, h - 40, 80, 30, "Cancel");
+  btnCancel->callback(cb_DefaultInfoCancel);
+
+  s_dlgDefaultInfo->end();
+  s_dlgDefaultInfo->set_modal();
+  s_dlgDefaultInfo->show();
+
+  while (s_dlgDefaultInfo->visible())
+    Fl::wait();
+
+  delete s_dlgDefaultInfo;
+  s_dlgDefaultInfo = NULL;
+  s_inDefDst = NULL;
+  s_inDefZon = NULL;
+  s_inDefLon = NULL;
+  s_inDefLat = NULL;
+  s_inDefNam = NULL;
+  s_inDefLoc = NULL;
 }
 
 #endif // FLTK

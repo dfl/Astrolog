@@ -185,6 +185,73 @@ void FMenuHelpObscure(Fl_Widget *w, void *data);
 void FMenuHelpKeystroke(Fl_Widget *w, void *data);
 void FMenuHelpCredit(Fl_Widget *w, void *data);
 
+// Forward declarations for new chart view callbacks
+void FMenuViewList(Fl_Widget *w, void *data);
+void FMenuViewHouse(Fl_Widget *w, void *data);
+void FMenuViewAspect(Fl_Widget *w, void *data);
+void FMenuViewEsoteric(Fl_Widget *w, void *data);
+#ifdef ARABIC
+void FMenuViewArabic(Fl_Widget *w, void *data);
+#endif
+void FMenuViewNearestCity(Fl_Widget *w, void *data);
+void FMenuViewMoons(Fl_Widget *w, void *data);
+
+// Forward declarations for new toggle callbacks
+void FMenuGraphicsToggle(Fl_Widget *w, void *data);
+void FMenuInterpret(Fl_Widget *w, void *data);
+void FMenuSecond(Fl_Widget *w, void *data);
+void FMenuParallel(Fl_Widget *w, void *data);
+void FMenuApplying(Fl_Widget *w, void *data);
+void FMenuRedraw(Fl_Widget *w, void *data);
+void FMenuClear(Fl_Widget *w, void *data);
+
+// Forward declarations for new settings callbacks
+void FMenuHouseSetDwad(Fl_Widget *w, void *data);
+void FMenuHouseSetGeodetic(Fl_Widget *w, void *data);
+void FMenuHouseSetNavamsa(Fl_Widget *w, void *data);
+void FMenuHouseSetIndian(Fl_Widget *w, void *data);
+
+// Forward declarations for new graphics callbacks
+void FMenuGraphicsSidebar(Fl_Widget *w, void *data);
+void FMenuGraphicsSquare(Fl_Widget *w, void *data);
+void FMenuGraphicsAntialias(Fl_Widget *w, void *data);
+void FMenuModifyChart(Fl_Widget *w, void *data);
+void FMenuScaleDecrease(Fl_Widget *w, void *data);
+void FMenuScaleIncrease(Fl_Widget *w, void *data);
+void FMenuScale1(Fl_Widget *w, void *data);
+void FMenuScale2(Fl_Widget *w, void *data);
+void FMenuScale3(Fl_Widget *w, void *data);
+void FMenuScale4(Fl_Widget *w, void *data);
+void FMenuTextDecrease(Fl_Widget *w, void *data);
+void FMenuTextIncrease(Fl_Widget *w, void *data);
+void FMenuTiltZero(Fl_Widget *w, void *data);
+void FMenuTiltNorth(Fl_Widget *w, void *data);
+void FMenuTiltSouth(Fl_Widget *w, void *data);
+void FMenuRotateWest(Fl_Widget *w, void *data);
+void FMenuRotateEast(Fl_Widget *w, void *data);
+void FMenuZoomIn(Fl_Widget *w, void *data);
+void FMenuZoomOut(Fl_Widget *w, void *data);
+
+// Forward declarations for new animate callbacks
+void FMenuStore(Fl_Widget *w, void *data);
+void FMenuRecall(Fl_Widget *w, void *data);
+void FMenuAnimRate_11(Fl_Widget *w, void *data);
+void FMenuAnimRate_12(Fl_Widget *w, void *data);
+void FMenuAnimRate_13(Fl_Widget *w, void *data);
+
+// Forward declarations for dialog callbacks
+void FMenuTransitDlg(Fl_Widget *w, void *data);
+void FMenuProgressDlg(Fl_Widget *w, void *data);
+void FMenuChartSettingsDlg(Fl_Widget *w, void *data);
+
+// Forward declarations for info menu callbacks
+void FMenuSwapCharts(Fl_Widget *w, void *data);
+void FMenuDefaultInfo(Fl_Widget *w, void *data);
+
+// Forward declarations for file menu callbacks
+void FMenuFileOpenChart2(Fl_Widget *w, void *data);
+void FMenuFileSaveSettings(Fl_Widget *w, void *data);
+
 /*
 ******************************************************************************
 ** ChartWidget Implementation
@@ -1078,8 +1145,10 @@ void AstrologWindow::createMenus()
   // File menu
   // FL_COMMAND maps to Cmd on macOS, Ctrl on Windows/Linux
   menubar_->add("&File/&Open Chart...", FL_COMMAND+'o', FMenuFileOpen);
+  menubar_->add("&File/Open Chart #&2...", 0, FMenuFileOpenChart2);
   menubar_->add("&File/&Save Chart...", FL_COMMAND+'s', FMenuFileSave);
   menubar_->add("&File/Save &As...", 0, FMenuFileSaveAs);
+  menubar_->add("&File/Save Program Settin&gs...", 0, FMenuFileSaveSettings);
 #ifdef CAIRO
   menubar_->add("&File/Export/&SVG...", 0, FMenuExportSVG);
   menubar_->add("&File/Export/&PDF...", 0, FMenuExportPDF);
@@ -1095,7 +1164,9 @@ void AstrologWindow::createMenus()
   // Info menu
   menubar_->add("&Info/Set &Chart Info...", FL_COMMAND+'i', FMenuInfoChart);
   menubar_->add("&Info/Chart for &Now", 'n', FMenuChartNow);
-  menubar_->add("&Info/Set Chart #&2 Info...", 0, FMenuInfoChart2, 0, FL_MENU_DIVIDER);
+  menubar_->add("&Info/Set Chart #&2 Info...", 0, FMenuInfoChart2);
+  menubar_->add("&Info/&Default Chart Info...", 0, FMenuDefaultInfo);
+  menubar_->add("&Info/Swap Chart #1 and #&2", 'x', FMenuSwapCharts, 0, FL_MENU_DIVIDER);
   menubar_->add("&Info/Relationship/No &Relationship Chart", 'c', FMenuRelNo);
   menubar_->add("&Info/Relationship/Com&parison Chart", 0, FMenuRelNo);
   menubar_->add("&Info/Relationship/&Synastry Chart", 0, FMenuRelSynastry);
@@ -1109,26 +1180,44 @@ void AstrologWindow::createMenus()
   menubar_->add("&Info/Relationship/&Progressed and Natal", 0, FMenuRelProgressed);
 
   // View menu - using legacy uppercase key mappings
-  menubar_->add("&View/&Wheel Chart", 'V', FMenuViewWheel);
+  menubar_->add("&View/Show &Graphics", 'v', FMenuGraphicsToggle, 0, FL_MENU_TOGGLE|FL_MENU_DIVIDER);
+  menubar_->add("&View/Standard Radi&x", 'V', FMenuViewList);
+  menubar_->add("&View/House &Wheel", 0, FMenuViewHouse);
   menubar_->add("&View/&Aspect Midpoint Grid", 'A', FMenuViewGrid);
-  menubar_->add("&View/Midpoint &Dial", 0, FMenuViewMidpoint);
-  menubar_->add("&View/&Horizon Chart", 'Z', FMenuViewHorizon);
-  menubar_->add("&View/&Orbit Chart", 'S', FMenuViewOrbit);
-  menubar_->add("&View/&Gauquelin Sectors", 'H', FMenuViewSector);
+  menubar_->add("&View/Aspec&t List", 0, FMenuViewAspect);
+  menubar_->add("&View/&Midpoint List", 0, FMenuViewMidpoint);
+  menubar_->add("&View/Local Hori&zon", 'Z', FMenuViewHorizon);
+  menubar_->add("&View/Solar System &Orbit", 'S', FMenuViewOrbit);
+  menubar_->add("&View/Ga&uquelin Sectors", 'H', FMenuViewSector);
   menubar_->add("&View/&Calendar", 'K', FMenuViewCalendar);
   menubar_->add("&View/Inf&luence", 'J', FMenuViewInfluence);
-  menubar_->add("&View/Astro-Graph", 'L', FMenuViewAstroGraph);
+  menubar_->add("&View/Esoter&ic", 0, FMenuViewEsoteric);
+  menubar_->add("&View/Astro-Grap&h", 'L', FMenuViewAstroGraph);
   menubar_->add("&View/&Ephemeris", 'E', FMenuViewEphemeris);
-  menubar_->add("&View/R&ising and Setting", 'I', FMenuViewRising, 0, FL_MENU_DIVIDER);
+#ifdef ARABIC
+  menubar_->add("&View/A&rabic Parts", 0, FMenuViewArabic);
+#endif
+  menubar_->add("&View/R&ising and Setting", 'I', FMenuViewRising);
+  menubar_->add("&View/&Nearest Cities", 0, FMenuViewNearestCity);
+  menubar_->add("&View/&Moons Chart", 'M', FMenuViewMoons, 0, FL_MENU_DIVIDER);
+  menubar_->add("&View/Chart S&phere", 'X', FMenuViewSphere);
   menubar_->add("&View/&Globe", 'G', FMenuViewGlobe);
-  menubar_->add("&View/&Sphere", 'X', FMenuViewSphere);
-  menubar_->add("&View/&Local Horizon", 0, FMenuViewLocal);
+  menubar_->add("&View/&Polar Globe", 'P', FMenuViewPolar);
   menubar_->add("&View/&Telescope", 'T', FMenuViewTelescope);
-  menubar_->add("&View/&Polar", 'P', FMenuViewPolar);
   menubar_->add("&View/&World Map", 'W', FMenuViewWorldMap);
+  menubar_->add("&View/Local &3D Horizon", 0, FMenuViewLocal, 0, FL_MENU_DIVIDER);
 #ifdef OPENGL
   menubar_->add("&View/3D with &OpenGL", 0, FMenuViewOpenGL, 0, FL_MENU_TOGGLE|FL_MENU_VALUE);
 #endif
+  menubar_->add("&View/Window Settings/&Redraw Screen", ' ', FMenuRedraw);
+  menubar_->add("&View/Window Settings/&Clear Screen", FL_Delete, FMenuClear, 0, FL_MENU_DIVIDER);
+  menubar_->add("&View/Show &Interpretations", 0, FMenuInterpret, 0, FL_MENU_TOGGLE);
+  menubar_->add("&View/Print &Nearest Second", 0, FMenuSecond, 0, FL_MENU_TOGGLE);
+  menubar_->add("&View/&Parallel Aspects", 0, FMenuParallel, 0, FL_MENU_TOGGLE);
+  menubar_->add("&View/&Applying Aspects", 0, FMenuApplying, 0, FL_MENU_TOGGLE|FL_MENU_DIVIDER);
+  menubar_->add("&View/&Transits...", 0, FMenuTransitDlg);
+  menubar_->add("&View/Pro&gressions...", 0, FMenuProgressDlg);
+  menubar_->add("&View/Chart Sett&ings...", 0, FMenuChartSettingsDlg);
 
   // Settings menu
   menubar_->add("Se&ttings/&Sidereal Zodiac", 's', FMenuSidereal, 0, FL_MENU_TOGGLE);
@@ -1156,10 +1245,14 @@ void AstrologWindow::createMenus()
   menubar_->add("Se&ttings/House System/&Whole", FL_COMMAND+'w', FMenuHouseSystem, (void*)hsWhole);
   menubar_->add("Se&ttings/House System/&Vedic", FL_COMMAND+'v', FMenuHouseSystem, (void*)hsVedic);
   menubar_->add("Se&ttings/House System/&Null", FL_COMMAND+'n', FMenuHouseSystem, (void*)hsNull, FL_MENU_DIVIDER);
-  menubar_->add("Se&ttings/House System/&Solar Chart", 0, FMenuHouseSolar, 0, FL_MENU_TOGGLE);
-  menubar_->add("Se&ttings/House System/&3D Houses", 'a', FMenuHouse3D, 0, FL_MENU_TOGGLE);
-  menubar_->add("Se&ttings/House System/Show &Decans", 'g', FMenuHouseDecan, 0, FL_MENU_TOGGLE);
-  menubar_->add("Se&ttings/House System/&Flip Signs with Houses", 'f', FMenuHouseFlip, 0, FL_MENU_TOGGLE);
+  menubar_->add("Se&ttings/House Settings/&Solar Chart", 0, FMenuHouseSolar, 0, FL_MENU_TOGGLE);
+  menubar_->add("Se&ttings/House Settings/&3D Houses", 'a', FMenuHouse3D, 0, FL_MENU_TOGGLE|FL_MENU_DIVIDER);
+  menubar_->add("Se&ttings/House Settings/Show &Decans", 'g', FMenuHouseDecan, 0, FL_MENU_TOGGLE);
+  menubar_->add("Se&ttings/House Settings/Show D&wads", 0, FMenuHouseSetDwad, 0, FL_MENU_TOGGLE);
+  menubar_->add("Se&ttings/House Settings/&Flip Signs with Houses", 'f', FMenuHouseFlip, 0, FL_MENU_TOGGLE);
+  menubar_->add("Se&ttings/House Settings/&Geodetic Houses", 0, FMenuHouseSetGeodetic, 0, FL_MENU_TOGGLE|FL_MENU_DIVIDER);
+  menubar_->add("Se&ttings/House Settings/&Indian Wheel Order", 'z', FMenuHouseSetIndian, 0, FL_MENU_TOGGLE);
+  menubar_->add("Se&ttings/House Settings/Show &Navamsas", 0, FMenuHouseSetNavamsa, 0, FL_MENU_TOGGLE);
   menubar_->add("Se&ttings/&Calculation Settings...", 0, FMenuCalcSettings);
   menubar_->add("Se&ttings/&Display Settings...", 0, FMenuDisplaySettings);
   menubar_->add("Se&ttings/&Graphics Settings...", 0, FMenuGraphicsSettings);
@@ -1187,30 +1280,53 @@ void AstrologWindow::createMenus()
   // Graphics menu
   menubar_->add("&Graphics/&Reverse Background", 'x', FMenuGraphicsReverse, 0, FL_MENU_TOGGLE);
   menubar_->add("&Graphics/&Monochrome", 'm', FMenuGraphicsMonochrome, 0, FL_MENU_TOGGLE);
-  menubar_->add("&Graphics/Show &Border", 'b', FMenuGraphicsBorder, 0, FL_MENU_TOGGLE|FL_MENU_DIVIDER);
-  menubar_->add("&Graphics/Show Chart &Info", 't', FMenuGraphicsText, 0, FL_MENU_TOGGLE);
-  menubar_->add("&Graphics/&Thicker Lines", 'q', FMenuGraphicsThick, 0, FL_MENU_TOGGLE);
-  menubar_->add("&Graphics/Show Glyph &Labels", 'l', FMenuGraphicsLabel, 0, FL_MENU_TOGGLE);
-  menubar_->add("&Graphics/Show &Glyphs on Aspects", 'k', FMenuGraphicsLabelAsp, 0, FL_MENU_TOGGLE|FL_MENU_DIVIDER);
-  menubar_->add("&Graphics/Show &House Details", 'd', FMenuGraphicsHouseExtra, 0, FL_MENU_TOGGLE);
-  menubar_->add("&Graphics/Show &Equator", 'e', FMenuGraphicsEquator, 0, FL_MENU_TOGGLE|FL_MENU_DIVIDER);
-  menubar_->add("&Graphics/Modify &Display", 'i', FMenuGraphicsModify, 0, FL_MENU_TOGGLE|FL_MENU_DIVIDER);
+  menubar_->add("&Graphics/S&quare Screen", 'Q', FMenuGraphicsSquare, 0, FL_MENU_TOGGLE);
+  // Character Scale submenu
+  menubar_->add("&Graphics/Character Scale/&Small", 0, FMenuScale1);
+  menubar_->add("&Graphics/Character Scale/&Medium", 0, FMenuScale2);
+  menubar_->add("&Graphics/Character Scale/&Large", 0, FMenuScale3);
+  menubar_->add("&Graphics/Character Scale/&Huge", 0, FMenuScale4, 0, FL_MENU_DIVIDER);
+  menubar_->add("&Graphics/Character Scale/&Decrease", '<', FMenuScaleDecrease);
+  menubar_->add("&Graphics/Character Scale/&Increase", '>', FMenuScaleIncrease, 0, FL_MENU_DIVIDER);
+  menubar_->add("&Graphics/Character Scale/Decrease &Text", 0, FMenuTextDecrease);
+  menubar_->add("&Graphics/Character Scale/Increase Te&xt", 0, FMenuTextIncrease);
+  // Chart Effects submenu
+  menubar_->add("&Graphics/Chart Effects/Show &Border", 'b', FMenuGraphicsBorder, 0, FL_MENU_TOGGLE);
+  menubar_->add("&Graphics/Chart Effects/Show Chart &Info", 't', FMenuGraphicsText, 0, FL_MENU_TOGGLE);
+  menubar_->add("&Graphics/Chart Effects/Show Info &Sidebar", 0, FMenuGraphicsSidebar, 0, FL_MENU_TOGGLE|FL_MENU_DIVIDER);
+  menubar_->add("&Graphics/Chart Effects/&Thicker Lines", 'q', FMenuGraphicsThick, 0, FL_MENU_TOGGLE);
+  menubar_->add("&Graphics/Chart Effects/&Antialias Lines", 0, FMenuGraphicsAntialias, 0, FL_MENU_TOGGLE);
+  menubar_->add("&Graphics/Chart Effects/Show Glyph &Labels", 'l', FMenuGraphicsLabel, 0, FL_MENU_TOGGLE);
+  menubar_->add("&Graphics/Chart Effects/Show &Glyphs on Aspect Lines", 'k', FMenuGraphicsLabelAsp, 0, FL_MENU_TOGGLE);
   // Map Effects submenu
   menubar_->add("&Graphics/Map Effects/Show &Constellations", 'F', FMenuMapConstel, 0, FL_MENU_TOGGLE);
   menubar_->add("&Graphics/Map Effects/Show Full &Star List", 0, FMenuMapAllStar, 0, FL_MENU_TOGGLE);
   menubar_->add("&Graphics/Map Effects/Show E&xoplanets", 0, FMenuMapExo, 0, FL_MENU_TOGGLE|FL_MENU_DIVIDER);
+  menubar_->add("&Graphics/Map Effects/Show &House Details", 'd', FMenuGraphicsHouseExtra, 0, FL_MENU_TOGGLE);
+  menubar_->add("&Graphics/Map Effects/Show &Equator", 'e', FMenuGraphicsEquator, 0, FL_MENU_TOGGLE);
   menubar_->add("&Graphics/Map Effects/Show C&ities", 0, FMenuMapCity, 0, FL_MENU_TOGGLE|FL_MENU_DIVIDER);
   menubar_->add("&Graphics/Map Effects/Use Detailed World &Map", 'w', FMenuMapBmp, 0, FL_MENU_TOGGLE);
   menubar_->add("&Graphics/Map Effects/Use Ecliptic &Axis", 0, FMenuMapAxis, 0, FL_MENU_TOGGLE);
+  // Map Orientation submenu
+  menubar_->add("&Graphics/Map Orientation/Set Tilt to &Zero", 0, FMenuTiltZero, 0, FL_MENU_DIVIDER);
+  menubar_->add("&Graphics/Map Orientation/Tilt &North", '[', FMenuTiltNorth);
+  menubar_->add("&Graphics/Map Orientation/Tilt &South", ']', FMenuTiltSouth, 0, FL_MENU_DIVIDER);
+  menubar_->add("&Graphics/Map Orientation/Rotate &West", '{', FMenuRotateWest);
+  menubar_->add("&Graphics/Map Orientation/Rotate &East", '}', FMenuRotateEast, 0, FL_MENU_DIVIDER);
+  menubar_->add("&Graphics/Map Orientation/Zoom &Out", 0, FMenuZoomOut);
+  menubar_->add("&Graphics/Map Orientation/Zoom &In", 0, FMenuZoomIn);
   // Indian Style Charts submenu
   menubar_->add("&Graphics/Indian Style/Show &Indian Wheels", '=', FMenuIndian, 0, FL_MENU_TOGGLE|FL_MENU_DIVIDER);
   menubar_->add("&Graphics/Indian Style/Draw &South Indian", 0, FMenuIndianS);
   menubar_->add("&Graphics/Indian Style/Draw &North Indian", 0, FMenuIndianN);
-  menubar_->add("&Graphics/Indian Style/Draw &East Indian", 0, FMenuIndianE);
+  menubar_->add("&Graphics/Indian Style/Draw &East Indian", 0, FMenuIndianE, 0, FL_MENU_DIVIDER);
+  menubar_->add("&Graphics/Modify &Display", 'i', FMenuGraphicsModify, 0, FL_MENU_TOGGLE);
+  menubar_->add("&Graphics/Modif&y Chart", '0', FMenuModifyChart, 0, FL_MENU_TOGGLE);
+  menubar_->add("&Graphics/&Graphics Settings...", 0, FMenuGraphicsSettings);
 
   // Animate menu
   menubar_->add("&Animate/Do &Animation", 'N', FMenuAnimToggle);
-  menubar_->add("&Animate/Jump Rate/Update to &Now", 0, FMenuAnimNow);
+  menubar_->add("&Animate/Jump Rate/Update to &Now", 0, FMenuAnimNow, 0, FL_MENU_DIVIDER);
   menubar_->add("&Animate/Jump Rate/&Seconds", '!', FMenuAnimRate1);
   menubar_->add("&Animate/Jump Rate/&Minutes", '@', FMenuAnimRate2);
   menubar_->add("&Animate/Jump Rate/&Hours", '#', FMenuAnimRate3);
@@ -1219,7 +1335,10 @@ void AstrologWindow::createMenus()
   menubar_->add("&Animate/Jump Rate/&Years", '^', FMenuAnimRate6);
   menubar_->add("&Animate/Jump Rate/&Decades", '&', FMenuAnimRate7);
   menubar_->add("&Animate/Jump Rate/&Centuries", '*', FMenuAnimRate8);
-  menubar_->add("&Animate/Jump Rate/Mi&llennia", '(', FMenuAnimRate9);
+  menubar_->add("&Animate/Jump Rate/Mi&llennia", '(', FMenuAnimRate9, 0, FL_MENU_DIVIDER);
+  menubar_->add("&Animate/Jump Rate/1\\/&10th Seconds", 0, FMenuAnimRate_11);
+  menubar_->add("&Animate/Jump Rate/1\\/1&00th Seconds", 0, FMenuAnimRate_12);
+  menubar_->add("&Animate/Jump Rate/1\\/100&0th Seconds", 0, FMenuAnimRate_13);
   menubar_->add("&Animate/Jump Factor/&1 Unit", '1', FMenuAnimFactor1);
   menubar_->add("&Animate/Jump Factor/&2 Units", '2', FMenuAnimFactor2);
   menubar_->add("&Animate/Jump Factor/&3 Units", '3', FMenuAnimFactor3);
@@ -1234,6 +1353,8 @@ void AstrologWindow::createMenus()
   menubar_->add("&Animate/&Timed Exposure", 'j', FMenuAnimTimedExposure, 0, FL_MENU_TOGGLE|FL_MENU_DIVIDER);
   menubar_->add("&Animate/Step &Forward", '+', FMenuAnimForward);
   menubar_->add("&Animate/Step &Backward", '-', FMenuAnimBack);
+  menubar_->add("&Animate/&Store Chart Info", 'o', FMenuStore);
+  menubar_->add("&Animate/Re&call Chart Info", 'O', FMenuRecall, 0, FL_MENU_DIVIDER);
   menubar_->add("&Animate/Animation &Settings...", 0, FMenuAnimSettings);
 
   // Help menu
@@ -1759,6 +1880,70 @@ void FMenuColorSettings(Fl_Widget *w, void *data)
   FShowDlgColor();
 }
 
+void FMenuTransitDlg(Fl_Widget *w, void *data)
+{
+  FShowDlgTransit();
+}
+
+void FMenuProgressDlg(Fl_Widget *w, void *data)
+{
+  FShowDlgProgress();
+}
+
+void FMenuChartSettingsDlg(Fl_Widget *w, void *data)
+{
+  FShowDlgChartSettings();
+}
+
+void FMenuSwapCharts(Fl_Widget *w, void *data)
+{
+  CI ci;
+  SwapTemp(ciCore, ciTwin, ci);
+  fi.fDoCast = fTrue;
+  if (fi.chart)
+    fi.chart->redraw();
+}
+
+void FMenuDefaultInfo(Fl_Widget *w, void *data)
+{
+  FShowDlgDefaultInfo();
+}
+
+void FMenuFileOpenChart2(Fl_Widget *w, void *data)
+{
+  Fl_File_Chooser chooser(".", "Chart Files (*.as)\tAll Files (*)",
+    Fl_File_Chooser::SINGLE, "Open Chart #2");
+  chooser.show();
+  while (chooser.shown())
+    Fl::wait();
+
+  if (chooser.value()) {
+    // Save current chart, load new one, then copy to chart #2
+    CI ciSav = ciCore;
+    if (FInputData(chooser.value())) {
+      ciTwin = ciCore;
+      ciCore = ciSav;  // Restore original chart #1
+    }
+    fi.fDoCast = fTrue;
+    if (fi.chart)
+      fi.chart->redraw();
+  }
+}
+
+void FMenuFileSaveSettings(Fl_Widget *w, void *data)
+{
+  Fl_File_Chooser chooser(".", "Chart Files (*.as)",
+    Fl_File_Chooser::CREATE, "Save Program Settings");
+  chooser.show();
+  while (chooser.shown())
+    Fl::wait();
+
+  if (chooser.value()) {
+    // Write settings to file using FOutputSettings
+    FOutputSettings();
+  }
+}
+
 void FMenuGlyphFont(Fl_Widget *w, void *data)
 {
   int font = (int)(intptr_t)data;
@@ -1943,6 +2128,59 @@ void FMenuViewEphemeris(Fl_Widget *w, void *data)
 void FMenuViewRising(Fl_Widget *w, void *data)
 {
   gi.nMode = gRising;
+  fi.fDoCast = fTrue;
+  if (fi.chart) fi.chart->redraw();
+}
+
+void FMenuViewList(Fl_Widget *w, void *data)
+{
+  gi.nMode = gWheel;
+  fi.fDoCast = fTrue;
+  if (fi.chart) fi.chart->redraw();
+}
+
+void FMenuViewHouse(Fl_Widget *w, void *data)
+{
+  gi.nMode = gHouse;
+  fi.fDoCast = fTrue;
+  if (fi.chart) fi.chart->redraw();
+}
+
+void FMenuViewAspect(Fl_Widget *w, void *data)
+{
+  gi.nMode = gAspect;
+  us.fGraphics = fFalse;
+  fi.fDoCast = fTrue;
+  if (fi.chart) fi.chart->redraw();
+}
+
+void FMenuViewEsoteric(Fl_Widget *w, void *data)
+{
+  gi.nMode = gEsoteric;
+  fi.fDoCast = fTrue;
+  if (fi.chart) fi.chart->redraw();
+}
+
+#ifdef ARABIC
+void FMenuViewArabic(Fl_Widget *w, void *data)
+{
+  gi.nMode = gArabic;
+  us.fGraphics = fFalse;
+  fi.fDoCast = fTrue;
+  if (fi.chart) fi.chart->redraw();
+}
+#endif
+
+void FMenuViewNearestCity(Fl_Widget *w, void *data)
+{
+  gi.nMode = gLocal;
+  fi.fDoCast = fTrue;
+  if (fi.chart) fi.chart->redraw();
+}
+
+void FMenuViewMoons(Fl_Widget *w, void *data)
+{
+  gi.nMode = gMoons;
   fi.fDoCast = fTrue;
   if (fi.chart) fi.chart->redraw();
 }
@@ -2206,6 +2444,220 @@ void FMenuGraphicsEquator(Fl_Widget *w, void *data)
 {
   inv(gs.fEquator);
   UpdateMenuCheck(FMenuGraphicsEquator, gs.fEquator);
+  if (fi.chart) fi.chart->redraw();
+}
+
+// Additional View menu toggle callbacks
+void FMenuInterpret(Fl_Widget *w, void *data)
+{
+  inv(us.fInterpret);
+  UpdateMenuCheck(FMenuInterpret, us.fInterpret);
+  fi.fDoCast = fTrue;
+  if (fi.chart) fi.chart->redraw();
+}
+
+void FMenuSecond(Fl_Widget *w, void *data)
+{
+  inv(us.fSeconds);
+  UpdateMenuCheck(FMenuSecond, us.fSeconds);
+  if (fi.chart) fi.chart->redraw();
+}
+
+void FMenuParallel(Fl_Widget *w, void *data)
+{
+  inv(us.fParallel);
+  UpdateMenuCheck(FMenuParallel, us.fParallel);
+  fi.fDoCast = fTrue;
+  if (fi.chart) fi.chart->redraw();
+}
+
+void FMenuApplying(Fl_Widget *w, void *data)
+{
+  inv(us.nAppSep);
+  UpdateMenuCheck(FMenuApplying, us.nAppSep);
+  fi.fDoCast = fTrue;
+  if (fi.chart) fi.chart->redraw();
+}
+
+// Additional Graphics menu callbacks
+void FMenuGraphicsSidebar(Fl_Widget *w, void *data)
+{
+  inv(gs.fDoSidebar);
+  UpdateMenuCheck(FMenuGraphicsSidebar, gs.fDoSidebar);
+  if (fi.chart) fi.chart->redraw();
+}
+
+void FMenuGraphicsSquare(Fl_Widget *w, void *data)
+{
+  inv(gs.fKeepSquare);
+  UpdateMenuCheck(FMenuGraphicsSquare, gs.fKeepSquare);
+  if (fi.chart) fi.chart->redraw();
+}
+
+void FMenuGraphicsAntialias(Fl_Widget *w, void *data)
+{
+  inv(gs.fAntialias);
+  UpdateMenuCheck(FMenuGraphicsAntialias, gs.fAntialias);
+  if (fi.chart) fi.chart->redraw();
+}
+
+void FMenuModifyChart(Fl_Widget *w, void *data)
+{
+  inv(us.fGridMidpoint);
+  UpdateMenuCheck(FMenuModifyChart, us.fGridMidpoint);
+  fi.fDoCast = fTrue;
+  if (fi.chart) fi.chart->redraw();
+}
+
+// Scale callbacks
+void FMenuScaleDecrease(Fl_Widget *w, void *data)
+{
+  if (gs.nScale > 100)
+    gs.nScale -= 100;
+  if (fi.chart) fi.chart->redraw();
+}
+
+void FMenuScaleIncrease(Fl_Widget *w, void *data)
+{
+  if (gs.nScale < 400)
+    gs.nScale += 100;
+  if (fi.chart) fi.chart->redraw();
+}
+
+void FMenuScale1(Fl_Widget *w, void *data) { gs.nScale = 100; if (fi.chart) fi.chart->redraw(); }
+void FMenuScale2(Fl_Widget *w, void *data) { gs.nScale = 200; if (fi.chart) fi.chart->redraw(); }
+void FMenuScale3(Fl_Widget *w, void *data) { gs.nScale = 300; if (fi.chart) fi.chart->redraw(); }
+void FMenuScale4(Fl_Widget *w, void *data) { gs.nScale = 400; if (fi.chart) fi.chart->redraw(); }
+
+void FMenuTextDecrease(Fl_Widget *w, void *data)
+{
+  if (gs.nScaleText > 100)
+    gs.nScaleText -= 50;
+  if (fi.chart) fi.chart->redraw();
+}
+
+void FMenuTextIncrease(Fl_Widget *w, void *data)
+{
+  if (gs.nScaleText < 400)
+    gs.nScaleText += 50;
+  if (fi.chart) fi.chart->redraw();
+}
+
+// Map Orientation callbacks
+void FMenuTiltZero(Fl_Widget *w, void *data)
+{
+  gs.rTilt = 0.0;
+  if (fi.chart) fi.chart->redraw();
+}
+
+void FMenuTiltNorth(Fl_Widget *w, void *data)
+{
+  gs.rTilt = gs.rTilt + 5.0;
+  if (gs.rTilt > rDegQuad) gs.rTilt = rDegQuad;
+  if (fi.chart) fi.chart->redraw();
+}
+
+void FMenuTiltSouth(Fl_Widget *w, void *data)
+{
+  gs.rTilt = gs.rTilt - 5.0;
+  if (gs.rTilt < -rDegQuad) gs.rTilt = -rDegQuad;
+  if (fi.chart) fi.chart->redraw();
+}
+
+void FMenuRotateWest(Fl_Widget *w, void *data)
+{
+  gs.rRot = Mod(gs.rRot + 5.0);
+  if (fi.chart) fi.chart->redraw();
+}
+
+void FMenuRotateEast(Fl_Widget *w, void *data)
+{
+  gs.rRot = Mod(gs.rRot - 5.0);
+  if (fi.chart) fi.chart->redraw();
+}
+
+void FMenuZoomIn(Fl_Widget *w, void *data)
+{
+  gs.nScale += 100;
+  if (gs.nScale > 400) gs.nScale = 400;
+  if (fi.chart) fi.chart->redraw();
+}
+
+void FMenuZoomOut(Fl_Widget *w, void *data)
+{
+  gs.nScale -= 100;
+  if (gs.nScale < 100) gs.nScale = 100;
+  if (fi.chart) fi.chart->redraw();
+}
+
+// Animate Store/Recall callbacks
+void FMenuStore(Fl_Widget *w, void *data)
+{
+  ciSave = ciMain;
+}
+
+void FMenuRecall(Fl_Widget *w, void *data)
+{
+  ciMain = ciSave;
+  fi.fDoCast = fTrue;
+  if (fi.chart) fi.chart->redraw();
+}
+
+// Sub-second animation rates
+void FMenuAnimRate_11(Fl_Widget *w, void *data) { gs.nAnim = 11; }  // 1/10th Seconds
+void FMenuAnimRate_12(Fl_Widget *w, void *data) { gs.nAnim = 12; }  // 1/100th Seconds
+void FMenuAnimRate_13(Fl_Widget *w, void *data) { gs.nAnim = 13; }  // 1/1000th Seconds
+
+// Additional Settings callbacks
+void FMenuHouseSetDwad(Fl_Widget *w, void *data)
+{
+  us.nDwad = us.nDwad ? 0 : 1;
+  UpdateMenuCheck(FMenuHouseSetDwad, us.nDwad > 0);
+  fi.fDoCast = fTrue;
+  if (fi.chart) fi.chart->redraw();
+}
+
+void FMenuHouseSetGeodetic(Fl_Widget *w, void *data)
+{
+  inv(us.fGeodetic);
+  UpdateMenuCheck(FMenuHouseSetGeodetic, us.fGeodetic);
+  fi.fDoCast = fTrue;
+  if (fi.chart) fi.chart->redraw();
+}
+
+void FMenuHouseSetNavamsa(Fl_Widget *w, void *data)
+{
+  inv(us.fNavamsa);
+  UpdateMenuCheck(FMenuHouseSetNavamsa, us.fNavamsa);
+  fi.fDoCast = fTrue;
+  if (fi.chart) fi.chart->redraw();
+}
+
+void FMenuHouseSetIndian(Fl_Widget *w, void *data)
+{
+  inv(us.fIndian);
+  UpdateMenuCheck(FMenuHouseSetIndian, us.fIndian);
+  fi.fDoCast = fTrue;
+  if (fi.chart) fi.chart->redraw();
+}
+
+// Graphics toggle (fGraphics) - show graphics mode
+void FMenuGraphicsToggle(Fl_Widget *w, void *data)
+{
+  inv(us.fGraphics);
+  UpdateMenuCheck(FMenuGraphicsToggle, us.fGraphics);
+  if (fi.chart) fi.chart->redraw();
+}
+
+// Redraw/Clear callbacks
+void FMenuRedraw(Fl_Widget *w, void *data)
+{
+  fi.fDoCast = fTrue;
+  if (fi.chart) fi.chart->redraw();
+}
+
+void FMenuClear(Fl_Widget *w, void *data)
+{
   if (fi.chart) fi.chart->redraw();
 }
 
