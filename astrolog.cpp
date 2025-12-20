@@ -3032,6 +3032,7 @@ void InitProgram()
 #endif
 #ifdef GRAPH
   InitColorPalette(-1);
+  gs.nReduceContrast = 50;  // Default to medium contrast reduction
   for (i = 0; i < objMaxG; i++) {
     szDrawObject[i]  = szDrawObjectDef[i];
     szDrawObject2[i] = szDrawObjectDef2[i];

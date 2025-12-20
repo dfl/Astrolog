@@ -117,6 +117,40 @@ void InitColorPalette(int n)
 }
 
 
+// Reduce contrast of colors by blending them toward a mid-gray.
+// This dims bright colors and brightens dark colors for better readability.
+// The nReduce parameter specifies the percentage (0-100) to blend.
+
+void ReduceColorContrast(int nReduce, flag fInverse)
+{
+  int i, r, g, b, targetGray;
+  KV kv;
+
+  if (nReduce <= 0 || nReduce > 100)
+    return;
+
+  // Blend toward a gray that's offset from the background
+  // Dark background: blend toward light gray (160) to brighten dark colors
+  // Light background: blend toward dark gray (96) to dim bright colors
+  targetGray = fInverse ? 96 : 160;
+
+  for (i = 0; i < cColor; i++) {
+    // Skip the background color itself
+    if ((!fInverse && i == kBlack) || (fInverse && i == kWhite))
+      continue;
+    kv = rgbbmp[i];
+    r = RgbR(kv);
+    g = RgbG(kv);
+    b = RgbB(kv);
+    // Blend toward target gray: color + (target - color) * nReduce / 100
+    r = r + (targetGray - r) * nReduce / 100;
+    g = g + (targetGray - g) * nReduce / 100;
+    b = b + (targetGray - b) * nReduce / 100;
+    rgbbmp[i] = Rgb(r, g, b);
+  }
+}
+
+
 // Set up all the colors used by the program, i.e. the foreground and
 // background colors, and all the colors in the object arrays, based on
 // whether or not are in monochrome and/or reverse video mode.
@@ -130,7 +164,13 @@ void InitColorsX()
   Colormap cmap;
   XColor xcol;
   KV kv;
+#endif
 
+  // Force reset palette and apply contrast reduction
+  InitColorPalette(-1);
+  ReduceColorContrast(gs.nReduceContrast, fInverse);
+
+#ifdef X11
   if (!gi.fFile) {
     cmap = XDefaultColormap(gi.disp, gi.screen);
 
@@ -1978,6 +2018,17 @@ int NProcessSwitchesRareX(int argc, char **argv, int pos,
     if (ch1 == '0') {
       SwitchF(gs.fAltPalette);
       InitColorPalette(gs.fInverse);
+      break;
+    }
+    if (ch1 == 'r') {
+      if (FErrorArgc("YXKr", argc, 1))
+        return tcError;
+      gs.nReduceContrast = NFromSz(argv[1]);
+      if (gs.nReduceContrast < 0)
+        gs.nReduceContrast = 0;
+      else if (gs.nReduceContrast > 100)
+        gs.nReduceContrast = 100;
+      darg++;
       break;
     }
     if (FErrorArgc("YXK", argc, 2))

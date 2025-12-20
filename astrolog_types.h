@@ -632,6 +632,7 @@ typedef struct _GraphicsSettings {
   flag fColorSign;   // More color for sign boundaries. (-YXk).
   flag fColorHouse;  // More color for house boundaries. (-YXk0).
   flag fAltPalette;  // Use alternate palette for white backgrounds (-YXK0).
+  int nReduceContrast; // Reduce color contrast (0-100%) (-YXKr).
   int nDashMax;      // Maximum dash allowed for lines (-YXA).
   int nTriangles;    // Triangles/cubes grid to draw on maps, if any (-YXW).
   char *szStarsLin;  // Names of extra stars for linking (-YXU).

@@ -117,6 +117,7 @@ void FMenuSidereal(Fl_Widget *w, void *data);
 void FMenuHeliocentric(Fl_Widget *w, void *data);
 void FMenuGraphicsReverse(Fl_Widget *w, void *data);
 void FMenuGraphicsMonochrome(Fl_Widget *w, void *data);
+void FMenuReduceContrast(Fl_Widget *w, void *data);
 void FMenuGraphicsBorder(Fl_Widget *w, void *data);
 void FMenuGraphicsText(Fl_Widget *w, void *data);
 void FMenuGraphicsThick(Fl_Widget *w, void *data);
@@ -1390,6 +1391,10 @@ void AstrologWindow::createMenus()
 #endif
   menubar_->add("&Graphics/&Reverse Background", 'x', FMenuGraphicsReverse, 0, FL_MENU_TOGGLE);
   menubar_->add("&Graphics/&Monochrome", 'm', FMenuGraphicsMonochrome, 0, FL_MENU_TOGGLE);
+  menubar_->add("&Graphics/Reduce Contrast/&None (0%)", 0, FMenuReduceContrast, (void*)0);
+  menubar_->add("&Graphics/Reduce Contrast/&Light (25%)", 0, FMenuReduceContrast, (void*)25);
+  menubar_->add("&Graphics/Reduce Contrast/&Medium (50%)", 0, FMenuReduceContrast, (void*)50);
+  menubar_->add("&Graphics/Reduce Contrast/&Heavy (75%)", 0, FMenuReduceContrast, (void*)75);
   menubar_->add("&Graphics/S&quare Screen", 'Q', FMenuGraphicsSquare, 0, FL_MENU_TOGGLE);
   // Character Scale submenu
   menubar_->add("&Graphics/Character Scale/&Small", 0, FMenuScale1);
@@ -3062,6 +3067,13 @@ void FMenuGraphicsMonochrome(Fl_Widget *w, void *data)
   inv(gs.fColor);
   InitColorsX();
   UpdateMenuCheck(FMenuGraphicsMonochrome, !gs.fColor);
+  if (fi.chart) fi.chart->redraw();
+}
+
+void FMenuReduceContrast(Fl_Widget *w, void *data)
+{
+  gs.nReduceContrast = (int)(long)data;
+  InitColorsX();
   if (fi.chart) fi.chart->redraw();
 }
 
