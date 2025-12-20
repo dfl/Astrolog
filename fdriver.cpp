@@ -333,6 +333,12 @@ void ChartWidget::draw()
     gs.nScale = gi.nScale * 100;
   }
 
+  // Initialize text scale values (required for sidebar)
+  gi.nScaleT = 1;  // Screen rendering uses scale 1
+  gi.nScaleText = gs.nScaleText / 50;
+  gi.nScaleTextT2 = gi.nScaleText * gi.nScaleT;
+  gi.nScaleTextT = gi.nScaleTextT2 >> 1;
+
 #ifdef CAIRO
   if (fUseCairo) {
     // Get HiDPI scale factor - platform-specific detection
