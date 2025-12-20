@@ -325,8 +325,12 @@ void ChartWidget::draw()
       gs.nScale = gi.nScale * 100;
     }
   } else {
-    // Non-map charts use uniform scaling
-    gi.rScaleX = gi.rScaleY = (real)gi.nScale;
+    // Non-map charts: auto-scale based on window size relative to default
+    int minDim = Min(gs.xWin, gs.yWin);
+    int defDim = Min(DEFAULTX, DEFAULTY);
+    gi.rScaleX = gi.rScaleY = (real)minDim / (real)defDim;
+    gi.nScale = Max((int)gi.rScaleX, 1);
+    gs.nScale = gi.nScale * 100;
   }
 
 #ifdef CAIRO
