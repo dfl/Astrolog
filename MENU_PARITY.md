@@ -57,45 +57,54 @@ Many features have been implemented - marked with [x] below.
 
 ## View Menu
 
-### FLTK Has
+### FLTK Has (now matches Windows structure)
 - [x] Show Graphics toggle (v)
-- [x] Standard Radix (V)
-- [x] House Wheel
-- Aspect Midpoint Grid
-- [x] Aspect List
-- [x] Midpoint List
-- Horizon Chart, Orbit Chart, Gauquelin Sectors
-- Calendar, Influence, Astro-Graph, Ephemeris
-- [x] Esoteric
-- [x] Arabic Parts
-- Rising and Setting, Globe, Sphere, Local Horizon
-- Telescope, Polar, World Map
-- [x] Nearest Cities
-- [x] Moons Chart
-- 3D with OpenGL toggle
-- [x] Window Settings submenu (Redraw Screen, Clear Screen)
+- [x] Window Settings submenu:
+  - [x] Redraw Screen
+  - [x] Clear Screen
+  - [x] Size Chart to Window
+  - [x] Size Window to Chart
+  - [x] Full Screen (F11)
 - [x] Show Interpretations toggle
 - [x] Print Nearest Second toggle
 - [x] Parallel Aspects toggle
 - [x] Applying Aspects toggle
+
+### Windows Has (FLTK Missing)
+- [ ] Buffer Redraws
+- [ ] Hourglass on Redraw
+- [ ] Chart Resizes Window
+- [ ] Window Resizes Chart
+- [ ] Scroll Page Up/Down/Home/End
+- [ ] Colored Text
+- [ ] Set Colors...
+
+---
+
+## Chart Menu (NEW - split from View)
+
+### FLTK Has
+- [x] Standard Radix (V)
+- [x] House Wheel
+- [x] Aspect Midpoint Grid
+- [x] Aspect List
+- [x] Midpoint List
+- [x] Local Horizon
+- [x] Solar System Orbit
+- [x] Gauquelin Sectors
+- [x] Calendar
+- [x] Influence
+- [x] Esoteric
+- [x] Astro-Graph
+- [x] Ephemeris
+- [x] Arabic Parts
+- [x] Rising and Setting
+- [x] Nearest Cities
+- [x] Moons Chart
 - [x] Transits... dialog
 - [x] Progressions... dialog
 - [x] Chart Settings... dialog
-
-- [x] Window Settings submenu items:
-  - [x] Size Chart to Window
-  - [x] Size Window to Chart
-  - [x] Full Screen (F11)
-
-### Windows Has (FLTK Missing)
-- [ ] Window Settings submenu items:
-  - [ ] Buffer Redraws
-  - [ ] Hourglass on Redraw
-  - [ ] Chart Resizes Window
-  - [ ] Window Resizes Chart
-  - [ ] Scroll Page Up/Down/Home/End
-- [ ] Colored Text
-- [ ] Set Colors...
+- [x] Chart Type... dialog
 
 ---
 
@@ -155,20 +164,25 @@ Many features have been implemented - marked with [x] below.
 
 ## Graphics Menu
 
-### FLTK Has
-- Reverse Background, Monochrome, Show Border
-- Show Chart Info, Thicker Lines, Show Glyph Labels
-- Show Glyphs on Aspects, Show House Details, Show Equator
-- Modify Display
-- [x] Modify Chart (0)
-- [x] Square Screen
-- [x] Show Info Sidebar
-- [x] Antialias Lines
+### FLTK Has (now matches Windows structure with 3D modes)
+- [x] Draw Chart Sphere (X)
+- [x] Draw World Map (W)
+- [x] Draw Globe (G)
+- [x] Draw Polar Globe (P)
+- [x] Draw Telescope (T)
+- [x] Draw Local 3D Horizon
+- [x] 3D with OpenGL toggle
+- [x] Reverse Background (x)
+- [x] Monochrome (m)
+- [x] Square Screen (Q)
 - [x] Character Scale submenu (Decrease/Increase, Small/Medium/Large/Huge)
-- [x] Text Scale submenu (Decrease/Increase)
-- Map Effects submenu
+- [x] Chart Effects submenu (Border, Info, Sidebar, Thick Lines, Antialias, Labels, Glyphs on Aspects)
+- [x] Map Effects submenu (Constellations, Stars, Cities, Equator, etc.)
 - [x] Map Orientation submenu (Reset, Tilt North/South, Rotate West/East, Zoom In/Out)
-- Indian Style submenu
+- [x] Indian Style submenu
+- [x] Modify Display (i)
+- [x] Modify Chart (0)
+- [x] Graphics Settings...
 
 ### Windows Has (FLTK Missing)
 - [ ] Scribble Color submenu (16 colors)

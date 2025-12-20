@@ -1209,48 +1209,42 @@ void AstrologWindow::createMenus()
   menubar_->add("&Info/Relationship/&Transit and Natal", 0, FMenuRelTransit);
   menubar_->add("&Info/Relationship/&Progressed and Natal", 0, FMenuRelProgressed);
 
-  // View menu - using legacy uppercase key mappings
-  menubar_->add("&View/Show &Graphics", 'v', FMenuGraphicsToggle, 0, FL_MENU_TOGGLE|FL_MENU_DIVIDER);
-  menubar_->add("&View/Standard Radi&x", 'V', FMenuViewList);
-  menubar_->add("&View/House &Wheel", 0, FMenuViewHouse);
-  menubar_->add("&View/&Aspect Midpoint Grid", 'A', FMenuViewGrid);
-  menubar_->add("&View/Aspec&t List", 0, FMenuViewAspect);
-  menubar_->add("&View/&Midpoint List", 0, FMenuViewMidpoint);
-  menubar_->add("&View/Local Hori&zon", 'Z', FMenuViewHorizon);
-  menubar_->add("&View/Solar System &Orbit", 'S', FMenuViewOrbit);
-  menubar_->add("&View/Ga&uquelin Sectors", 'H', FMenuViewSector);
-  menubar_->add("&View/&Calendar", 'K', FMenuViewCalendar);
-  menubar_->add("&View/Inf&luence", 'J', FMenuViewInfluence);
-  menubar_->add("&View/Esoter&ic", 0, FMenuViewEsoteric);
-  menubar_->add("&View/Astro-Grap&h", 'L', FMenuViewAstroGraph);
-  menubar_->add("&View/&Ephemeris", 'E', FMenuViewEphemeris);
-#ifdef ARABIC
-  menubar_->add("&View/A&rabic Parts", 0, FMenuViewArabic);
-#endif
-  menubar_->add("&View/R&ising and Setting", 'I', FMenuViewRising);
-  menubar_->add("&View/&Nearest Cities", 0, FMenuViewNearestCity);
-  menubar_->add("&View/&Moons Chart", 'M', FMenuViewMoons, 0, FL_MENU_DIVIDER);
-  menubar_->add("&View/Chart S&phere", 'X', FMenuViewSphere);
-  menubar_->add("&View/&Globe", 'G', FMenuViewGlobe);
-  menubar_->add("&View/&Polar Globe", 'P', FMenuViewPolar);
-  menubar_->add("&View/&Telescope", 'T', FMenuViewTelescope);
-  menubar_->add("&View/&World Map", 'W', FMenuViewWorldMap);
-  menubar_->add("&View/Local &3D Horizon", 0, FMenuViewLocal, 0, FL_MENU_DIVIDER);
-#ifdef OPENGL
-  menubar_->add("&View/3D with &OpenGL", 0, FMenuViewOpenGL, 0, FL_MENU_TOGGLE|FL_MENU_VALUE);
-#endif
+  // View menu - display settings only (matching Windows)
+  menubar_->add("&View/Show &Graphics", 'v', FMenuGraphicsToggle, 0, FL_MENU_TOGGLE);
   menubar_->add("&View/Window Settings/&Redraw Screen", ' ', FMenuRedraw);
   menubar_->add("&View/Window Settings/&Clear Screen", FL_Delete, FMenuClear, 0, FL_MENU_DIVIDER);
   menubar_->add("&View/Window Settings/Size Chart to &Window", 0, FMenuSizeChartToWindow);
   menubar_->add("&View/Window Settings/Size &Window to Chart", 0, FMenuSizeWindowToChart);
-  menubar_->add("&View/Window Settings/&Full Screen", FL_F+11, FMenuFullScreen);
+  menubar_->add("&View/Window Settings/&Full Screen", FL_F+11, FMenuFullScreen, 0, FL_MENU_DIVIDER);
   menubar_->add("&View/Show &Interpretations", 0, FMenuInterpret, 0, FL_MENU_TOGGLE);
   menubar_->add("&View/Print &Nearest Second", 0, FMenuSecond, 0, FL_MENU_TOGGLE);
   menubar_->add("&View/&Parallel Aspects", 0, FMenuParallel, 0, FL_MENU_TOGGLE);
-  menubar_->add("&View/&Applying Aspects", 0, FMenuApplying, 0, FL_MENU_TOGGLE|FL_MENU_DIVIDER);
-  menubar_->add("&View/&Transits...", 0, FMenuTransitDlg);
-  menubar_->add("&View/Pro&gressions...", 0, FMenuProgressDlg);
-  menubar_->add("&View/Chart Sett&ings...", 0, FMenuChartSettingsDlg);
+  menubar_->add("&View/&Applying Aspects", 0, FMenuApplying, 0, FL_MENU_TOGGLE);
+
+  // Chart menu - chart types and dialogs (matching Windows)
+  menubar_->add("C&hart/Standard Radi&x", 'V', FMenuViewList);
+  menubar_->add("C&hart/House &Wheel", 0, FMenuViewHouse);
+  menubar_->add("C&hart/&Aspect Midpoint Grid", 'A', FMenuViewGrid);
+  menubar_->add("C&hart/Aspec&t List", 0, FMenuViewAspect);
+  menubar_->add("C&hart/&Midpoint List", 0, FMenuViewMidpoint);
+  menubar_->add("C&hart/Local Hori&zon", 'Z', FMenuViewHorizon);
+  menubar_->add("C&hart/Solar System &Orbit", 'S', FMenuViewOrbit);
+  menubar_->add("C&hart/Ga&uquelin Sectors", 'H', FMenuViewSector);
+  menubar_->add("C&hart/&Calendar", 'K', FMenuViewCalendar);
+  menubar_->add("C&hart/Inf&luence", 'J', FMenuViewInfluence);
+  menubar_->add("C&hart/Esoter&ic", 0, FMenuViewEsoteric);
+  menubar_->add("C&hart/Astro-Grap&h", 'L', FMenuViewAstroGraph);
+  menubar_->add("C&hart/&Ephemeris", 'E', FMenuViewEphemeris);
+#ifdef ARABIC
+  menubar_->add("C&hart/A&rabic Parts", 0, FMenuViewArabic);
+#endif
+  menubar_->add("C&hart/R&ising and Setting", 'I', FMenuViewRising);
+  menubar_->add("C&hart/&Nearest Cities", 0, FMenuViewNearestCity);
+  menubar_->add("C&hart/&Moons Chart", 'M', FMenuViewMoons, 0, FL_MENU_DIVIDER);
+  menubar_->add("C&hart/&Transits...", 0, FMenuTransitDlg);
+  menubar_->add("C&hart/Pro&gressions...", 0, FMenuProgressDlg, 0, FL_MENU_DIVIDER);
+  menubar_->add("C&hart/Chart Sett&ings...", 0, FMenuChartSettingsDlg);
+  menubar_->add("C&hart/Chart &Type...", 0, FMenuChartType);
 
   // Settings menu
   menubar_->add("Se&ttings/&Sidereal Zodiac", 's', FMenuSidereal, 0, FL_MENU_TOGGLE);
@@ -1310,10 +1304,16 @@ void AstrologWindow::createMenus()
   menubar_->add("Se&ttings/Include &Body Centers", '~', FMenuIncludeCOB, 0, FL_MENU_TOGGLE);
   menubar_->add("Se&ttings/Include Fixed &Stars", 'U', FMenuIncludeStars, 0, FL_MENU_TOGGLE);
 
-  // View menu - add Chart Type
-  menubar_->add("&View/Chart &Type...", 0, FMenuChartType);
-
-  // Graphics menu
+  // Graphics menu - 3D modes first (matching Windows)
+  menubar_->add("&Graphics/Draw Chart S&phere", 'X', FMenuViewSphere);
+  menubar_->add("&Graphics/Draw &World Map", 'W', FMenuViewWorldMap);
+  menubar_->add("&Graphics/Draw &Globe", 'G', FMenuViewGlobe);
+  menubar_->add("&Graphics/Draw &Polar Globe", 'P', FMenuViewPolar);
+  menubar_->add("&Graphics/Draw &Telescope", 'T', FMenuViewTelescope);
+  menubar_->add("&Graphics/Draw Local &3D Horizon", 0, FMenuViewLocal, 0, FL_MENU_DIVIDER);
+#ifdef OPENGL
+  menubar_->add("&Graphics/3D with &OpenGL", 0, FMenuViewOpenGL, 0, FL_MENU_TOGGLE|FL_MENU_VALUE|FL_MENU_DIVIDER);
+#endif
   menubar_->add("&Graphics/&Reverse Background", 'x', FMenuGraphicsReverse, 0, FL_MENU_TOGGLE);
   menubar_->add("&Graphics/&Monochrome", 'm', FMenuGraphicsMonochrome, 0, FL_MENU_TOGGLE);
   menubar_->add("&Graphics/S&quare Screen", 'Q', FMenuGraphicsSquare, 0, FL_MENU_TOGGLE);
