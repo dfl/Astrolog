@@ -2125,6 +2125,119 @@ void FShowDlgObject()
 
 /*
 ******************************************************************************
+** More Object Settings Dialog (Cusps, Uranians, Dwarfs, Stars)
+******************************************************************************
+*/
+
+// Calculate number of objects: oAsc through dwarfHi, plus starLo
+#define cObjExt (dwarfHi - oAsc + 2)  // +1 for starLo, +1 for inclusive range
+
+static Fl_Window *s_dlgObject2 = NULL;
+static Fl_Float_Input *s_inObj2Orb[cObjExt];
+static Fl_Float_Input *s_inObj2Add[cObjExt];
+static Fl_Float_Input *s_inObj2Inf[cObjExt];
+
+// Map index to actual object index
+static int NObj2Index(int idx)
+{
+  if (idx < dwarfHi - oAsc + 1)
+    return oAsc + idx;
+  else
+    return starLo;
+}
+
+static void cb_Object2OK(Fl_Widget *w, void *data)
+{
+  for (int idx = 0; idx < cObjExt; idx++) {
+    int i = NObj2Index(idx);
+    if (s_inObj2Orb[idx])
+      rObjOrb[i] = atof(s_inObj2Orb[idx]->value());
+    if (s_inObj2Add[idx])
+      rObjAdd[i] = atof(s_inObj2Add[idx]->value());
+    if (s_inObj2Inf[idx])
+      rObjInf[i] = atof(s_inObj2Inf[idx]->value());
+  }
+
+  fi.fDoCast = fTrue;
+  if (fi.chart)
+    fi.chart->redraw();
+
+  if (s_dlgObject2)
+    s_dlgObject2->hide();
+}
+
+static void cb_Object2Cancel(Fl_Widget *w, void *data)
+{
+  if (s_dlgObject2)
+    s_dlgObject2->hide();
+}
+
+void FShowDlgObject2()
+{
+  int w = 480, h = 450;
+  char sz[64];
+
+  s_dlgObject2 = new Fl_Window(w, h, "More Object Settings");
+  s_dlgObject2->begin();
+
+  // Header row
+  new Fl_Box(10, 10, 120, 20, "Object");
+  new Fl_Box(140, 10, 80, 20, "Max Orb");
+  new Fl_Box(230, 10, 80, 20, "Orb Add");
+  new Fl_Box(320, 10, 80, 20, "Influence");
+
+  // Scrollable area for objects
+  Fl_Scroll *scroll = new Fl_Scroll(5, 35, w - 10, h - 85);
+  scroll->begin();
+
+  int y = 0;
+  for (int idx = 0; idx < cObjExt; idx++) {
+    int i = NObj2Index(idx);
+
+    new Fl_Box(5, y, 120, 25, szObjName[i]);
+
+    s_inObj2Orb[idx] = new Fl_Float_Input(135, y, 75, 25);
+    sprintf(sz, "%.2f", rObjOrb[i]);
+    s_inObj2Orb[idx]->value(sz);
+
+    s_inObj2Add[idx] = new Fl_Float_Input(220, y, 75, 25);
+    sprintf(sz, "%.1f", rObjAdd[i]);
+    s_inObj2Add[idx]->value(sz);
+
+    s_inObj2Inf[idx] = new Fl_Float_Input(305, y, 75, 25);
+    sprintf(sz, "%.2f", rObjInf[i]);
+    s_inObj2Inf[idx]->value(sz);
+
+    y += 28;
+  }
+
+  scroll->end();
+
+  // OK/Cancel buttons
+  Fl_Return_Button *btnOK = new Fl_Return_Button(w - 180, h - 40, 80, 30, "OK");
+  btnOK->callback(cb_Object2OK);
+
+  Fl_Button *btnCancel = new Fl_Button(w - 90, h - 40, 80, 30, "Cancel");
+  btnCancel->callback(cb_Object2Cancel);
+
+  s_dlgObject2->end();
+  s_dlgObject2->set_modal();
+  s_dlgObject2->show();
+
+  while (s_dlgObject2->visible())
+    Fl::wait();
+
+  delete s_dlgObject2;
+  s_dlgObject2 = NULL;
+  for (int idx = 0; idx < cObjExt; idx++) {
+    s_inObj2Orb[idx] = NULL;
+    s_inObj2Add[idx] = NULL;
+    s_inObj2Inf[idx] = NULL;
+  }
+}
+
+/*
+******************************************************************************
 ** Star Restrictions Dialog
 ******************************************************************************
 */

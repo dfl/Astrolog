@@ -23,6 +23,7 @@
 #include <FL/Fl_File_Chooser.H>
 #include <FL/Fl_RGB_Image.H>
 #include <FL/fl_ask.H>
+#include <unistd.h>  // For unlink()
 
 #ifdef CAIRO
 #include <cairo/cairo.h>
@@ -254,6 +255,7 @@ void FMenuFileSaveSettings(Fl_Widget *w, void *data);
 
 // Forward declarations for settings menu callbacks
 void FMenuObjectSettings(Fl_Widget *w, void *data);
+void FMenuObjectSettings2(Fl_Widget *w, void *data);
 void FMenuStarRestrict(Fl_Widget *w, void *data);
 
 // Forward declarations for help menu callbacks
@@ -265,6 +267,10 @@ void FMenuHelpLicense(Fl_Widget *w, void *data);
 void FMenuSizeChartToWindow(Fl_Widget *w, void *data);
 void FMenuSizeWindowToChart(Fl_Widget *w, void *data);
 void FMenuFullScreen(Fl_Widget *w, void *data);
+
+// Edit menu - Copy/Export Text
+void FMenuExportText(Fl_Widget *w, void *data);
+void FMenuCopyText(Fl_Widget *w, void *data);
 
 /*
 ******************************************************************************
@@ -1178,10 +1184,11 @@ void AstrologWindow::createMenus()
   menubar_->add("&File/Export/&PDF...", 0, FMenuExportPDF);
 #endif
   menubar_->add("&File/Export/&Bitmap...", 0, FMenuExportBitmap);
+  menubar_->add("&File/Export/Chart &Text Output...", 0, FMenuExportText);
   menubar_->add("&File/E&xit", FL_COMMAND+'q', FMenuFileExit);
 
   // Edit menu
-  menubar_->add("&Edit/&Copy", FL_COMMAND+'c', FMenuEditCopy);
+  menubar_->add("&Edit/&Copy Chart Text Output", FL_COMMAND+'c', FMenuCopyText);
   menubar_->add("&Edit/&Paste", FL_COMMAND+'v', (Fl_Callback*)NULL);
   menubar_->add("&Edit/Command &Line...", FL_F+2, FMenuCommand);
 
@@ -1288,6 +1295,7 @@ void AstrologWindow::createMenus()
   menubar_->add("Se&ttings/&Transit Restrictions...", 0, FMenuRestrictTransit);
   menubar_->add("Se&ttings/Star Restric&tions...", 0, FMenuStarRestrict);
   menubar_->add("Se&ttings/Object Sett&ings...", 0, FMenuObjectSettings);
+  menubar_->add("Se&ttings/&More Object Settings...", 0, FMenuObjectSettings2);
   menubar_->add("Se&ttings/Co&lor Settings...", 0, FMenuColorSettings, 0, FL_MENU_DIVIDER);
   // Glyph Fonts submenu
   menubar_->add("Se&ttings/Glyph &Fonts/Astrono&micon (Default)", 0, FMenuGlyphFont, (void*)5);
@@ -1539,17 +1547,51 @@ void FMenuExportPDF(Fl_Widget *w, void *data)
 
 void FMenuExportBitmap(Fl_Widget *w, void *data)
 {
-  Fl_File_Chooser chooser(".", "Bitmap Files (*.bmp)",
-    Fl_File_Chooser::CREATE, "Export as Bitmap");
+#ifdef CAIRO
+  Fl_File_Chooser chooser(".", "PNG Files (*.png)",
+    Fl_File_Chooser::CREATE, "Export as PNG");
+  chooser.preview(0);
   chooser.show();
   while (chooser.shown())
     Fl::wait();
 
   if (chooser.value()) {
-    // Use existing BMP export mechanism
-    // TODO: Implement using gs.ft = ftBmp
-    fl_message("Bitmap export not yet implemented");
+    char szFile[cchSzMax];
+    strncpy(szFile, chooser.value(), sizeof(szFile) - 1);
+    szFile[sizeof(szFile) - 1] = '\0';
+
+    // Add .png extension if not present
+    int len = strlen(szFile);
+    if (len <= 4 || NCompareSzI(&szFile[len-4], ".png") != 0) {
+      strcat(szFile, ".png");
+    }
+
+    // Create PNG using Cairo
+    cairo_surface_t *surface = cairo_image_surface_create(
+      CAIRO_FORMAT_ARGB32, gs.xWin, gs.yWin);
+
+    if (cairo_surface_status(surface) == CAIRO_STATUS_SUCCESS) {
+      InitBackendCairo(surface);
+      GBClearScreen(gi.kiOff);
+      gi.fFile = fFalse;
+      DrawChartX();
+      EndBackendCairo();
+
+      cairo_status_t status = cairo_surface_write_to_png(surface, szFile);
+      cairo_surface_destroy(surface);
+
+      if (status == CAIRO_STATUS_SUCCESS)
+        fl_message("Chart exported to %s", szFile);
+      else
+        fl_alert("Failed to write PNG: %s", cairo_status_to_string(status));
+    } else {
+      fl_alert("Failed to create image surface");
+      cairo_surface_destroy(surface);
+    }
   }
+#else
+  fl_alert("PNG export requires Cairo support.");
+#endif
 }
 
 void FMenuFileExit(Fl_Widget *w, void *data)
@@ -1560,7 +1602,107 @@ void FMenuFileExit(Fl_Widget *w, void *data)
 
 void FMenuEditCopy(Fl_Widget *w, void *data)
 {
-  // Would implement copy to clipboard
+  // Placeholder - see FMenuCopyText for actual text copy implementation
+}
+
+// Export chart text output to a file
+void FMenuExportText(Fl_Widget *w, void *data)
+{
+  Fl_File_Chooser chooser(".", "Text Files (*.txt)\tAll Files (*)",
+    Fl_File_Chooser::CREATE, "Export Chart Text Output");
+  chooser.preview(0);
+  chooser.show();
+  while (chooser.shown()) Fl::wait();
+
+  if (chooser.value() == NULL)
+    return;
+
+  char szFile[cchSzMax];
+  strncpy(szFile, chooser.value(), sizeof(szFile) - 1);
+  szFile[sizeof(szFile) - 1] = '\0';
+
+  // Save current graphics state
+  flag fGraphicsSave = us.fGraphics;
+
+  // Set up file output
+  FCloneSz(szFile, &is.szFileScreen);
+  us.fGraphics = fFalse;
+
+  // Generate the chart text output
+  Action();
+
+  // Clean up
+  FCloneSz(NULL, &is.szFileScreen);
+  us.fGraphics = fGraphicsSave;
+
+  fl_message("Chart text exported to:\n%s", szFile);
+}
+
+// Copy chart text output to clipboard
+void FMenuCopyText(Fl_Widget *w, void *data)
+{
+  // Create a temp file path
+  char szTempFile[cchSzMax];
+#ifdef __APPLE__
+  const char *tmpDir = getenv("TMPDIR");
+  if (tmpDir == NULL) tmpDir = "/tmp";
+  snprintf(szTempFile, sizeof(szTempFile), "%s/astrolog_text.tmp", tmpDir);
+#else
+  snprintf(szTempFile, sizeof(szTempFile), "/tmp/astrolog_text.tmp");
+#endif
+
+  // Save current graphics state
+  flag fGraphicsSave = us.fGraphics;
+
+  // Set up file output
+  FCloneSz(szTempFile, &is.szFileScreen);
+  us.fGraphics = fFalse;
+
+  // Generate the chart text output
+  Action();
+
+  // Clean up output redirection
+  FCloneSz(NULL, &is.szFileScreen);
+  us.fGraphics = fGraphicsSave;
+
+  // Read the temp file
+  FILE *fp = fopen(szTempFile, "r");
+  if (fp == NULL) {
+    fl_alert("Failed to generate chart text.");
+    return;
+  }
+
+  // Get file size
+  fseek(fp, 0, SEEK_END);
+  long fileSize = ftell(fp);
+  fseek(fp, 0, SEEK_SET);
+
+  if (fileSize <= 0) {
+    fclose(fp);
+    unlink(szTempFile);
+    fl_alert("No chart text was generated.");
+    return;
+  }
+
+  // Allocate buffer and read file
+  char *buffer = (char *)malloc(fileSize + 1);
+  if (buffer == NULL) {
+    fclose(fp);
+    unlink(szTempFile);
+    fl_alert("Out of memory.");
+    return;
+  }
+
+  size_t bytesRead = fread(buffer, 1, fileSize, fp);
+  buffer[bytesRead] = '\0';
+  fclose(fp);
+
+  // Copy to clipboard using FLTK
+  Fl::copy(buffer, (int)bytesRead, 1);  // 1 = system clipboard
+
+  // Clean up
+  free(buffer);
+  unlink(szTempFile);
 }
 
 void FMenuHelpAbout(Fl_Widget *w, void *data)
@@ -1978,6 +2120,11 @@ void FMenuFileSaveSettings(Fl_Widget *w, void *data)
 void FMenuObjectSettings(Fl_Widget *w, void *data)
 {
   FShowDlgObject();
+}
+
+void FMenuObjectSettings2(Fl_Widget *w, void *data)
+{
+  FShowDlgObject2();
 }
 
 void FMenuStarRestrict(Fl_Widget *w, void *data)

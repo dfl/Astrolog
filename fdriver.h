@@ -148,6 +148,7 @@ extern void FShowDlgProgress(void);
 extern void FShowDlgChartSettings(void);
 extern void FShowDlgDefaultInfo(void);
 extern void FShowDlgObject(void);
+extern void FShowDlgObject2(void);
 extern void FShowDlgStar(void);
 
 #endif // FLTK
