@@ -328,12 +328,16 @@ void ChartWidget::draw()
       // Keep integer scale for compatibility, but use floating-point for drawing
       gi.nScale = (int)gi.rScaleX;
       if (gi.nScale < 1) gi.nScale = 1;
-      gs.nScale = gi.nScale * 100;
+      // Use fractional scale for smooth glyph sizing
+      gs.nScale = Max((int)(gi.rScaleX * 100.0), 100);
     }
   } else {
     // Non-map charts: auto-scale based on window size relative to default
+    // Use both dimensions to ensure scaling responds to any resize direction
     int minDim = Min(gs.xWin, gs.yWin);
-    int defDim = Min(DEFAULTX, DEFAULTY);
+    // Use a smaller reference (440) so glyphs scale up even at default window size
+    // This accounts for the fact that the default 600px matches typical minimum dimension
+    int defDim = 440;
     gi.rScaleX = gi.rScaleY = (real)minDim / (real)defDim;
     gi.nScale = Max((int)gi.rScaleX, 1);
     // Use fractional scale for smooth glyph sizing (100 = 1x, 150 = 1.5x, etc.)

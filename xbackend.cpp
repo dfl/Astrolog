@@ -507,21 +507,10 @@ static int FltkPutGlyph(int ch, int x, int y, int nFont, int nScale)
   // Same sidebar detection logic as CairoPutGlyph.
   int baseSize = (nFont >= fiAstro && nFont <= fiNakshatr) ? 16 : 12;
 
-  // Sidebar detection: same logic as CairoPutGlyph
-  static int fltkLastXWin = 0;
-  static int fltkInSidebarMode = 0;
-
-  if (fltkLastXWin == 0) {
-    fltkLastXWin = gs.xWin;
-    fltkInSidebarMode = 0;
-  } else if (gs.xWin > fltkLastXWin + 100) {
-    fltkInSidebarMode = 1;
-  } else if (gs.xWin < fltkLastXWin - 100) {
-    fltkInSidebarMode = 0;
-  }
-  fltkLastXWin = gs.xWin;
-
-  int isSidebarGlyph = fltkInSidebarMode;
+  // Sidebar detection: sidebar glyphs are drawn at x = gs.xWin - 12*gi.nScale
+  // (near right edge). Use a tight margin based on scale.
+  int sidebarMargin = 14 * gi.nScale;
+  int isSidebarGlyph = (x > gs.xWin - sidebarMargin);
 
   if (isSidebarGlyph) {
     fontSize = 9 * nScale / 100;
@@ -784,27 +773,11 @@ static int CairoPutGlyph(int ch, int x, int y, int nFont, int nScale)
   int baseSize = (nFont >= fiAstro && nFont <= fiNakshatr) ? 16 : 12;
   double fontSize;
 
-  // Sidebar detection: DrawSidebar temporarily increases gs.xWin by ~160 (xSideT).
-  // Detect this by tracking the previous xWin value within a draw cycle.
-  // Key insight: sidebar increase happens WITHIN a frame, then reverts.
-  // Window resize changes xWin BETWEEN frames and stays at new value.
-  static int lastXWin = 0;
-  static int inSidebarMode = 0;
-
-  if (lastXWin == 0) {
-    lastXWin = gs.xWin;
-    inSidebarMode = 0;
-  } else if (gs.xWin > lastXWin + 100) {
-    // Large sudden jump (>100) within draw cycle = sidebar started
-    inSidebarMode = 1;
-  } else if (gs.xWin < lastXWin - 100) {
-    // Large sudden drop = sidebar ended, back to chart
-    inSidebarMode = 0;
-  }
-  // Small changes (window resize) don't affect sidebar mode
-  lastXWin = gs.xWin;
-
-  int isSidebarGlyph = inSidebarMode;
+  // Sidebar detection: sidebar glyphs are drawn at x = gs.xWin - 12*gi.nScale
+  // (near right edge). Chart glyphs are distributed across the chart area.
+  // Use a tight margin based on scale to avoid false positives for chart glyphs.
+  int sidebarMargin = 14 * gi.nScale;
+  int isSidebarGlyph = (x > gs.xWin - sidebarMargin);
 
   if (isSidebarGlyph) {
     // Sidebar - use small fixed size to fit 10-pixel line spacing
