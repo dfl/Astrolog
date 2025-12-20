@@ -147,6 +147,8 @@ extern void FShowDlgTransit(void);
 extern void FShowDlgProgress(void);
 extern void FShowDlgChartSettings(void);
 extern void FShowDlgDefaultInfo(void);
+extern void FShowDlgObject(void);
+extern void FShowDlgStar(void);
 
 #endif // FLTK
 #endif // _FDRIVER_H

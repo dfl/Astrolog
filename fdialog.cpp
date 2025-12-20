@@ -2012,4 +2012,214 @@ void FShowDlgDefaultInfo()
   s_inDefLoc = NULL;
 }
 
+/*
+******************************************************************************
+** Object Settings Dialog
+******************************************************************************
+*/
+
+#include <FL/Fl_Scroll.H>
+
+static Fl_Window *s_dlgObject = NULL;
+static Fl_Float_Input *s_inObjOrb[oCore+1];
+static Fl_Float_Input *s_inObjAdd[oCore+1];
+static Fl_Float_Input *s_inObjInf[oCore+1];
+
+static void cb_ObjectOK(Fl_Widget *w, void *data)
+{
+  char sz[64];
+  real r;
+
+  for (int i = 0; i <= oCore; i++) {
+    if (s_inObjOrb[i]) {
+      r = atof(s_inObjOrb[i]->value());
+      if (r >= -rDegMax && r <= rDegMax)
+        rObjOrb[i] = r;
+    }
+    if (s_inObjAdd[i]) {
+      r = atof(s_inObjAdd[i]->value());
+      if (r >= -rDegMax && r <= rDegMax)
+        rObjAdd[i] = r;
+    }
+    if (s_inObjInf[i]) {
+      r = atof(s_inObjInf[i]->value());
+      rObjInf[i] = r;
+    }
+  }
+
+  fi.fDoCast = fTrue;
+  if (fi.chart)
+    fi.chart->redraw();
+
+  if (s_dlgObject)
+    s_dlgObject->hide();
+}
+
+static void cb_ObjectCancel(Fl_Widget *w, void *data)
+{
+  if (s_dlgObject)
+    s_dlgObject->hide();
+}
+
+void FShowDlgObject()
+{
+  int w = 450, h = 400;
+  char sz[64];
+
+  s_dlgObject = new Fl_Window(w, h, "Object Settings");
+  s_dlgObject->begin();
+
+  // Header row
+  new Fl_Box(10, 10, 100, 20, "Object");
+  new Fl_Box(115, 10, 80, 20, "Max Orb");
+  new Fl_Box(200, 10, 80, 20, "Orb Add");
+  new Fl_Box(285, 10, 80, 20, "Influence");
+
+  // Scrollable area for objects
+  Fl_Scroll *scroll = new Fl_Scroll(5, 35, w - 10, h - 85);
+  scroll->begin();
+
+  int y = 0;
+  for (int i = 0; i <= oCore; i++) {
+    new Fl_Box(5, y, 100, 25, szObjName[i]);
+
+    s_inObjOrb[i] = new Fl_Float_Input(110, y, 75, 25);
+    sprintf(sz, "%.2f", rObjOrb[i]);
+    s_inObjOrb[i]->value(sz);
+
+    s_inObjAdd[i] = new Fl_Float_Input(195, y, 75, 25);
+    sprintf(sz, "%.1f", rObjAdd[i]);
+    s_inObjAdd[i]->value(sz);
+
+    s_inObjInf[i] = new Fl_Float_Input(280, y, 75, 25);
+    sprintf(sz, "%.2f", rObjInf[i]);
+    s_inObjInf[i]->value(sz);
+
+    y += 28;
+  }
+
+  scroll->end();
+
+  // OK/Cancel buttons
+  Fl_Return_Button *btnOK = new Fl_Return_Button(w - 180, h - 40, 80, 30, "OK");
+  btnOK->callback(cb_ObjectOK);
+
+  Fl_Button *btnCancel = new Fl_Button(w - 90, h - 40, 80, 30, "Cancel");
+  btnCancel->callback(cb_ObjectCancel);
+
+  s_dlgObject->end();
+  s_dlgObject->set_modal();
+  s_dlgObject->show();
+
+  while (s_dlgObject->visible())
+    Fl::wait();
+
+  delete s_dlgObject;
+  s_dlgObject = NULL;
+  for (int i = 0; i <= oCore; i++) {
+    s_inObjOrb[i] = NULL;
+    s_inObjAdd[i] = NULL;
+    s_inObjInf[i] = NULL;
+  }
+}
+
+/*
+******************************************************************************
+** Star Restrictions Dialog
+******************************************************************************
+*/
+
+static Fl_Window *s_dlgStar = NULL;
+static Fl_Check_Button *s_cbStar[cStar+1];
+
+static void cb_StarOK(Fl_Widget *w, void *data)
+{
+  for (int i = 1; i <= cStar; i++) {
+    if (s_cbStar[i])
+      ignore[starLo - 1 + i] = !s_cbStar[i]->value();
+  }
+
+  fi.fDoCast = fTrue;
+  if (fi.chart)
+    fi.chart->redraw();
+
+  if (s_dlgStar)
+    s_dlgStar->hide();
+}
+
+static void cb_StarCancel(Fl_Widget *w, void *data)
+{
+  if (s_dlgStar)
+    s_dlgStar->hide();
+}
+
+static void cb_StarAll(Fl_Widget *w, void *data)
+{
+  for (int i = 1; i <= cStar; i++)
+    if (s_cbStar[i])
+      s_cbStar[i]->value(1);
+}
+
+static void cb_StarNone(Fl_Widget *w, void *data)
+{
+  for (int i = 1; i <= cStar; i++)
+    if (s_cbStar[i])
+      s_cbStar[i]->value(0);
+}
+
+void FShowDlgStar()
+{
+  int w = 500, h = 450;
+
+  s_dlgStar = new Fl_Window(w, h, "Star Restrictions");
+  s_dlgStar->begin();
+
+  // Button row
+  Fl_Button *btnAll = new Fl_Button(10, 10, 80, 25, "Show All");
+  btnAll->callback(cb_StarAll);
+  Fl_Button *btnNone = new Fl_Button(100, 10, 80, 25, "Hide All");
+  btnNone->callback(cb_StarNone);
+
+  // Scrollable area for stars
+  Fl_Scroll *scroll = new Fl_Scroll(5, 45, w - 10, h - 95);
+  scroll->begin();
+
+  int cols = 3;
+  int colW = (w - 30) / cols;
+  int y = 0;
+  int x = 0;
+
+  for (int i = 1; i <= cStar; i++) {
+    int col = (i - 1) % cols;
+    int row = (i - 1) / cols;
+    x = 5 + col * colW;
+    y = row * 25;
+
+    int objIdx = starLo - 1 + i;
+    s_cbStar[i] = new Fl_Check_Button(x, y, colW - 5, 25, szObjName[objIdx]);
+    s_cbStar[i]->value(!ignore[objIdx]);
+  }
+
+  scroll->end();
+
+  // OK/Cancel buttons
+  Fl_Return_Button *btnOK = new Fl_Return_Button(w - 180, h - 40, 80, 30, "OK");
+  btnOK->callback(cb_StarOK);
+
+  Fl_Button *btnCancel = new Fl_Button(w - 90, h - 40, 80, 30, "Cancel");
+  btnCancel->callback(cb_StarCancel);
+
+  s_dlgStar->end();
+  s_dlgStar->set_modal();
+  s_dlgStar->show();
+
+  while (s_dlgStar->visible())
+    Fl::wait();
+
+  delete s_dlgStar;
+  s_dlgStar = NULL;
+  for (int i = 1; i <= cStar; i++)
+    s_cbStar[i] = NULL;
+}
+
 #endif // FLTK

@@ -136,10 +136,11 @@ Many features have been implemented - marked with [x] below.
 - Glyph Fonts submenu
 - Include Minors/Cusps/Uranians/Dwarfs/Moons/Body Centers/Fixed Stars
 
+- [x] Object Settings...
+- [x] Star Restrictions...
+
 ### Windows Has (FLTK Missing)
-- [ ] Object Settings...
 - [ ] More Object Settings...
-- [ ] Star Restrictions...
 - [ ] Planetary Moons submenu:
   - [ ] Moons Chart
   - [ ] Exoplanets Chart
@@ -193,15 +194,13 @@ Many features have been implemented - marked with [x] below.
 
 ### FLTK Has
 - About Astrolog...
-- Documentation (placeholder)
+- [x] Open Website
+- [x] Open Changes Log
+- [x] Show License
 - List Signs/Objects/Aspects/Constellations/Planet Info/Rays/General Meanings/Switches/Obscure Switches/Keystrokes/Credits
 
 ### Windows Has (FLTK Missing)
-- [ ] More Documentation submenu:
-  - [ ] Open Changes
-  - [ ] Open License
-  - [ ] Open Website
-  - [ ] Open Website Mirror
+- [ ] Open Website Mirror
 - [ ] Open Data Files submenu:
   - [ ] Open Default Settings
   - [ ] Open Atlas
@@ -260,8 +259,9 @@ Many features have been implemented - marked with [x] below.
 - [x] Chart Settings (FShowDlgChartSettings)
 - [x] Default Chart Info (FShowDlgDefaultInfo)
 
+- [x] Object Settings (FShowDlgObject)
+- [x] Star Restrictions (FShowDlgStar)
+
 ### Windows Dialogs (FLTK Missing)
-- [ ] Object Settings (cmdObject / dlgObject)
 - [ ] More Object Settings (cmdObject2 / dlgObject2)
-- [ ] Star Restrictions (cmdStar / dlgStar)
 - [ ] Chart List (cmdList / dlgList)

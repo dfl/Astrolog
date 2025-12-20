@@ -252,6 +252,15 @@ void FMenuDefaultInfo(Fl_Widget *w, void *data);
 void FMenuFileOpenChart2(Fl_Widget *w, void *data);
 void FMenuFileSaveSettings(Fl_Widget *w, void *data);
 
+// Forward declarations for settings menu callbacks
+void FMenuObjectSettings(Fl_Widget *w, void *data);
+void FMenuStarRestrict(Fl_Widget *w, void *data);
+
+// Forward declarations for help menu callbacks
+void FMenuHelpWebsite(Fl_Widget *w, void *data);
+void FMenuHelpChanges(Fl_Widget *w, void *data);
+void FMenuHelpLicense(Fl_Widget *w, void *data);
+
 /*
 ******************************************************************************
 ** ChartWidget Implementation
@@ -1259,6 +1268,8 @@ void AstrologWindow::createMenus()
   menubar_->add("Se&ttings/&Aspect Settings...", 0, FMenuAspectSettings);
   menubar_->add("Se&ttings/&Object Restrictions...", 0, FMenuRestrict);
   menubar_->add("Se&ttings/&Transit Restrictions...", 0, FMenuRestrictTransit);
+  menubar_->add("Se&ttings/Star Restric&tions...", 0, FMenuStarRestrict);
+  menubar_->add("Se&ttings/Object Sett&ings...", 0, FMenuObjectSettings);
   menubar_->add("Se&ttings/Co&lor Settings...", 0, FMenuColorSettings, 0, FL_MENU_DIVIDER);
   // Glyph Fonts submenu
   menubar_->add("Se&ttings/Glyph &Fonts/Astrono&micon (Default)", 0, FMenuGlyphFont, (void*)5);
@@ -1359,7 +1370,9 @@ void AstrologWindow::createMenus()
 
   // Help menu
   menubar_->add("&Help/&About Astrolog...", 0, FMenuHelpAbout);
-  menubar_->add("&Help/&Documentation", 0, (Fl_Callback*)NULL, 0, FL_MENU_DIVIDER);
+  menubar_->add("&Help/Open &Website", 0, FMenuHelpWebsite);
+  menubar_->add("&Help/Open &Changes Log", 0, FMenuHelpChanges);
+  menubar_->add("&Help/Show &License", 0, FMenuHelpLicense, 0, FL_MENU_DIVIDER);
   menubar_->add("&Help/List Si&gns", 0, FMenuHelpSign);
   menubar_->add("&Help/List &Objects", 0, FMenuHelpObject);
   menubar_->add("&Help/List Aspec&ts", 0, FMenuHelpAspect);
@@ -1942,6 +1955,51 @@ void FMenuFileSaveSettings(Fl_Widget *w, void *data)
     // Write settings to file using FOutputSettings
     FOutputSettings();
   }
+}
+
+void FMenuObjectSettings(Fl_Widget *w, void *data)
+{
+  FShowDlgObject();
+}
+
+void FMenuStarRestrict(Fl_Widget *w, void *data)
+{
+  FShowDlgStar();
+}
+
+void FMenuHelpWebsite(Fl_Widget *w, void *data)
+{
+#ifdef __APPLE__
+  system("open http://www.astrolog.org/astrolog.htm");
+#elif defined(__linux__)
+  system("xdg-open http://www.astrolog.org/astrolog.htm");
+#elif defined(_WIN32)
+  system("start http://www.astrolog.org/astrolog.htm");
+#endif
+}
+
+void FMenuHelpChanges(Fl_Widget *w, void *data)
+{
+#ifdef __APPLE__
+  system("open http://www.astrolog.org/astrolog/astrolog.htm");
+#elif defined(__linux__)
+  system("xdg-open http://www.astrolog.org/astrolog/astrolog.htm");
+#elif defined(_WIN32)
+  system("start http://www.astrolog.org/astrolog/astrolog.htm");
+#endif
+}
+
+void FMenuHelpLicense(Fl_Widget *w, void *data)
+{
+  // Show the license in a message box
+  fl_message(
+    "Astrolog (Version 7.80)\n\n"
+    "Copyright (C) 1991-2025 by Walter D. Pullen\n"
+    "(Astara@msn.com, http://www.astrolog.org/astrolog.htm)\n\n"
+    "Permission is granted to freely use, modify, and distribute\n"
+    "these routines provided these credits and notices remain\n"
+    "unmodified with any altered or distributed versions of the program."
+  );
 }
 
 void FMenuGlyphFont(Fl_Widget *w, void *data)
