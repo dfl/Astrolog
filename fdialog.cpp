@@ -25,6 +25,10 @@
 #include <FL/Fl_Button.H>
 #include <FL/Fl_Return_Button.H>
 #include <FL/Fl_Check_Button.H>
+#include <FL/Fl_Round_Button.H>
+#include <FL/Fl_Output.H>
+#include <FL/Fl_File_Chooser.H>
+#include <FL/Fl_Hold_Browser.H>
 #include <FL/fl_ask.H>
 
 /*
@@ -2333,6 +2337,1034 @@ void FShowDlgStar()
   s_dlgStar = NULL;
   for (int i = 1; i <= cStar; i++)
     s_cbStar[i] = NULL;
+}
+
+/*
+******************************************************************************
+** Charts #3 Through #6 Info Dialog
+******************************************************************************
+*/
+
+// Dialog to display info for all 6 chart slots (matching Windows DlgInfoAll)
+static Fl_Window *s_dlgInfoAll = NULL;
+static Fl_Output *s_outInfo[cRing + 1] = {NULL};
+static Fl_Output *s_outName[cRing + 1] = {NULL};
+static Fl_Round_Button *s_rbRel[cRing] = {NULL};
+static int s_nRelSel = 0;
+
+static void cb_InfoAllOpen(Fl_Widget *w, void *data)
+{
+  int i = (int)(long)data;
+  if (i < 1 || i > cRing) return;
+
+  // Use file chooser to open a chart for this slot
+  const char *szFile = fl_file_chooser("Open Chart", "*.as", NULL);
+  if (szFile == NULL) return;
+
+  char szCmd[cchSzMax];
+  sprintf(szCmd, "-i%d \"%s\"", i, szFile);
+  FProcessCommandLine(szCmd);
+  fi.fDoCast = fTrue;
+
+  // Update the display
+  CI *pci = rgpci[i];
+  int n = DayOfWeek(pci->mon, pci->day, pci->yea);
+  char sz[cchSzLine];
+  sprintf(sz, "%.3s %s %s (Zone %s) %s", szDay[n],
+    SzDate(pci->mon, pci->day, pci->yea, 3), SzTim(pci->tim),
+    SzZone(pci->zon), SzLocation(pci->lon, pci->lat));
+  s_outInfo[i]->value(sz);
+  sprintf(sz, "%s%s%s", pci->nam,
+    (pci->nam[0] && pci->loc[0]) ? "; " : "", pci->loc);
+  s_outName[i]->value(sz);
+}
+
+static void cb_InfoAllEdit(Fl_Widget *w, void *data)
+{
+  int i = (int)(long)data;
+  if (i < 1 || i > cRing) return;
+
+  FShowDlgInfo(i);
+  fi.fDoCast = fTrue;
+
+  // Update the display
+  CI *pci = rgpci[i];
+  int n = DayOfWeek(pci->mon, pci->day, pci->yea);
+  char sz[cchSzLine];
+  sprintf(sz, "%.3s %s %s (Zone %s) %s", szDay[n],
+    SzDate(pci->mon, pci->day, pci->yea, 3), SzTim(pci->tim),
+    SzZone(pci->zon), SzLocation(pci->lon, pci->lat));
+  s_outInfo[i]->value(sz);
+  sprintf(sz, "%s%s%s", pci->nam,
+    (pci->nam[0] && pci->loc[0]) ? "; " : "", pci->loc);
+  s_outName[i]->value(sz);
+}
+
+static void cb_InfoAllOK(Fl_Widget *w, void *data)
+{
+  // Get selected relationship type
+  for (int i = 0; i < cRing - 1; i++) {
+    if (s_rbRel[i] && s_rbRel[i]->value()) {
+      s_nRelSel = i;
+      break;
+    }
+  }
+  // Set relationship: 0=None, 1=Comparison, 2=Synastry, 3=Composite, 4=Midpoint
+  // Map to rc constants: rcDual(0), rcDual(0), rcSynastry(-1), rcComposite(-2), rcMidpoint(-3)
+  static const int rgRc[] = {rcNone, rcDual, rcSynastry, rcComposite, rcMidpoint};
+  if (s_nRelSel >= 0 && s_nRelSel <= 4)
+    us.nRel = rgRc[s_nRelSel];
+  fi.fDoCast = fTrue;
+
+  s_dlgInfoAll->hide();
+}
+
+static void cb_InfoAllCancel(Fl_Widget *w, void *data)
+{
+  s_dlgInfoAll->hide();
+}
+
+void FShowDlgInfoAll()
+{
+  int w = 600, h = 500;
+
+  s_dlgInfoAll = new Fl_Window(w, h, "Charts #3 Through #6");
+  s_dlgInfoAll->begin();
+
+  int y = 10;
+  char sz[cchSzLine];
+
+  // Display info for all 6 chart slots
+  for (int i = 1; i <= cRing; i++) {
+    CI *pci = rgpci[i];
+    int n = DayOfWeek(pci->mon, pci->day, pci->yea);
+
+    // Chart label
+    char szLabel[32];
+    sprintf(szLabel, "Chart #%d:", i);
+    new Fl_Box(FL_NO_BOX, 10, y, 70, 25, strdup(szLabel));
+
+    // Open button
+    Fl_Button *btnOpen = new Fl_Button(80, y, 50, 25, "Open");
+    btnOpen->callback(cb_InfoAllOpen, (void*)(long)i);
+
+    // Edit button
+    Fl_Button *btnEdit = new Fl_Button(135, y, 50, 25, "Edit");
+    btnEdit->callback(cb_InfoAllEdit, (void*)(long)i);
+
+    // Date/time/location output
+    sprintf(sz, "%.3s %s %s (Zone %s) %s", szDay[n],
+      SzDate(pci->mon, pci->day, pci->yea, 3), SzTim(pci->tim),
+      SzZone(pci->zon), SzLocation(pci->lon, pci->lat));
+    s_outInfo[i] = new Fl_Output(190, y, w - 200, 25);
+    s_outInfo[i]->value(sz);
+    y += 28;
+
+    // Name/location output
+    sprintf(sz, "%s%s%s", pci->nam,
+      (pci->nam[0] && pci->loc[0]) ? "; " : "", pci->loc);
+    s_outName[i] = new Fl_Output(190, y, w - 200, 25);
+    s_outName[i]->value(sz);
+    y += 35;
+  }
+
+  // Divider
+  new Fl_Box(FL_DOWN_BOX, 10, y, w - 20, 2, NULL);
+  y += 15;
+
+  // Relationship type radio buttons
+  new Fl_Box(FL_NO_BOX, 10, y, 150, 25, "Relationship Chart:");
+  y += 25;
+
+  static const char *szRelType[] = {
+    "No Relationship", "Comparison", "Synastry", "Composite",
+    "Time Space Midpoint"
+  };
+
+  int nRel = us.nRel;
+  if (nRel > rcDual)
+    nRel = 0;
+  else if (nRel < rcHexaWheel)
+    nRel = rcDual;
+  nRel = rcDual - nRel;
+
+  for (int i = 0; i <= rcDual; i++) {
+    s_rbRel[i] = new Fl_Round_Button(30, y, 180, 25, szRelType[i]);
+    s_rbRel[i]->type(FL_RADIO_BUTTON);
+    if (i == nRel)
+      s_rbRel[i]->value(1);
+    y += 25;
+  }
+
+  // OK/Cancel buttons
+  Fl_Return_Button *btnOK = new Fl_Return_Button(w - 180, h - 40, 80, 30, "OK");
+  btnOK->callback(cb_InfoAllOK);
+
+  Fl_Button *btnCancel = new Fl_Button(w - 90, h - 40, 80, 30, "Cancel");
+  btnCancel->callback(cb_InfoAllCancel);
+
+  s_dlgInfoAll->end();
+  s_dlgInfoAll->set_modal();
+  s_dlgInfoAll->show();
+
+  while (s_dlgInfoAll->visible())
+    Fl::wait();
+
+  delete s_dlgInfoAll;
+  s_dlgInfoAll = NULL;
+  for (int i = 1; i <= cRing; i++) {
+    s_outInfo[i] = NULL;
+    s_outName[i] = NULL;
+  }
+  for (int i = 0; i < cRing - 1; i++)
+    s_rbRel[i] = NULL;
+}
+
+/*
+******************************************************************************
+** Chart List Dialog
+******************************************************************************
+*/
+
+static Fl_Window *s_dlgList = NULL;
+static Fl_Hold_Browser *s_brList = NULL;
+static Fl_Round_Button *s_rbChart[cRing + 1] = {NULL};
+static int s_nChartSel = 1;
+
+static void RefreshChartList()
+{
+  if (!s_brList) return;
+  s_brList->clear();
+
+  int nSav = us.fAnsiChar;
+  us.fAnsiChar = 2;
+  flag fSav = us.fGraphics;
+  us.fGraphics = fTrue;
+
+  for (int i = 0; i < is.cci; i++) {
+    CI *pci = &is.rgci[i];
+    int j = DayOfWeek(pci->mon, pci->day, pci->yea);
+    char sz[cchSzLine];
+    sprintf(sz, "%.3s %s %s (Zone %s) %s %s%s%s", szDay[j],
+      SzDate(pci->mon, pci->day, pci->yea, 3), SzTim(pci->tim),
+      SzZone(pci->zon), SzLocation(pci->lon, pci->lat),
+      pci->nam, (pci->nam[0] && pci->loc[0]) ? "; " : "", pci->loc);
+    s_brList->add(sz, (void*)(long)i);
+  }
+
+  us.fAnsiChar = nSav;
+  us.fGraphics = fSav;
+
+  // Select current chart
+  if (is.iciCur >= 0 && is.iciCur < is.cci)
+    s_brList->select(is.iciCur + 1);
+}
+
+static void cb_ListSetToChart(Fl_Widget *w, void *data)
+{
+  int sel = s_brList->value();
+  if (sel <= 0) {
+    fl_message("No chart selected in list.");
+    return;
+  }
+  int i = (int)(long)s_brList->data(sel);
+  if (i < 0 || i >= is.cci) return;
+
+  // Get target chart slot
+  for (int j = 1; j <= cRing; j++) {
+    if (s_rbChart[j] && s_rbChart[j]->value()) {
+      s_nChartSel = j;
+      break;
+    }
+  }
+
+  // Copy chart info to slot
+  CI ciT = is.rgci[i];
+  is.iciCur = i;
+  *rgpci[s_nChartSel] = ciT;
+  if (s_nChartSel == 1)
+    ciCore = ciT;
+  fi.fDoCast = fTrue;
+}
+
+static void cb_ListEdit(Fl_Widget *w, void *data)
+{
+  int sel = s_brList->value();
+  if (sel <= 0) {
+    fl_message("No chart selected in list.");
+    return;
+  }
+  int i = (int)(long)s_brList->data(sel);
+  if (i < 0 || i >= is.cci) return;
+
+  // Edit the chart in the list using negative index
+  FShowDlgInfo(-(i + 1));
+  RefreshChartList();
+}
+
+static void cb_ListDelete(Fl_Widget *w, void *data)
+{
+  int sel = s_brList->value();
+  if (sel <= 0) {
+    fl_message("No chart selected in list.");
+    return;
+  }
+  int i = (int)(long)s_brList->data(sel);
+  if (i < 0 || i >= is.cci) return;
+
+  // Delete chart from list
+  if (i < is.cci - 1)
+    memmove(&is.rgci[i], &is.rgci[i + 1], (is.cci - 1 - i) * sizeof(CI));
+  is.cci--;
+  if (is.iciCur >= is.cci)
+    is.iciCur = is.cci - 1;
+  RefreshChartList();
+}
+
+static void cb_ListCopyFrom(Fl_Widget *w, void *data)
+{
+  // Get source chart slot
+  for (int j = 1; j <= cRing; j++) {
+    if (s_rbChart[j] && s_rbChart[j]->value()) {
+      s_nChartSel = j;
+      break;
+    }
+  }
+
+  // Add chart to list
+  FAppendCIList(rgpci[s_nChartSel]);
+  RefreshChartList();
+  s_brList->select(is.cci);
+}
+
+static void cb_ListDeleteAll(Fl_Widget *w, void *data)
+{
+  is.cci = 0;
+  RefreshChartList();
+}
+
+static void cb_ListOK(Fl_Widget *w, void *data)
+{
+  // Set to selected chart on OK
+  cb_ListSetToChart(w, data);
+  s_dlgList->hide();
+}
+
+static void cb_ListCancel(Fl_Widget *w, void *data)
+{
+  s_dlgList->hide();
+}
+
+void FShowDlgList()
+{
+  if (is.cci <= 0) {
+    fl_message("There is no chart list in memory.\nUse -5l to load a chart list file.");
+    return;
+  }
+
+  int w = 650, h = 450;
+
+  s_dlgList = new Fl_Window(w, h, "Chart List");
+  s_dlgList->begin();
+
+  // Browser for chart list
+  s_brList = new Fl_Hold_Browser(10, 10, w - 20, h - 180);
+
+  int y = h - 165;
+
+  // Chart slot radio buttons
+  new Fl_Box(FL_NO_BOX, 10, y, 100, 25, "Set to Chart:");
+  int x = 110;
+  for (int i = 1; i <= cRing; i++) {
+    char sz[8];
+    sprintf(sz, "#%d", i);
+    s_rbChart[i] = new Fl_Round_Button(x, y, 50, 25, strdup(sz));
+    s_rbChart[i]->type(FL_RADIO_BUTTON);
+    if (i == 1)
+      s_rbChart[i]->value(1);
+    x += 50;
+  }
+  y += 30;
+
+  // Action buttons row 1
+  Fl_Button *btnSet = new Fl_Button(10, y, 100, 25, "Set to Chart");
+  btnSet->callback(cb_ListSetToChart);
+
+  Fl_Button *btnEdit = new Fl_Button(120, y, 100, 25, "Edit Chart");
+  btnEdit->callback(cb_ListEdit);
+
+  Fl_Button *btnDelete = new Fl_Button(230, y, 100, 25, "Delete");
+  btnDelete->callback(cb_ListDelete);
+
+  Fl_Button *btnCopy = new Fl_Button(340, y, 120, 25, "Copy From Chart");
+  btnCopy->callback(cb_ListCopyFrom);
+
+  Fl_Button *btnDelAll = new Fl_Button(470, y, 100, 25, "Delete All");
+  btnDelAll->callback(cb_ListDeleteAll);
+
+  y += 35;
+
+  // OK/Cancel buttons
+  Fl_Return_Button *btnOK = new Fl_Return_Button(w - 180, h - 40, 80, 30, "OK");
+  btnOK->callback(cb_ListOK);
+
+  Fl_Button *btnCancel = new Fl_Button(w - 90, h - 40, 80, 30, "Cancel");
+  btnCancel->callback(cb_ListCancel);
+
+  s_dlgList->end();
+  s_dlgList->set_modal();
+
+  // Populate the list
+  RefreshChartList();
+
+  s_dlgList->show();
+
+  while (s_dlgList->visible())
+    Fl::wait();
+
+  delete s_dlgList;
+  s_dlgList = NULL;
+  s_brList = NULL;
+  for (int i = 1; i <= cRing; i++)
+    s_rbChart[i] = NULL;
+}
+
+/*
+******************************************************************************
+** Moon Restrictions Dialog
+******************************************************************************
+*/
+
+static Fl_Window *s_dlgMoons = NULL;
+static Fl_Check_Button *s_cbMoon[cMoons2 + 1] = {NULL};
+
+static void cb_MoonsAll(Fl_Widget *w, void *data)
+{
+  for (int i = 0; i < cMoons2; i++)
+    s_cbMoon[i]->value(0);  // 0 = shown (not ignored)
+}
+
+static void cb_MoonsNone(Fl_Widget *w, void *data)
+{
+  for (int i = 0; i < cMoons2; i++)
+    s_cbMoon[i]->value(1);  // 1 = hidden (ignored)
+}
+
+static void cb_MoonsTogglePlanet(Fl_Widget *w, void *data)
+{
+  int start = (int)(long)data >> 16;
+  int end = (int)(long)data & 0xFFFF;
+  for (int i = start; i <= end; i++)
+    s_cbMoon[i]->value(!s_cbMoon[i]->value());
+}
+
+static void cb_MoonsOK(Fl_Widget *w, void *data)
+{
+  // Apply restrictions
+  for (int i = 0; i < cMoons2; i++)
+    ignore[moonsLo + i] = s_cbMoon[i]->value();
+
+  // Update us.fMoons flag
+  flag fAnyMoon = fFalse;
+  for (int i = moonsLo; i <= moonsHi; i++) {
+    if (!ignore[i]) {
+      fAnyMoon = fTrue;
+      break;
+    }
+  }
+  us.fMoons = fAnyMoon;
+
+  // Update us.fCOB flag
+  flag fAnyCOB = fFalse;
+  for (int i = cobLo; i <= cobHi; i++) {
+    if (!ignore[i]) {
+      fAnyCOB = fTrue;
+      break;
+    }
+  }
+  us.fCOB = fAnyCOB;
+
+  fi.fDoCast = fTrue;
+  s_dlgMoons->hide();
+}
+
+static void cb_MoonsCancel(Fl_Widget *w, void *data)
+{
+  s_dlgMoons->hide();
+}
+
+void FShowDlgMoons()
+{
+  int w = 500, h = 480;
+
+  s_dlgMoons = new Fl_Window(w, h, "Moon Restrictions");
+  s_dlgMoons->begin();
+
+  // Button row
+  Fl_Button *btnAll = new Fl_Button(10, 10, 80, 25, "Show All");
+  btnAll->callback(cb_MoonsAll);
+  Fl_Button *btnNone = new Fl_Button(100, 10, 80, 25, "Hide All");
+  btnNone->callback(cb_MoonsNone);
+
+  // Planet toggle buttons
+  int bx = 200;
+  Fl_Button *btnMar = new Fl_Button(bx, 10, 50, 25, "Mars");
+  btnMar->callback(cb_MoonsTogglePlanet, (void*)(long)((0 << 16) | 1));
+  bx += 55;
+  Fl_Button *btnJup = new Fl_Button(bx, 10, 50, 25, "Jup");
+  btnJup->callback(cb_MoonsTogglePlanet, (void*)(long)((2 << 16) | 5));
+  bx += 55;
+  Fl_Button *btnSat = new Fl_Button(bx, 10, 50, 25, "Sat");
+  btnSat->callback(cb_MoonsTogglePlanet, (void*)(long)((6 << 16) | 13));
+  bx += 55;
+  Fl_Button *btnUra = new Fl_Button(bx, 10, 50, 25, "Ura");
+  btnUra->callback(cb_MoonsTogglePlanet, (void*)(long)((14 << 16) | 18));
+
+  bx = 200;
+  Fl_Button *btnNep = new Fl_Button(bx, 40, 50, 25, "Nep");
+  btnNep->callback(cb_MoonsTogglePlanet, (void*)(long)((19 << 16) | 21));
+  bx += 55;
+  Fl_Button *btnPlu = new Fl_Button(bx, 40, 50, 25, "Plu");
+  btnPlu->callback(cb_MoonsTogglePlanet, (void*)(long)((22 << 16) | 26));
+  bx += 55;
+  Fl_Button *btnCOB = new Fl_Button(bx, 40, 50, 25, "COB");
+  btnCOB->callback(cb_MoonsTogglePlanet, (void*)(long)((27 << 16) | 31));
+
+  // Scrollable area for moons
+  Fl_Scroll *scroll = new Fl_Scroll(5, 75, w - 10, h - 130);
+  scroll->begin();
+
+  int cols = 3;
+  int colW = (w - 30) / cols;
+  int y = 0;
+  int x = 0;
+
+  for (int i = 0; i < cMoons2; i++) {
+    int col = i % cols;
+    int row = i / cols;
+    x = 5 + col * colW;
+    y = row * 25;
+
+    int objIdx = moonsLo + i;
+    s_cbMoon[i] = new Fl_Check_Button(x, y, colW - 5, 25, szObjName[objIdx]);
+    s_cbMoon[i]->value(ignore[objIdx]);
+  }
+
+  scroll->end();
+
+  // OK/Cancel buttons
+  Fl_Return_Button *btnOK = new Fl_Return_Button(w - 180, h - 40, 80, 30, "OK");
+  btnOK->callback(cb_MoonsOK);
+
+  Fl_Button *btnCancel = new Fl_Button(w - 90, h - 40, 80, 30, "Cancel");
+  btnCancel->callback(cb_MoonsCancel);
+
+  s_dlgMoons->end();
+  s_dlgMoons->set_modal();
+  s_dlgMoons->show();
+
+  while (s_dlgMoons->visible())
+    Fl::wait();
+
+  delete s_dlgMoons;
+  s_dlgMoons = NULL;
+  for (int i = 0; i < cMoons2; i++)
+    s_cbMoon[i] = NULL;
+}
+
+/*
+******************************************************************************
+** Moon Object Settings Dialog
+******************************************************************************
+*/
+
+static Fl_Window *s_dlgMoonObj = NULL;
+static Fl_Float_Input *s_inMoonOrb[cMoons2];
+static Fl_Float_Input *s_inMoonAdd[cMoons2];
+static Fl_Float_Input *s_inMoonInf[cMoons2];
+static Fl_Check_Button *s_cbMoonMove = NULL;
+static Fl_Check_Button *s_cbMoonChartSep = NULL;
+static Fl_Check_Button *s_cbMoonWheel = NULL;
+
+static void cb_MoonObjOK(Fl_Widget *w, void *data)
+{
+  for (int i = 0; i < cMoons2; i++) {
+    int obj = moonsLo + i;
+    if (s_inMoonOrb[i])
+      rObjOrb[obj] = atof(s_inMoonOrb[i]->value());
+    if (s_inMoonAdd[i])
+      rObjAdd[obj] = atof(s_inMoonAdd[i]->value());
+    if (s_inMoonInf[i])
+      rObjInf[obj] = atof(s_inMoonInf[i]->value());
+  }
+
+  us.fMoonMove = s_cbMoonMove ? s_cbMoonMove->value() : us.fMoonMove;
+  us.fMoonChartSep = s_cbMoonChartSep ? s_cbMoonChartSep->value() : us.fMoonChartSep;
+  gs.fMoonWheel = s_cbMoonWheel ? s_cbMoonWheel->value() : gs.fMoonWheel;
+
+  fi.fDoCast = fTrue;
+  if (fi.chart)
+    fi.chart->redraw();
+
+  if (s_dlgMoonObj)
+    s_dlgMoonObj->hide();
+}
+
+static void cb_MoonObjCancel(Fl_Widget *w, void *data)
+{
+  if (s_dlgMoonObj)
+    s_dlgMoonObj->hide();
+}
+
+void FShowDlgMoonObj()
+{
+  int w = 480, h = 450;
+  char sz[64];
+
+  s_dlgMoonObj = new Fl_Window(w, h, "Moon Object Settings");
+  s_dlgMoonObj->begin();
+
+  // Header row
+  new Fl_Box(10, 10, 120, 20, "Moon/COB");
+  new Fl_Box(135, 10, 80, 20, "Max Orb");
+  new Fl_Box(220, 10, 80, 20, "Orb Add");
+  new Fl_Box(305, 10, 80, 20, "Influence");
+
+  // Scrollable area for moons
+  Fl_Scroll *scroll = new Fl_Scroll(5, 35, w - 10, h - 135);
+  scroll->begin();
+
+  int y = 0;
+  for (int i = 0; i < cMoons2; i++) {
+    int obj = moonsLo + i;
+    new Fl_Box(5, y, 120, 25, szObjName[obj]);
+
+    s_inMoonOrb[i] = new Fl_Float_Input(130, y, 75, 25);
+    sprintf(sz, "%.2f", rObjOrb[obj]);
+    s_inMoonOrb[i]->value(sz);
+
+    s_inMoonAdd[i] = new Fl_Float_Input(215, y, 75, 25);
+    sprintf(sz, "%.1f", rObjAdd[obj]);
+    s_inMoonAdd[i]->value(sz);
+
+    s_inMoonInf[i] = new Fl_Float_Input(300, y, 75, 25);
+    sprintf(sz, "%.2f", rObjInf[obj]);
+    s_inMoonInf[i]->value(sz);
+
+    y += 28;
+  }
+
+  scroll->end();
+
+  // Options checkboxes
+  int optY = h - 90;
+  s_cbMoonMove = new Fl_Check_Button(10, optY, 200, 25, "Moons Move in Time");
+  s_cbMoonMove->value(us.fMoonMove);
+
+  s_cbMoonChartSep = new Fl_Check_Button(220, optY, 200, 25, "Separate Moon Chart");
+  s_cbMoonChartSep->value(us.fMoonChartSep);
+
+  s_cbMoonWheel = new Fl_Check_Button(10, optY + 25, 200, 25, "Moon Wheel Display");
+  s_cbMoonWheel->value(gs.fMoonWheel);
+
+  // OK/Cancel buttons
+  Fl_Return_Button *btnOK = new Fl_Return_Button(w - 180, h - 40, 80, 30, "OK");
+  btnOK->callback(cb_MoonObjOK);
+
+  Fl_Button *btnCancel = new Fl_Button(w - 90, h - 40, 80, 30, "Cancel");
+  btnCancel->callback(cb_MoonObjCancel);
+
+  s_dlgMoonObj->end();
+  s_dlgMoonObj->set_modal();
+  s_dlgMoonObj->show();
+
+  while (s_dlgMoonObj->visible())
+    Fl::wait();
+
+  delete s_dlgMoonObj;
+  s_dlgMoonObj = NULL;
+  for (int i = 0; i < cMoons2; i++) {
+    s_inMoonOrb[i] = NULL;
+    s_inMoonAdd[i] = NULL;
+    s_inMoonInf[i] = NULL;
+  }
+  s_cbMoonMove = NULL;
+  s_cbMoonChartSep = NULL;
+  s_cbMoonWheel = NULL;
+}
+
+/*
+******************************************************************************
+** Object Customization Dialog
+******************************************************************************
+*/
+
+// custLo = uranLo, custHi = cobHi
+#define cCustObj (custHi - custLo + 1)
+
+static Fl_Window *s_dlgCustom = NULL;
+static Fl_Input *s_inCustName[cCustObj];
+static Fl_Input *s_inCustDef[cCustObj];
+
+static void cb_CustomOK(Fl_Widget *w, void *data)
+{
+  for (int i = 0; i < cCustObj; i++) {
+    int obj = custLo + i;
+    if (s_inCustName[i]) {
+      const char *sz = s_inCustName[i]->value();
+      if (sz && *sz && !FEqSz(sz, szObjDisp[obj]))
+        FCloneSzCore((char *)sz, (char **)&szObjDisp[obj],
+          szObjDisp[obj] == szObjName[obj]);
+    }
+#ifdef SWISS
+    if (s_inCustDef[i]) {
+      const char *sz = s_inCustDef[i]->value();
+      if (sz && *sz) {
+        // Parse Swiss ephemeris definition
+        char szBuf[cchSzMax];
+        strncpy(szBuf, sz, sizeof(szBuf) - 1);
+        szBuf[sizeof(szBuf) - 1] = '\0';
+
+        char *pch = szBuf;
+        int typ = (*pch == 'h' ? 0 : (*pch == 'm' ? 3 : (*pch == 'j' ? 4 :
+          (FNumCh(*pch) ? 1 : 2))));
+        if (typ == 0 || typ >= 3)
+          pch++;
+
+        // Find where flags start
+        char *pchEnd = pch + strlen(pch);
+        char *pchFlags = pchEnd;
+        while (pchFlags > pch && pchFlags[-1] >= 'A')
+          pchFlags--;
+        if (pchFlags > pch && pchFlags[-1] == ' ')
+          pchFlags[-1] = '\0';
+
+        int objNum = (typ == 2 ? NParseSz(pch, pmObject) : atoi(pch));
+        rgTypSwiss[i] = typ;
+        rgObjSwiss[i] = objNum;
+
+        // Parse flags
+        int pnt = 0, flg = 0;
+        for (char *p = pchFlags; *p; p++) {
+          switch (*p) {
+          case 'n': pnt = 1; break;
+          case 's': pnt = 2; break;
+          case 'p': pnt = 3; break;
+          case 'a': pnt = 4; break;
+          case 'H': flg |= 1; break;
+          case 'S': flg |= 2; break;
+          case 'B': flg |= 4; break;
+          case 'N': flg |= 8; break;
+          case 'T': flg |= 16; break;
+          case 'V': flg |= 32; break;
+          }
+        }
+        rgPntSwiss[i] = pnt;
+        rgFlgSwiss[i] = flg;
+      }
+    }
+#endif
+  }
+
+  fi.fDoCast = fTrue;
+  if (fi.chart)
+    fi.chart->redraw();
+
+  if (s_dlgCustom)
+    s_dlgCustom->hide();
+}
+
+static void cb_CustomCancel(Fl_Widget *w, void *data)
+{
+  if (s_dlgCustom)
+    s_dlgCustom->hide();
+}
+
+#ifdef SWISS
+static void cb_CustomLookup(Fl_Widget *w, void *data)
+{
+  for (int i = 0; i < cCustObj; i++) {
+    if (!s_inCustName[i] || !s_inCustDef[i])
+      continue;
+    const char *name = s_inCustName[i]->value();
+    if (name && *name && !FEqSz(name, szObjUnknown))
+      continue;
+
+    const char *def = s_inCustDef[i]->value();
+    if (!def || !*def)
+      continue;
+
+    char szBuf[cchSzMax], szName[cchSzMax];
+    strncpy(szBuf, def, sizeof(szBuf) - 1);
+    szBuf[sizeof(szBuf) - 1] = '\0';
+
+    char *pch = szBuf;
+    int typ = (*pch == 'h' ? 0 : (*pch == 'm' ? 3 : (*pch == 'j' ? 4 :
+      (FNumCh(*pch) ? 1 : 2))));
+    if (typ == 0 || typ >= 3)
+      pch++;
+
+    // Strip flags
+    for (char *p = pch + strlen(pch) - 1; p > pch && *p >= 'A'; p--)
+      ;
+    char *pEnd = pch + strlen(pch);
+    while (pEnd > pch && pEnd[-1] >= 'A')
+      pEnd--;
+    if (pEnd > pch && pEnd[-1] == ' ')
+      *--pEnd = '\0';
+
+    int objNum = (typ == 2 ? NParseSz(pch, pmObject) : atoi(pch));
+
+    switch (typ) {
+    case 0:
+      SwissGetObjName(szName, -objNum);
+      break;
+    case 1:
+      SwissGetObjName(szName, objNum);
+      break;
+    case 2:
+      sprintf(szName, "%s", objNum >= 0 ? szObjName[objNum] : szObjUnknown);
+      break;
+    case 3:
+      objNum = ObjMoons(objNum);
+      sprintf(szName, "%s", FItem(objNum) ? szObjName[objNum] : szObjUnknown);
+      break;
+    default:
+      sprintf(szName, "%s", szObjUnknown);
+      break;
+    }
+    s_inCustName[i]->value(szName);
+  }
+}
+#endif
+
+void FShowDlgCustom()
+{
+  int w = 520, h = 450;
+
+  s_dlgCustom = new Fl_Window(w, h, "Object Customization");
+  s_dlgCustom->begin();
+
+  // Header row
+  new Fl_Box(10, 10, 80, 20, "Object");
+  new Fl_Box(95, 10, 150, 20, "Display Name");
+#ifdef SWISS
+  new Fl_Box(255, 10, 150, 20, "Definition");
+#endif
+
+  // Scrollable area
+  Fl_Scroll *scroll = new Fl_Scroll(5, 35, w - 10, h - 85);
+  scroll->begin();
+
+  int y = 0;
+  for (int i = 0; i < cCustObj; i++) {
+    int obj = custLo + i;
+    new Fl_Box(5, y, 80, 25, szObjName[obj]);
+
+    s_inCustName[i] = new Fl_Input(90, y, 150, 25);
+    s_inCustName[i]->value(szObjDisp[obj]);
+
+#ifdef SWISS
+    s_inCustDef[i] = new Fl_Input(250, y, 150, 25);
+    char sz[cchSzMax];
+    int typ = rgTypSwiss[i];
+    int objNum = rgObjSwiss[i];
+    if (typ != 2)
+      sprintf(sz, "%s%d",
+        typ <= 0 ? "h" : (typ == 1 ? "" : (typ == 3 ? "m" : "j")), objNum);
+    else
+      sprintf(sz, objNum < cobLo ? "%.3s" : "%.4s", szObjName[objNum]);
+    // Add flags
+    char *pch = sz + strlen(sz);
+    int pnt = rgPntSwiss[i];
+    int flg = rgFlgSwiss[i];
+    if (pnt > 0 || flg > 0)
+      *pch++ = ' ';
+    if (pnt > 0)
+      *pch++ = (pnt == 1 ? 'n' : (pnt == 2 ? 's' : (pnt == 3 ? 'p' : 'a')));
+    if (flg & 1) *pch++ = 'H';
+    if (flg & 2) *pch++ = 'S';
+    if (flg & 4) *pch++ = 'B';
+    if (flg & 8) *pch++ = 'N';
+    if (flg & 16) *pch++ = 'T';
+    if (flg & 32) *pch++ = 'V';
+    *pch = '\0';
+    s_inCustDef[i]->value(sz);
+#else
+    s_inCustDef[i] = NULL;
+#endif
+
+    y += 28;
+  }
+
+  scroll->end();
+
+#ifdef SWISS
+  Fl_Button *btnLookup = new Fl_Button(10, h - 40, 100, 30, "Lookup Names");
+  btnLookup->callback(cb_CustomLookup);
+#endif
+
+  // OK/Cancel buttons
+  Fl_Return_Button *btnOK = new Fl_Return_Button(w - 180, h - 40, 80, 30, "OK");
+  btnOK->callback(cb_CustomOK);
+
+  Fl_Button *btnCancel = new Fl_Button(w - 90, h - 40, 80, 30, "Cancel");
+  btnCancel->callback(cb_CustomCancel);
+
+  s_dlgCustom->end();
+  s_dlgCustom->set_modal();
+  s_dlgCustom->show();
+
+  while (s_dlgCustom->visible())
+    Fl::wait();
+
+  delete s_dlgCustom;
+  s_dlgCustom = NULL;
+  for (int i = 0; i < cCustObj; i++) {
+    s_inCustName[i] = NULL;
+    s_inCustDef[i] = NULL;
+  }
+}
+
+/*
+******************************************************************************
+** Star Customization Dialog
+******************************************************************************
+*/
+
+static Fl_Window *s_dlgCustomS = NULL;
+static Fl_Input *s_inStarName[cStar];
+static Fl_Input *s_inStarDef[cStar];
+
+static void cb_CustomSOK(Fl_Widget *w, void *data)
+{
+  for (int i = 0; i < cStar; i++) {
+    int obj = starLo + i;
+    if (s_inStarName[i]) {
+      const char *sz = s_inStarName[i]->value();
+      if (sz && *sz && !FEqSz(sz, szObjDisp[obj]))
+        FCloneSzCore((char *)sz, (char **)&szObjDisp[obj],
+          szObjDisp[obj] == szObjName[obj]);
+    }
+#ifdef SWISS
+    if (s_inStarDef[i]) {
+      const char *sz = s_inStarDef[i]->value();
+      int starIdx = i + 1;
+      // Check if different from default
+      const char *szDefault = *szStarNameSwiss[starIdx] ?
+        szStarNameSwiss[starIdx] : szObjName[obj];
+      FCloneSz(FEqSz(sz, szDefault) ? NULL : (char *)sz, &szStarCustom[starIdx]);
+    }
+#endif
+  }
+
+  fi.fDoCast = fTrue;
+  if (fi.chart)
+    fi.chart->redraw();
+
+  if (s_dlgCustomS)
+    s_dlgCustomS->hide();
+}
+
+static void cb_CustomSCancel(Fl_Widget *w, void *data)
+{
+  if (s_dlgCustomS)
+    s_dlgCustomS->hide();
+}
+
+#ifdef SWISS
+static void cb_CustomSLookup(Fl_Widget *w, void *data)
+{
+  for (int i = 0; i < cStar; i++) {
+    if (!s_inStarName[i] || !s_inStarDef[i])
+      continue;
+    const char *name = s_inStarName[i]->value();
+    if (name && *name && !FEqSz(name, szObjUnknown))
+      continue;
+
+    const char *def = s_inStarDef[i]->value();
+    if (!def || !*def)
+      continue;
+
+    char szName[cchSzMax];
+    if (!SwissTestStar((char *)def))
+      sprintf(szName, "%s", szObjUnknown);
+    else
+      strncpy(szName, def, sizeof(szName) - 1);
+    s_inStarName[i]->value(szName);
+  }
+}
+#endif
+
+void FShowDlgCustomS()
+{
+  int w = 520, h = 450;
+
+  s_dlgCustomS = new Fl_Window(w, h, "Star Customization");
+  s_dlgCustomS->begin();
+
+  // Header row
+  new Fl_Box(10, 10, 80, 20, "Star");
+  new Fl_Box(95, 10, 150, 20, "Display Name");
+#ifdef SWISS
+  new Fl_Box(255, 10, 150, 20, "Definition");
+#endif
+
+  // Scrollable area
+  Fl_Scroll *scroll = new Fl_Scroll(5, 35, w - 10, h - 85);
+  scroll->begin();
+
+  int y = 0;
+  for (int i = 0; i < cStar; i++) {
+    int obj = starLo + i;
+    new Fl_Box(5, y, 80, 25, szObjName[obj]);
+
+    s_inStarName[i] = new Fl_Input(90, y, 150, 25);
+    s_inStarName[i]->value(szObjDisp[obj]);
+
+#ifdef SWISS
+    s_inStarDef[i] = new Fl_Input(250, y, 150, 25);
+    int starIdx = i + 1;
+    if (FSzSet(szStarCustom[starIdx]))
+      s_inStarDef[i]->value(szStarCustom[starIdx]);
+    else if (*szStarNameSwiss[starIdx])
+      s_inStarDef[i]->value(szStarNameSwiss[starIdx]);
+    else
+      s_inStarDef[i]->value(szObjName[obj]);
+#else
+    s_inStarDef[i] = NULL;
+#endif
+
+    y += 28;
+  }
+
+  scroll->end();
+
+#ifdef SWISS
+  Fl_Button *btnLookup = new Fl_Button(10, h - 40, 100, 30, "Lookup Names");
+  btnLookup->callback(cb_CustomSLookup);
+#endif
+
+  // OK/Cancel buttons
+  Fl_Return_Button *btnOK = new Fl_Return_Button(w - 180, h - 40, 80, 30, "OK");
+  btnOK->callback(cb_CustomSOK);
+
+  Fl_Button *btnCancel = new Fl_Button(w - 90, h - 40, 80, 30, "Cancel");
+  btnCancel->callback(cb_CustomSCancel);
+
+  s_dlgCustomS->end();
+  s_dlgCustomS->set_modal();
+  s_dlgCustomS->show();
+
+  while (s_dlgCustomS->visible())
+    Fl::wait();
+
+  delete s_dlgCustomS;
+  s_dlgCustomS = NULL;
+  for (int i = 0; i < cStar; i++) {
+    s_inStarName[i] = NULL;
+    s_inStarDef[i] = NULL;
+  }
 }
 
 #endif // FLTK

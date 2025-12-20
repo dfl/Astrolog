@@ -15,24 +15,24 @@ Many features have been implemented - marked with [x] below.
 - Save Chart...
 - Save As...
 - [x] Save Program Settings...
+- [x] Other Formats submenu:
+  - [x] Save Chart List...
+  - [x] Save Chart Exchange...
+  - [x] Save Chart Quick*Chart...
 - Export (SVG, PDF, Bitmap)
+- [x] Export Chart Text Output...
+- [x] Open Bitmap submenu:
+  - [x] Open Chart Background...
+  - [x] Open World Map...
 - Exit
 
 ### Windows Has (FLTK Missing)
 - [ ] Save Chart Positions...
-- [ ] Other Formats submenu:
-  - [ ] Open Charts in Folder...
-  - [ ] Save Chart List...
-  - [ ] Save Chart Exchange...
-  - [ ] Save Chart Quick*Chart...
-- [x] Export Chart Text Output...
+- [ ] Open Charts in Folder...
 - [ ] Export Chart Metafile...
 - [ ] Export Chart PostScript...
 - [ ] Export Chart Wireframe...
 - [ ] Export as Wallpaper submenu
-- [ ] Open Bitmap submenu:
-  - [ ] Open Chart Background...
-  - [ ] Open World Map...
 - [ ] Print...
 - [ ] Print Setup...
 
@@ -44,10 +44,14 @@ Many features have been implemented - marked with [x] below.
 - Copy
 - Paste (placeholder)
 - Command Line...
+- [x] Run Macro submenus (48 macros via F1-F12 with modifiers)
+  - Normal Set (F1-F12)
+  - Shift Set (Shift+F1-F12)
+  - Command Set (Cmd+F1-F12 on Mac, Ctrl on others)
+  - Alt Set (Alt+F1-F12)
+- [x] Copy Chart Text Output
 
 ### Windows Has (FLTK Missing)
-- [ ] Run Macro submenus (48 macros via F1-F12 with modifiers)
-- [x] Copy Chart Text Output
 - [ ] Copy Chart Bitmap
 - [ ] Copy Chart Metafile
 - [ ] Copy Chart PostScript
@@ -114,16 +118,19 @@ Many features have been implemented - marked with [x] below.
 - Set Chart Info...
 - Chart for Now
 - Set Chart #2 Info...
+- [x] Charts #3 Through #6...
 - [x] Default Chart Info...
 - [x] Swap Chart #1 and #2
+- [x] Chart List submenu:
+  - [x] Chart List... dialog
+  - [x] Previous Chart
+  - [x] Next Chart
+  - [x] First Chart
+  - [x] Last Chart
 - Relationship submenu (No Relationship, Comparison, Synastry, Composite, Time Space Midpoint, Date Difference, Biorhythm, Transit and Natal, Progressed and Natal)
 
 ### Windows Has (FLTK Missing)
-- [ ] Charts #3 Through #6...
-- [ ] Chart List submenu:
-  - [ ] Chart List...
-  - [ ] Previous/Next Chart
-  - [ ] First/Last Chart
+(All major features now implemented)
 
 ---
 
@@ -145,20 +152,22 @@ Many features have been implemented - marked with [x] below.
 - Transit Restrictions...
 - Color Settings...
 - Glyph Fonts submenu
-- Include Minors/Cusps/Uranians/Dwarfs/Moons/Body Centers/Fixed Stars
+- Include Minors/Cusps/Uranians/Dwarfs/Fixed Stars
 
 - [x] Object Settings...
 - [x] Star Restrictions...
+- [x] More Object Settings...
+- [x] Planetary Moons submenu:
+  - [x] Moons Chart
+  - [x] Exoplanets Chart
+  - [x] Moon Restrictions... dialog
+  - [x] Include Moons
+  - [x] Include Body Centers (COB)
 
 ### Windows Has (FLTK Missing)
-- [x] More Object Settings...
-- [ ] Planetary Moons submenu:
-  - [ ] Moons Chart
-  - [ ] Exoplanets Chart
-  - [ ] Moon Restrictions...
-  - [ ] Moon Object Settings...
-  - [ ] Object Customization...
-  - [ ] Star Customization...
+- [x] Moon Object Settings... dialog
+- [x] Object Customization... dialog
+- [x] Star Customization... dialog
 
 ---
 
@@ -185,7 +194,7 @@ Many features have been implemented - marked with [x] below.
 - [x] Graphics Settings...
 
 ### Windows Has (FLTK Missing)
-- [ ] Scribble Color submenu (16 colors)
+- [x] Scribble Color submenu (16 colors) - implemented as "Pen Color"
 
 ---
 
@@ -213,17 +222,17 @@ Many features have been implemented - marked with [x] below.
 - [x] Open Website
 - [x] Open Changes Log
 - [x] Show License
+- [x] Open Data Files submenu:
+  - [x] Open Default Settings
+  - [x] Open Atlas
+  - [x] Open Time Zone Changes
+  - [x] Open Star List
+  - [x] Open Orbital Elements
+  - [x] Open Exoplanet List
 - List Signs/Objects/Aspects/Constellations/Planet Info/Rays/General Meanings/Switches/Obscure Switches/Keystrokes/Credits
 
 ### Windows Has (FLTK Missing)
 - [ ] Open Website Mirror
-- [ ] Open Data Files submenu:
-  - [ ] Open Default Settings
-  - [ ] Open Atlas
-  - [ ] Open Time Zone Changes
-  - [ ] Open Star List
-  - [ ] Open Orbital Elements
-  - [ ] Open Exoplanet List
 - [ ] Setup submenu:
   - [ ] Create Program Group (User/All)
   - [ ] Create Desktop Icon
@@ -244,12 +253,12 @@ Many features have been implemented - marked with [x] below.
 ### Medium Priority (Usability) - MOSTLY COMPLETED
 1. [x] Show Interpretations
 2. [x] Parallel Aspects / Applying Aspects toggles
-3. [ ] Object Settings dialogs
+3. [x] Object Settings dialogs
 4. [x] Character Scale controls
 5. [x] Store/Recall Chart Info
 
 ### Lower Priority (Advanced)
-1. [ ] Macro system
+1. [x] Macro system
 2. [ ] Wallpaper export
 3. [ ] Print support
 4. [ ] Setup/installation helpers
@@ -274,10 +283,14 @@ Many features have been implemented - marked with [x] below.
 - [x] Progressions (FShowDlgProgress)
 - [x] Chart Settings (FShowDlgChartSettings)
 - [x] Default Chart Info (FShowDlgDefaultInfo)
-
 - [x] Object Settings (FShowDlgObject)
+- [x] More Object Settings (FShowDlgObject2)
 - [x] Star Restrictions (FShowDlgStar)
+- [x] Charts #3-6 Info (FShowDlgInfoAll)
+- [x] Chart List (FShowDlgList)
+- [x] Moon Restrictions (FShowDlgMoons)
 
 ### Windows Dialogs (FLTK Missing)
-- [ ] More Object Settings (cmdObject2 / dlgObject2)
-- [ ] Chart List (cmdList / dlgList)
+- [x] Moon Object Settings (cmdObjectM / dlgObjectM)
+- [x] Object Customization (cmdCustom / dlgCustom)
+- [x] Star Customization (cmdCustomS / dlgCustomS)

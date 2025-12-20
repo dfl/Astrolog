@@ -196,6 +196,7 @@ void FMenuViewArabic(Fl_Widget *w, void *data);
 #endif
 void FMenuViewNearestCity(Fl_Widget *w, void *data);
 void FMenuViewMoons(Fl_Widget *w, void *data);
+void FMenuViewExo(Fl_Widget *w, void *data);
 
 // Forward declarations for new toggle callbacks
 void FMenuGraphicsToggle(Fl_Widget *w, void *data);
@@ -217,6 +218,7 @@ void FMenuGraphicsSidebar(Fl_Widget *w, void *data);
 void FMenuGraphicsSquare(Fl_Widget *w, void *data);
 void FMenuGraphicsAntialias(Fl_Widget *w, void *data);
 void FMenuModifyChart(Fl_Widget *w, void *data);
+void FMenuPenColor(Fl_Widget *w, void *data);
 void FMenuScaleDecrease(Fl_Widget *w, void *data);
 void FMenuScaleIncrease(Fl_Widget *w, void *data);
 void FMenuScale1(Fl_Widget *w, void *data);
@@ -248,6 +250,16 @@ void FMenuChartSettingsDlg(Fl_Widget *w, void *data);
 // Forward declarations for info menu callbacks
 void FMenuSwapCharts(Fl_Widget *w, void *data);
 void FMenuDefaultInfo(Fl_Widget *w, void *data);
+void FMenuInfoAll(Fl_Widget *w, void *data);
+void FMenuListPrev(Fl_Widget *w, void *data);
+void FMenuListNext(Fl_Widget *w, void *data);
+void FMenuListFirst(Fl_Widget *w, void *data);
+void FMenuListLast(Fl_Widget *w, void *data);
+void FMenuListDlg(Fl_Widget *w, void *data);
+void FMenuMoonRestrict(Fl_Widget *w, void *data);
+void FMenuMoonObjSettings(Fl_Widget *w, void *data);
+void FMenuObjCustom(Fl_Widget *w, void *data);
+void FMenuStarCustom(Fl_Widget *w, void *data);
 
 // Forward declarations for file menu callbacks
 void FMenuFileOpenChart2(Fl_Widget *w, void *data);
@@ -262,6 +274,12 @@ void FMenuStarRestrict(Fl_Widget *w, void *data);
 void FMenuHelpWebsite(Fl_Widget *w, void *data);
 void FMenuHelpChanges(Fl_Widget *w, void *data);
 void FMenuHelpLicense(Fl_Widget *w, void *data);
+void FMenuDocDefault(Fl_Widget *w, void *data);
+void FMenuDocAtlas(Fl_Widget *w, void *data);
+void FMenuDocTimezone(Fl_Widget *w, void *data);
+void FMenuDocStar(Fl_Widget *w, void *data);
+void FMenuDocOrbit(Fl_Widget *w, void *data);
+void FMenuDocExo(Fl_Widget *w, void *data);
 
 // Forward declarations for window settings callbacks
 void FMenuSizeChartToWindow(Fl_Widget *w, void *data);
@@ -271,6 +289,18 @@ void FMenuFullScreen(Fl_Widget *w, void *data);
 // Edit menu - Copy/Export Text
 void FMenuExportText(Fl_Widget *w, void *data);
 void FMenuCopyText(Fl_Widget *w, void *data);
+
+// Macro callbacks
+void FMenuMacro(Fl_Widget *w, void *data);
+
+// Other Formats submenu callbacks
+void FMenuSaveChartList(Fl_Widget *w, void *data);
+void FMenuSaveAAF(Fl_Widget *w, void *data);
+void FMenuSaveQuick(Fl_Widget *w, void *data);
+
+// Open Bitmap submenu callbacks
+void FMenuOpenBackground(Fl_Widget *w, void *data);
+void FMenuOpenWorldMap(Fl_Widget *w, void *data);
 
 /*
 ******************************************************************************
@@ -1178,25 +1208,62 @@ void AstrologWindow::createMenus()
   menubar_->add("&File/&Save Chart...", FL_COMMAND+'s', FMenuFileSave);
   menubar_->add("&File/Save &As...", 0, FMenuFileSaveAs);
   menubar_->add("&File/Save Program Settin&gs...", 0, FMenuFileSaveSettings);
+  menubar_->add("&File/Other Formats/Save Chart &List...", 0, FMenuSaveChartList);
+  menubar_->add("&File/Other Formats/Save Chart &Exchange...", 0, FMenuSaveAAF);
+  menubar_->add("&File/Other Formats/Save Chart &Quick*Chart...", 0, FMenuSaveQuick);
 #ifdef CAIRO
   menubar_->add("&File/Export/&SVG...", 0, FMenuExportSVG);
   menubar_->add("&File/Export/&PDF...", 0, FMenuExportPDF);
 #endif
   menubar_->add("&File/Export/&Bitmap...", 0, FMenuExportBitmap);
   menubar_->add("&File/Export/Chart &Text Output...", 0, FMenuExportText);
+  menubar_->add("&File/Open Bitmap/Open Chart &Background...", 0, FMenuOpenBackground);
+  menubar_->add("&File/Open Bitmap/Open &World Map...", 0, FMenuOpenWorldMap);
   menubar_->add("&File/E&xit", FL_COMMAND+'q', FMenuFileExit);
 
   // Edit menu
   menubar_->add("&Edit/&Copy Chart Text Output", FL_COMMAND+'c', FMenuCopyText);
   menubar_->add("&Edit/&Paste", FL_COMMAND+'v', (Fl_Callback*)NULL);
-  menubar_->add("&Edit/Command &Line...", FL_F+2, FMenuCommand);
+  menubar_->add("&Edit/Command &Line...", FL_F+2, FMenuCommand, 0, FL_MENU_DIVIDER);
+
+  // Run Macro submenus (F1-F12 with modifiers)
+  // Normal set (F1-F12)
+  for (int i = 1; i <= 12; i++) {
+    char szMenu[64];
+    sprintf(szMenu, "&Edit/Run Macro (&Normal Set)/Macro &%d", i);
+    menubar_->add(szMenu, FL_F+i, FMenuMacro, (void*)(long)i);
+  }
+  // Shift set (Shift+F1-F12 = macros 13-24)
+  for (int i = 1; i <= 12; i++) {
+    char szMenu[64];
+    sprintf(szMenu, "&Edit/Run Macro (&Shift Set)/Macro &%d", i+12);
+    menubar_->add(szMenu, FL_SHIFT+FL_F+i, FMenuMacro, (void*)(long)(i+12));
+  }
+  // Command/Ctrl set (Cmd+F1-F12 = macros 25-36)
+  for (int i = 1; i <= 12; i++) {
+    char szMenu[64];
+    sprintf(szMenu, "&Edit/Run Macro (&Command Set)/Macro &%d", i+24);
+    menubar_->add(szMenu, FL_COMMAND+FL_F+i, FMenuMacro, (void*)(long)(i+24));
+  }
+  // Alt/Option set (Alt+F1-F12 = macros 37-48)
+  for (int i = 1; i <= 12; i++) {
+    char szMenu[64];
+    sprintf(szMenu, "&Edit/Run Macro (&Alt Set)/Macro &%d", i+36);
+    menubar_->add(szMenu, FL_ALT+FL_F+i, FMenuMacro, (void*)(long)(i+36));
+  }
 
   // Info menu
   menubar_->add("&Info/Set &Chart Info...", FL_COMMAND+'i', FMenuInfoChart);
   menubar_->add("&Info/Chart for &Now", 'n', FMenuChartNow);
   menubar_->add("&Info/Set Chart #&2 Info...", 0, FMenuInfoChart2);
+  menubar_->add("&Info/Charts #&3 Through #6...", 0, FMenuInfoAll);
   menubar_->add("&Info/&Default Chart Info...", 0, FMenuDefaultInfo);
   menubar_->add("&Info/Swap Chart #1 and #&2", 'x', FMenuSwapCharts, 0, FL_MENU_DIVIDER);
+  menubar_->add("&Info/Chart List/Chart &List...", 0, FMenuListDlg);
+  menubar_->add("&Info/Chart List/&Previous Chart", FL_SHIFT+FL_Up, FMenuListPrev);
+  menubar_->add("&Info/Chart List/&Next Chart", FL_SHIFT+FL_Down, FMenuListNext);
+  menubar_->add("&Info/Chart List/&First Chart", FL_COMMAND+FL_Up, FMenuListFirst);
+  menubar_->add("&Info/Chart List/&Last Chart", FL_COMMAND+FL_Down, FMenuListLast, 0, FL_MENU_DIVIDER);
   menubar_->add("&Info/Relationship/No &Relationship Chart", 'c', FMenuRelNo);
   menubar_->add("&Info/Relationship/Com&parison Chart", 0, FMenuRelNo);
   menubar_->add("&Info/Relationship/&Synastry Chart", 0, FMenuRelSynastry);
@@ -1300,9 +1367,15 @@ void AstrologWindow::createMenus()
   menubar_->add("Se&ttings/Include &Cusps", 'C', FMenuIncludeCusps, 0, FL_MENU_TOGGLE);
   menubar_->add("Se&ttings/Include &Uranians", 'u', FMenuIncludeUranians, 0, FL_MENU_TOGGLE);
   menubar_->add("Se&ttings/Include &Dwarfs", 'y', FMenuIncludeDwarfs, 0, FL_MENU_TOGGLE);
-  menubar_->add("Se&ttings/Include &Moons", '`', FMenuIncludeMoons, 0, FL_MENU_TOGGLE);
-  menubar_->add("Se&ttings/Include &Body Centers", '~', FMenuIncludeCOB, 0, FL_MENU_TOGGLE);
   menubar_->add("Se&ttings/Include Fixed &Stars", 'U', FMenuIncludeStars, 0, FL_MENU_TOGGLE);
+  menubar_->add("Se&ttings/Planetary Moons/&Moons Chart", 'M', FMenuViewMoons);
+  menubar_->add("Se&ttings/Planetary Moons/&Exoplanets Chart", 0, FMenuViewExo, 0, FL_MENU_DIVIDER);
+  menubar_->add("Se&ttings/Planetary Moons/Moon &Object Settings...", 0, FMenuMoonObjSettings);
+  menubar_->add("Se&ttings/Planetary Moons/Moon &Restrictions...", 0, FMenuMoonRestrict);
+  menubar_->add("Se&ttings/Planetary Moons/Object &Customization...", 0, FMenuObjCustom);
+  menubar_->add("Se&ttings/Planetary Moons/Star Custo&mization...", 0, FMenuStarCustom, 0, FL_MENU_DIVIDER);
+  menubar_->add("Se&ttings/Planetary Moons/Include Moo&ns", '`', FMenuIncludeMoons, 0, FL_MENU_TOGGLE);
+  menubar_->add("Se&ttings/Planetary Moons/Include &Body Centers (COB)", '~', FMenuIncludeCOB, 0, FL_MENU_TOGGLE);
 
   // Graphics menu - 3D modes first (matching Windows)
   menubar_->add("&Graphics/Draw Chart S&phere", 'X', FMenuViewSphere);
@@ -1356,6 +1429,25 @@ void AstrologWindow::createMenus()
   menubar_->add("&Graphics/Indian Style/Draw &South Indian", 0, FMenuIndianS);
   menubar_->add("&Graphics/Indian Style/Draw &North Indian", 0, FMenuIndianN);
   menubar_->add("&Graphics/Indian Style/Draw &East Indian", 0, FMenuIndianE, 0, FL_MENU_DIVIDER);
+
+  // Pen/Scribble Color submenu
+  menubar_->add("&Graphics/Pen Color/Blac&k", FL_COMMAND+'z', FMenuPenColor, (void*)kBlack);
+  menubar_->add("&Graphics/Pen Color/&White", FL_COMMAND+'a', FMenuPenColor, (void*)kWhite);
+  menubar_->add("&Graphics/Pen Color/&Red", FL_COMMAND+'r', FMenuPenColor, (void*)kRed);
+  menubar_->add("&Graphics/Pen Color/&Green", FL_COMMAND+'g', FMenuPenColor, (void*)kGreen);
+  menubar_->add("&Graphics/Pen Color/&Blue", FL_COMMAND+'b', FMenuPenColor, (void*)kBlue);
+  menubar_->add("&Graphics/Pen Color/&Yellow", FL_COMMAND+'y', FMenuPenColor, (void*)kYellow);
+  menubar_->add("&Graphics/Pen Color/&Magenta", FL_COMMAND+'m', FMenuPenColor, (void*)kMagenta);
+  menubar_->add("&Graphics/Pen Color/&Cyan", FL_COMMAND+'j', FMenuPenColor, (void*)kCyan, FL_MENU_DIVIDER);
+  menubar_->add("&Graphics/Pen Color/Gr&ay", FL_COMMAND+'d', FMenuPenColor, (void*)kDkGray);
+  menubar_->add("&Graphics/Pen Color/&Lt. Gray", FL_COMMAND+'l', FMenuPenColor, (void*)kLtGray);
+  menubar_->add("&Graphics/Pen Color/Maroo&n", FL_COMMAND+'e', FMenuPenColor, (void*)kMaroon);
+  menubar_->add("&Graphics/Pen Color/Dk. Gr&een", FL_COMMAND+'f', FMenuPenColor, (void*)kDkGreen);
+  menubar_->add("&Graphics/Pen Color/Dk. Bl&ue", FL_COMMAND+'n', FMenuPenColor, (void*)kDkBlue);
+  menubar_->add("&Graphics/Pen Color/&Orange", FL_COMMAND+'o', FMenuPenColor, (void*)kOrange);
+  menubar_->add("&Graphics/Pen Color/&Purple", FL_COMMAND+'u', FMenuPenColor, (void*)kPurple);
+  menubar_->add("&Graphics/Pen Color/&Dk. Cyan", FL_COMMAND+'k', FMenuPenColor, (void*)kDkCyan);
+
   menubar_->add("&Graphics/Modify &Display", 'i', FMenuGraphicsModify, 0, FL_MENU_TOGGLE);
   menubar_->add("&Graphics/Modif&y Chart", '0', FMenuModifyChart, 0, FL_MENU_TOGGLE);
   menubar_->add("&Graphics/&Graphics Settings...", 0, FMenuGraphicsSettings);
@@ -1398,6 +1490,14 @@ void AstrologWindow::createMenus()
   menubar_->add("&Help/Open &Website", 0, FMenuHelpWebsite);
   menubar_->add("&Help/Open &Changes Log", 0, FMenuHelpChanges);
   menubar_->add("&Help/Show &License", 0, FMenuHelpLicense, 0, FL_MENU_DIVIDER);
+  menubar_->add("&Help/Open Data Files/Open &Default Settings", 0, FMenuDocDefault);
+#ifdef ATLAS
+  menubar_->add("&Help/Open Data Files/Open &Atlas", 0, FMenuDocAtlas);
+  menubar_->add("&Help/Open Data Files/Open &Time Zone Changes", 0, FMenuDocTimezone);
+#endif
+  menubar_->add("&Help/Open Data Files/Open &Star List", 0, FMenuDocStar);
+  menubar_->add("&Help/Open Data Files/Open &Orbital Elements", 0, FMenuDocOrbit);
+  menubar_->add("&Help/Open Data Files/Open &Exoplanet List", 0, FMenuDocExo, 0, FL_MENU_DIVIDER);
   menubar_->add("&Help/List Si&gns", 0, FMenuHelpSign);
   menubar_->add("&Help/List &Objects", 0, FMenuHelpObject);
   menubar_->add("&Help/List Aspec&ts", 0, FMenuHelpAspect);
@@ -1702,6 +1802,26 @@ void FMenuCopyText(Fl_Widget *w, void *data)
   // Clean up
   free(buffer);
   unlink(szTempFile);
+}
+
+// Execute a macro command
+void FMenuMacro(Fl_Widget *w, void *data)
+{
+  int i = (int)(long)data;
+  if (is.rgszMacro != NULL && i <= is.cszMacro && is.rgszMacro[i]) {
+    FProcessCommandLine(is.rgszMacro[i]);
+    fi.fDoCast = fTrue;
+    if (fi.chart) fi.chart->redraw();
+  } else {
+    // For F1, show help instead of error if macro not defined
+    if (i == 1) {
+      FMenuHelpKeystroke(w, NULL);
+      return;
+    }
+    char sz[80];
+    sprintf(sz, "Macro number %d is not defined.", i);
+    fl_message("%s", sz);
+  }
 }
 
 void FMenuHelpAbout(Fl_Widget *w, void *data)
@@ -2081,6 +2201,104 @@ void FMenuDefaultInfo(Fl_Widget *w, void *data)
   FShowDlgDefaultInfo();
 }
 
+void FMenuInfoAll(Fl_Widget *w, void *data)
+{
+  FShowDlgInfoAll();
+}
+
+void FMenuListPrev(Fl_Widget *w, void *data)
+{
+  if (is.cci <= 0) {
+    fl_message("There is no chart list in memory.");
+    return;
+  }
+  int i = is.iciCur - 1;
+  if (i < 0)
+    i = 0;
+  if (i != is.iciCur) {
+    is.iciCur = i;
+    ciCore = is.rgci[i];
+    fi.fDoCast = fTrue;
+    if (fi.chart)
+      fi.chart->redraw();
+  }
+}
+
+void FMenuListNext(Fl_Widget *w, void *data)
+{
+  if (is.cci <= 0) {
+    fl_message("There is no chart list in memory.");
+    return;
+  }
+  int i = is.iciCur + 1;
+  if (i >= is.cci)
+    i = is.cci - 1;
+  if (i != is.iciCur) {
+    is.iciCur = i;
+    ciCore = is.rgci[i];
+    fi.fDoCast = fTrue;
+    if (fi.chart)
+      fi.chart->redraw();
+  }
+}
+
+void FMenuListFirst(Fl_Widget *w, void *data)
+{
+  if (is.cci <= 0) {
+    fl_message("There is no chart list in memory.");
+    return;
+  }
+  int i = 0;
+  if (i != is.iciCur) {
+    is.iciCur = i;
+    ciCore = is.rgci[i];
+    fi.fDoCast = fTrue;
+    if (fi.chart)
+      fi.chart->redraw();
+  }
+}
+
+void FMenuListLast(Fl_Widget *w, void *data)
+{
+  if (is.cci <= 0) {
+    fl_message("There is no chart list in memory.");
+    return;
+  }
+  int i = is.cci - 1;
+  if (i != is.iciCur) {
+    is.iciCur = i;
+    ciCore = is.rgci[i];
+    fi.fDoCast = fTrue;
+    if (fi.chart)
+      fi.chart->redraw();
+  }
+}
+
+void FMenuListDlg(Fl_Widget *w, void *data)
+{
+  FShowDlgList();
+}
+
+void FMenuMoonRestrict(Fl_Widget *w, void *data)
+{
+  FShowDlgMoons();
+}
+
+void FMenuMoonObjSettings(Fl_Widget *w, void *data)
+{
+  FShowDlgMoonObj();
+}
+
+void FMenuObjCustom(Fl_Widget *w, void *data)
+{
+  FShowDlgCustom();
+}
+
+void FMenuStarCustom(Fl_Widget *w, void *data)
+{
+  FShowDlgCustomS();
+}
+
 void FMenuFileOpenChart2(Fl_Widget *w, void *data)
 {
   Fl_File_Chooser chooser(".", "Chart Files (*.as)\tAll Files (*)",
@@ -2113,6 +2331,95 @@ void FMenuFileSaveSettings(Fl_Widget *w, void *data)
   if (chooser.value()) {
     // Write settings to file using FOutputSettings
     FOutputSettings();
+  }
+}
+
+void FMenuSaveChartList(Fl_Widget *w, void *data)
+{
+  if (is.cci <= 0) {
+    fl_message("There is no chart list in memory to save.");
+    return;
+  }
+
+  Fl_File_Chooser chooser(".", "Chart List (*.as)",
+    Fl_File_Chooser::CREATE, "Save Chart List");
+  chooser.show();
+  while (chooser.shown())
+    Fl::wait();
+
+  if (chooser.value()) {
+    char szCmd[cchSzMax];
+    sprintf(szCmd, "-ol \"%s\"", chooser.value());
+    FProcessCommandLine(szCmd);
+  }
+}
+
+void FMenuSaveAAF(Fl_Widget *w, void *data)
+{
+  Fl_File_Chooser chooser(".", "AAF Files (*.aaf)",
+    Fl_File_Chooser::CREATE, "Save Chart Exchange (AAF)");
+  chooser.show();
+  while (chooser.shown())
+    Fl::wait();
+
+  if (chooser.value()) {
+    char szCmd[cchSzMax];
+    sprintf(szCmd, "-oa \"%s\"", chooser.value());
+    FProcessCommandLine(szCmd);
+  }
+}
+
+void FMenuSaveQuick(Fl_Widget *w, void *data)
+{
+  Fl_File_Chooser chooser(".", "Quick*Chart Files (*.qck)",
+    Fl_File_Chooser::CREATE, "Save Chart Quick*Chart");
+  chooser.show();
+  while (chooser.shown())
+    Fl::wait();
+
+  if (chooser.value()) {
+    char szCmd[cchSzMax];
+    sprintf(szCmd, "-oq \"%s\"", chooser.value());
+    FProcessCommandLine(szCmd);
+  }
+}
+
+void FMenuOpenBackground(Fl_Widget *w, void *data)
+{
+  Fl_File_Chooser chooser(".", "Bitmap Files (*.bmp)\tAll Files (*)",
+    Fl_File_Chooser::SINGLE, "Open Chart Background");
+  chooser.show();
+  while (chooser.shown())
+    Fl::wait();
+
+  if (chooser.value()) {
+    // Load the bitmap as background
+    char szCmd[cchSzMax];
+    sprintf(szCmd, "-XI \"%s\"", chooser.value());
+    FProcessCommandLine(szCmd);
+    gi.fBmp = fTrue;
+    fi.fDoCast = fTrue;
+    if (fi.chart)
+      fi.chart->redraw();
+  }
+}
+
+void FMenuOpenWorldMap(Fl_Widget *w, void *data)
+{
+  Fl_File_Chooser chooser(".", "Bitmap Files (*.bmp)\tAll Files (*)",
+    Fl_File_Chooser::SINGLE, "Open World Map");
+  chooser.show();
+  while (chooser.shown())
+    Fl::wait();
+
+  if (chooser.value()) {
+    // Load the bitmap as world map
+    char szCmd[cchSzMax];
+    sprintf(szCmd, "-XB \"%s\"", chooser.value());
+    FProcessCommandLine(szCmd);
+    fi.fDoCast = fTrue;
+    if (fi.chart)
+      fi.chart->redraw();
   }
 }
 
@@ -2164,6 +2471,50 @@ void FMenuHelpLicense(Fl_Widget *w, void *data)
     "these routines provided these credits and notices remain\n"
     "unmodified with any altered or distributed versions of the program."
   );
+}
+
+// Helper function to open a file with the default text editor
+static void OpenFileInEditor(const char *szFile)
+{
+  char szCmd[cchSzMax];
+#ifdef __APPLE__
+  sprintf(szCmd, "open -t \"%s\"", szFile);
+#elif defined(__linux__)
+  sprintf(szCmd, "xdg-open \"%s\"", szFile);
+#elif defined(_WIN32)
+  sprintf(szCmd, "notepad \"%s\"", szFile);
+#endif
+  system(szCmd);
+}
+
+void FMenuDocDefault(Fl_Widget *w, void *data)
+{
+  OpenFileInEditor(DEFAULT_INFOFILE);
+}
+
+void FMenuDocAtlas(Fl_Widget *w, void *data)
+{
+  OpenFileInEditor(DEFAULT_ATLASFILE);
+}
+
+void FMenuDocTimezone(Fl_Widget *w, void *data)
+{
+  OpenFileInEditor(DEFAULT_TIMECHANGE);
+}
+
+void FMenuDocStar(Fl_Widget *w, void *data)
+{
+  OpenFileInEditor("sefstars.txt");
+}
+
+void FMenuDocOrbit(Fl_Widget *w, void *data)
+{
+  OpenFileInEditor("seorbel.txt");
+}
+
+void FMenuDocExo(Fl_Widget *w, void *data)
+{
+  OpenFileInEditor(szFileExoCore);
 }
 
 void FMenuSizeChartToWindow(Fl_Widget *w, void *data)
@@ -2446,6 +2797,14 @@ void FMenuViewNearestCity(Fl_Widget *w, void *data)
 void FMenuViewMoons(Fl_Widget *w, void *data)
 {
   gi.nMode = gMoons;
+  fi.fDoCast = fTrue;
+  if (fi.chart) fi.chart->redraw();
+}
+
+void FMenuViewExo(Fl_Widget *w, void *data)
+{
+  gi.nMode = gExo;
+  us.fExoTransit = fTrue;
   fi.fDoCast = fTrue;
   if (fi.chart) fi.chart->redraw();
 }
@@ -2771,6 +3130,12 @@ void FMenuModifyChart(Fl_Widget *w, void *data)
   inv(us.fGridMidpoint);
   UpdateMenuCheck(FMenuModifyChart, us.fGridMidpoint);
   fi.fDoCast = fTrue;
+  if (fi.chart) fi.chart->redraw();
+}
+
+void FMenuPenColor(Fl_Widget *w, void *data)
+{
+  gi.kiPen = (int)(long)data;
   if (fi.chart) fi.chart->redraw();
 }
 

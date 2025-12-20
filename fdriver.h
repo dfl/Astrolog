@@ -150,6 +150,12 @@ extern void FShowDlgDefaultInfo(void);
 extern void FShowDlgObject(void);
 extern void FShowDlgObject2(void);
 extern void FShowDlgStar(void);
+extern void FShowDlgInfoAll(void);
+extern void FShowDlgList(void);
+extern void FShowDlgMoons(void);
+extern void FShowDlgMoonObj(void);
+extern void FShowDlgCustom(void);
+extern void FShowDlgCustomS(void);
 
 #endif // FLTK
 #endif // _FDRIVER_H
