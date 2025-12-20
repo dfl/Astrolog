@@ -23,6 +23,7 @@
 #include <FL/Fl_File_Chooser.H>
 #include <FL/Fl_RGB_Image.H>
 #include <FL/fl_ask.H>
+#include <FL/Fl_Printer.H>
 #include <unistd.h>  // For unlink()
 
 #ifdef CAIRO
@@ -264,6 +265,7 @@ void FMenuStarCustom(Fl_Widget *w, void *data);
 // Forward declarations for file menu callbacks
 void FMenuFileOpenChart2(Fl_Widget *w, void *data);
 void FMenuFileSaveSettings(Fl_Widget *w, void *data);
+void FMenuFilePrint(Fl_Widget *w, void *data);
 
 // Forward declarations for settings menu callbacks
 void FMenuObjectSettings(Fl_Widget *w, void *data);
@@ -702,8 +704,6 @@ int ChartWidget::handle(int event)
 
 int ChartWidget::handleKey(int key)
 {
-  int i;
-
   // Let Cmd/Ctrl modified keys pass through to menu shortcuts
   if (Fl::event_state() & FL_COMMAND)
     return 0;
@@ -1218,7 +1218,8 @@ void AstrologWindow::createMenus()
   menubar_->add("&File/Export/&Bitmap...", 0, FMenuExportBitmap);
   menubar_->add("&File/Export/Chart &Text Output...", 0, FMenuExportText);
   menubar_->add("&File/Open Bitmap/Open Chart &Background...", 0, FMenuOpenBackground);
-  menubar_->add("&File/Open Bitmap/Open &World Map...", 0, FMenuOpenWorldMap);
+  menubar_->add("&File/Open Bitmap/Open &World Map...", 0, FMenuOpenWorldMap, 0, FL_MENU_DIVIDER);
+  menubar_->add("&File/&Print...", FL_COMMAND+'p', FMenuFilePrint, 0, FL_MENU_DIVIDER);
   menubar_->add("&File/E&xit", FL_COMMAND+'q', FMenuFileExit);
 
   // Edit menu
@@ -2332,6 +2333,55 @@ void FMenuFileSaveSettings(Fl_Widget *w, void *data)
     // Write settings to file using FOutputSettings
     FOutputSettings();
   }
+}
+
+void FMenuFilePrint(Fl_Widget *w, void *data)
+{
+  if (!fi.chart) {
+    fl_alert("No chart to print.");
+    return;
+  }
+
+  Fl_Printer printer;
+
+  // Show native print dialog
+  if (printer.start_job(1) != 0) {
+    return;  // User cancelled or error
+  }
+
+  if (printer.start_page() != 0) {
+    printer.end_job();
+    return;
+  }
+
+  // Get printable area
+  int pw, ph;
+  printer.printable_rect(&pw, &ph);
+
+  // Get current chart size
+  int chartW = fi.chart->w();
+  int chartH = fi.chart->h();
+
+  // Calculate scale to fit on page while maintaining aspect ratio
+  double scaleX = (double)pw / chartW;
+  double scaleY = (double)ph / chartH;
+  double scale = (scaleX < scaleY) ? scaleX : scaleY;
+
+  // Center the chart on the page
+  int scaledW = (int)(chartW * scale);
+  int scaledH = (int)(chartH * scale);
+  int offsetX = (pw - scaledW) / 2;
+  int offsetY = (ph - scaledH) / 2;
+
+  // Set origin and scale for printing
+  printer.origin(offsetX, offsetY);
+  printer.scale((float)scale, (float)scale);
+
+  // Print the chart widget
+  printer.print_widget(fi.chart, 0, 0);
+
+  printer.end_page();
+  printer.end_job();
 }
 
 void FMenuSaveChartList(Fl_Widget *w, void *data)
