@@ -40,6 +40,9 @@ FI fi = {0};
 static int fUseCairo = fTrue;
 #endif
 
+// Manual character scale multiplier (100=1x, 200=2x, 300=3x, 400=4x)
+static int nCharScaleManual = 100;
+
 // Flag to enable OpenGL 3D rendering
 #ifdef OPENGL
 static int fUseOpenGL = fTrue;  // Default to OpenGL rendering when available
@@ -89,6 +92,7 @@ Fl_Color FltkColorFromKI(int ki)
 
 // Forward declarations for helper functions
 static void UpdateMenuCheck(Fl_Callback *cb, flag f);
+static void UpdateMenuRadio(Fl_Callback *cb);
 
 // Forward declarations for view menu callbacks (used by handleKey)
 void FMenuViewWheel(Fl_Widget *w, void *data);
@@ -373,15 +377,8 @@ void ChartWidget::draw()
     // This accounts for the fact that the default 600px matches typical minimum dimension
     int defDim = 440;
     real baseScale = (real)minDim / (real)defDim;
-    // Preserve manual scale setting from Character Scale menu (100, 200, 300, 400)
-    // The stored gs.nScale acts as a multiplier: 100 = 1x, 200 = 2x, etc.
-    static int nScaleManual = 100;  // Default to 100 (1x)
-    // Update manual scale if it was changed by menu (values are 100, 200, 300, 400)
-    if (gs.nScale == 100 || gs.nScale == 200 || gs.nScale == 300 || gs.nScale == 400) {
-      nScaleManual = gs.nScale;
-    }
-    // Apply manual scale multiplier to base scale
-    real finalScale = baseScale * (nScaleManual / 100.0);
+    // Apply manual scale multiplier (nCharScaleManual) to base scale
+    real finalScale = baseScale * (nCharScaleManual / 100.0);
     gi.rScaleX = gi.rScaleY = finalScale;
     gi.nScale = Max((int)finalScale, 1);
     gs.nScale = Max((int)(finalScale * 100.0), 100);
@@ -1370,11 +1367,11 @@ void AstrologWindow::createMenus()
   menubar_->add("Se&ttings/&More Object Settings...", 0, FMenuObjectSettings2);
   menubar_->add("Se&ttings/Co&lor Settings...", 0, FMenuColorSettings, 0, FL_MENU_DIVIDER);
   // Glyph Fonts submenu
-  menubar_->add("Se&ttings/Glyph &Fonts/Astrono&micon (Default)", 0, FMenuGlyphFont, (void*)5);
-  menubar_->add("Se&ttings/Glyph &Fonts/&Astro", 0, FMenuGlyphFont, (void*)2);
-  menubar_->add("Se&ttings/Glyph &Fonts/&Enigma", 0, FMenuGlyphFont, (void*)3);
-  menubar_->add("Se&ttings/Glyph &Fonts/&Hamburg", 0, FMenuGlyphFont, (void*)4);
-  menubar_->add("Se&ttings/Glyph &Fonts/&Built-in", 0, FMenuGlyphFont, (void*)0, FL_MENU_DIVIDER);
+  menubar_->add("Se&ttings/Glyph &Fonts/Astrono&micon", 0, FMenuGlyphFont, (void*)5, FL_MENU_RADIO | FL_MENU_VALUE);
+  menubar_->add("Se&ttings/Glyph &Fonts/&Astro", 0, FMenuGlyphFont, (void*)2, FL_MENU_RADIO);
+  menubar_->add("Se&ttings/Glyph &Fonts/&Enigma", 0, FMenuGlyphFont, (void*)3, FL_MENU_RADIO);
+  menubar_->add("Se&ttings/Glyph &Fonts/&Hamburg", 0, FMenuGlyphFont, (void*)4, FL_MENU_RADIO);
+  menubar_->add("Se&ttings/Glyph &Fonts/&Built-in", 0, FMenuGlyphFont, (void*)0, FL_MENU_RADIO | FL_MENU_DIVIDER);
   menubar_->add("Se&ttings/Include &Minors", 'R', FMenuIncludeMinors, 0, FL_MENU_TOGGLE);
   menubar_->add("Se&ttings/Include &Cusps", 'C', FMenuIncludeCusps, 0, FL_MENU_TOGGLE);
   menubar_->add("Se&ttings/Include &Uranians", 'u', FMenuIncludeUranians, 0, FL_MENU_TOGGLE);
@@ -1407,10 +1404,10 @@ void AstrologWindow::createMenus()
   menubar_->add("&Graphics/Reduce Contrast/&Heavy (75%)", 0, FMenuReduceContrast, (void*)75, FL_MENU_RADIO);
   menubar_->add("&Graphics/S&quare Screen", 'Q', FMenuGraphicsSquare, 0, FL_MENU_TOGGLE);
   // Character Scale submenu
-  menubar_->add("&Graphics/Character Scale/&Small", 0, FMenuScale1);
-  menubar_->add("&Graphics/Character Scale/&Medium", 0, FMenuScale2);
-  menubar_->add("&Graphics/Character Scale/&Large", 0, FMenuScale3);
-  menubar_->add("&Graphics/Character Scale/&Huge", 0, FMenuScale4, 0, FL_MENU_DIVIDER);
+  menubar_->add("&Graphics/Character Scale/&Small", 0, FMenuScale1, 0, FL_MENU_RADIO | FL_MENU_VALUE);
+  menubar_->add("&Graphics/Character Scale/&Medium", 0, FMenuScale2, 0, FL_MENU_RADIO);
+  menubar_->add("&Graphics/Character Scale/&Large", 0, FMenuScale3, 0, FL_MENU_RADIO);
+  menubar_->add("&Graphics/Character Scale/&Huge", 0, FMenuScale4, 0, FL_MENU_RADIO | FL_MENU_DIVIDER);
   menubar_->add("&Graphics/Character Scale/&Decrease", '<', FMenuScaleDecrease);
   menubar_->add("&Graphics/Character Scale/&Increase", '>', FMenuScaleIncrease, 0, FL_MENU_DIVIDER);
   menubar_->add("&Graphics/Character Scale/Decrease &Text", 0, FMenuTextDecrease);
@@ -1443,9 +1440,9 @@ void AstrologWindow::createMenus()
   menubar_->add("&Graphics/Map Orientation/Zoom &In", 0, FMenuZoomIn);
   // Indian Style Charts submenu
   menubar_->add("&Graphics/Indian Style/Show &Indian Wheels", '=', FMenuIndian, 0, FL_MENU_TOGGLE|FL_MENU_DIVIDER);
-  menubar_->add("&Graphics/Indian Style/Draw &South Indian", 0, FMenuIndianS);
-  menubar_->add("&Graphics/Indian Style/Draw &North Indian", 0, FMenuIndianN);
-  menubar_->add("&Graphics/Indian Style/Draw &East Indian", 0, FMenuIndianE, 0, FL_MENU_DIVIDER);
+  menubar_->add("&Graphics/Indian Style/&South Indian", 0, FMenuIndianS, 0, FL_MENU_RADIO | FL_MENU_VALUE);
+  menubar_->add("&Graphics/Indian Style/&North Indian", 0, FMenuIndianN, 0, FL_MENU_RADIO);
+  menubar_->add("&Graphics/Indian Style/&East Indian", 0, FMenuIndianE, 0, FL_MENU_RADIO | FL_MENU_DIVIDER);
 
   // Pen/Scribble Color submenu
   menubar_->add("&Graphics/Pen Color/Blac&k", FL_COMMAND+'z', FMenuPenColor, (void*)kBlack);
@@ -2024,6 +2021,7 @@ void FMenuIndianS(Fl_Widget *w, void *data)
   gs.fIndianWheel = fTrue;
   gs.fHouseExtra = fFalse;
   UpdateMenuCheck(FMenuIndian, fTrue);
+  UpdateMenuRadio(FMenuIndianS);
   us.fGraphics = fTrue;
   if (fi.chart) fi.chart->redraw();
 }
@@ -2033,6 +2031,7 @@ void FMenuIndianN(Fl_Widget *w, void *data)
   gi.nMode = gHouse;
   gs.fIndianWheel = fTrue;
   UpdateMenuCheck(FMenuIndian, fTrue);
+  UpdateMenuRadio(FMenuIndianN);
   us.fGraphics = fTrue;
   if (fi.chart) fi.chart->redraw();
 }
@@ -2042,6 +2041,7 @@ void FMenuIndianE(Fl_Widget *w, void *data)
   gi.nMode = gWheel;
   gs.fIndianWheel = gs.fHouseExtra = fTrue;
   UpdateMenuCheck(FMenuIndian, fTrue);
+  UpdateMenuRadio(FMenuIndianE);
   us.fGraphics = fTrue;
   if (fi.chart) fi.chart->redraw();
 }
@@ -2637,6 +2637,7 @@ void FMenuGlyphFont(Fl_Widget *w, void *data)
   gs.nFontAsp = font;
   gs.nFontNak = font;
   gs.nFontAll = font * 11111;  // Pack into single value
+  UpdateMenuRadio(FMenuGlyphFont);
   if (fi.chart) fi.chart->redraw();
 }
 
@@ -3231,25 +3232,39 @@ void FMenuPenColor(Fl_Widget *w, void *data)
   if (fi.chart) fi.chart->redraw();
 }
 
-// Scale callbacks
+// Scale callbacks - update nCharScaleManual and radio buttons
+void FMenuScale1(Fl_Widget *w, void *data) { nCharScaleManual = 100; UpdateMenuRadio(FMenuScale1); if (fi.chart) fi.chart->redraw(); }
+void FMenuScale2(Fl_Widget *w, void *data) { nCharScaleManual = 200; UpdateMenuRadio(FMenuScale2); if (fi.chart) fi.chart->redraw(); }
+void FMenuScale3(Fl_Widget *w, void *data) { nCharScaleManual = 300; UpdateMenuRadio(FMenuScale3); if (fi.chart) fi.chart->redraw(); }
+void FMenuScale4(Fl_Widget *w, void *data) { nCharScaleManual = 400; UpdateMenuRadio(FMenuScale4); if (fi.chart) fi.chart->redraw(); }
+
 void FMenuScaleDecrease(Fl_Widget *w, void *data)
 {
-  if (gs.nScale > 100)
-    gs.nScale -= 100;
-  if (fi.chart) fi.chart->redraw();
+  if (nCharScaleManual > 100) {
+    nCharScaleManual -= 100;
+    // Update radio button based on new value
+    switch (nCharScaleManual) {
+      case 100: UpdateMenuRadio(FMenuScale1); break;
+      case 200: UpdateMenuRadio(FMenuScale2); break;
+      case 300: UpdateMenuRadio(FMenuScale3); break;
+    }
+    if (fi.chart) fi.chart->redraw();
+  }
 }
 
 void FMenuScaleIncrease(Fl_Widget *w, void *data)
 {
-  if (gs.nScale < 400)
-    gs.nScale += 100;
-  if (fi.chart) fi.chart->redraw();
+  if (nCharScaleManual < 400) {
+    nCharScaleManual += 100;
+    // Update radio button based on new value
+    switch (nCharScaleManual) {
+      case 200: UpdateMenuRadio(FMenuScale2); break;
+      case 300: UpdateMenuRadio(FMenuScale3); break;
+      case 400: UpdateMenuRadio(FMenuScale4); break;
+    }
+    if (fi.chart) fi.chart->redraw();
+  }
 }
-
-void FMenuScale1(Fl_Widget *w, void *data) { gs.nScale = 100; if (fi.chart) fi.chart->redraw(); }
-void FMenuScale2(Fl_Widget *w, void *data) { gs.nScale = 200; if (fi.chart) fi.chart->redraw(); }
-void FMenuScale3(Fl_Widget *w, void *data) { gs.nScale = 300; if (fi.chart) fi.chart->redraw(); }
-void FMenuScale4(Fl_Widget *w, void *data) { gs.nScale = 400; if (fi.chart) fi.chart->redraw(); }
 
 void FMenuTextDecrease(Fl_Widget *w, void *data)
 {
