@@ -96,6 +96,7 @@ Fl_Color FltkColorFromKI(int ki)
 // Forward declarations for helper functions
 static void UpdateMenuCheck(Fl_Callback *cb, flag f);
 static void UpdateMenuRadio(Fl_Callback *cb);
+static void UpdateMenuRadioByValue(Fl_Callback *cb, intptr_t value);
 
 // Forward declarations for view menu callbacks (used by handleKey)
 void FMenuViewWheel(Fl_Widget *w, void *data);
@@ -1569,6 +1570,11 @@ void AstrologWindow::createMenus()
   UpdateMenuCheck(FMenuGraphicsModify, gs.fAlt);
   UpdateMenuCheck(FMenuGraphicsHouseExtra, gs.fHouseExtra);
   UpdateMenuCheck(FMenuGraphicsEquator, gs.fEquator);
+
+  // Initialize radio button states
+  UpdateMenuRadioByValue(FMenuReduceContrast, gs.nReduceContrast);
+  // For glyph font, use nFontSig as representative (all are set to same value)
+  UpdateMenuRadioByValue(FMenuGlyphFont, gs.nFontSig);
 }
 
 /*
@@ -2964,6 +2970,21 @@ static void UpdateMenuRadio(Fl_Callback *cb)
     Fl_Menu_Item *item = (Fl_Menu_Item *)fi.menubar->find_item(cb);
     if (item) {
       item->setonly();
+    }
+  }
+}
+
+// Helper to update radio button selection by matching data value
+static void UpdateMenuRadioByValue(Fl_Callback *cb, intptr_t value)
+{
+  if (fi.menubar) {
+    const Fl_Menu_Item *menu = fi.menubar->menu();
+    int n = fi.menubar->size();
+    for (int i = 0; i < n; i++) {
+      if (menu[i].callback() == cb && (intptr_t)menu[i].user_data() == value) {
+        ((Fl_Menu_Item *)&menu[i])->setonly();
+        break;
+      }
     }
   }
 }
