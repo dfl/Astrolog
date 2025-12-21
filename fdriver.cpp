@@ -1113,9 +1113,32 @@ static void SquareWindowCallback(void *data)
     return;
 
   int oldW = gs.xWin, oldH = gs.yWin;
-  SquareX(&gs.xWin, &gs.yWin, fTrue);
+  int menuH = 25;
+
+  // Get screen work area (excludes menu bar, dock, etc.)
+  int screenX, screenY, screenW, screenH;
+  Fl::screen_work_area(screenX, screenY, screenW, screenH);
+
+  // Calculate sidebar width if visible
+  int sidebarW = (gs.fText && gs.fDoSidebar) ? xSideT : 0;
+
+  // Calculate chart area (excluding sidebar)
+  int chartW = gs.xWin - sidebarW;
+  int chartH = gs.yWin;
+
+  // Square the chart area to maximum dimension
+  int maxChartDim = Max(chartW, chartH);
+
+  // Limit to screen bounds (accounting for menu bar and sidebar)
+  int maxAllowedW = screenW - sidebarW;
+  int maxAllowedH = screenH - menuH;
+  maxChartDim = Min(maxChartDim, Min(maxAllowedW, maxAllowedH));
+
+  // Set new dimensions (add sidebar back to width)
+  gs.xWin = maxChartDim + sidebarW;
+  gs.yWin = maxChartDim;
+
   if (gs.xWin != oldW || gs.yWin != oldH) {
-    int menuH = 25;
     fi.window->size(gs.xWin, gs.yWin + menuH);
   }
 }
@@ -3180,9 +3203,8 @@ void FMenuGraphicsAutoSquare(Fl_Widget *w, void *data)
   UpdateMenuCheck(FMenuGraphicsAutoSquare, fAutoSquare);
   // If enabling, square the window immediately
   if (fAutoSquare && fSquare && fi.window) {
-    SquareX(&gs.xWin, &gs.yWin, fTrue);
-    int menuH = 25;
-    fi.window->size(gs.xWin, gs.yWin + menuH);
+    // Trigger the same logic as the resize callback
+    SquareWindowCallback(fi.window);
   }
 }
 
