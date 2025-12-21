@@ -2962,6 +2962,7 @@ void XChartMidpoint()
 
   // List midpoints in middle of wheel.
   if (!gs.fEquator && !gs.fLabelAsp) {
+    int nScaleSav;
     for (i = 1; i < count; i++) {
       j = i-1;
       loop {
@@ -2979,6 +2980,9 @@ void XChartMidpoint()
         j--;
       }
     }
+    // Use smaller scale for center list (similar to sidebar)
+    nScaleSav = gi.nScale;
+    gi.nScale = gi.nScaleT;
     i = (int)(unity * 2.0 * 0.65) / (gi.nScale*10);
     count = Min(count+1, i-1);
     for (i = -1; i < count-1; i++) {
@@ -3011,6 +3015,7 @@ void XChartMidpoint()
           cx - 12*gi.nScale - VSeconds(8, 11, 15)*xFontT, y, dtLeft | dtMid);
       }
     }
+    gi.nScale = nScaleSav;
   }
 
   DrawSidebar();

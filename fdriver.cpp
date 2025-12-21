@@ -3245,13 +3245,7 @@ void FMenuScale4(Fl_Widget *w, void *data) { nCharScaleManual = 400; UpdateMenuR
 void FMenuScaleDecrease(Fl_Widget *w, void *data)
 {
   if (nCharScaleManual > 100) {
-    nCharScaleManual -= 100;
-    // Update radio button based on new value
-    switch (nCharScaleManual) {
-      case 100: UpdateMenuRadio(FMenuScale1); break;
-      case 200: UpdateMenuRadio(FMenuScale2); break;
-      case 300: UpdateMenuRadio(FMenuScale3); break;
-    }
+    nCharScaleManual -= 50;
     if (fi.chart) fi.chart->redraw();
   }
 }
@@ -3259,13 +3253,7 @@ void FMenuScaleDecrease(Fl_Widget *w, void *data)
 void FMenuScaleIncrease(Fl_Widget *w, void *data)
 {
   if (nCharScaleManual < 400) {
-    nCharScaleManual += 100;
-    // Update radio button based on new value
-    switch (nCharScaleManual) {
-      case 200: UpdateMenuRadio(FMenuScale2); break;
-      case 300: UpdateMenuRadio(FMenuScale3); break;
-      case 400: UpdateMenuRadio(FMenuScale4); break;
-    }
+    nCharScaleManual += 50;
     if (fi.chart) fi.chart->redraw();
   }
 }
