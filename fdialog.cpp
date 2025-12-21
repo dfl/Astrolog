@@ -236,7 +236,7 @@ void FShowDlgInfo(int nChart)
     s_ciEdit = is.rgci[-nChart];
 
   // Create dialog window
-  int w = 400, h = 340;
+  int w = 480, h = 340;
   char szTitle[64];
   if (nChart == 1)
     sprintf(szTitle, "Set Chart Info");
@@ -260,20 +260,20 @@ void FShowDlgInfo(int nChart)
   s_inLoc = new Fl_Input(10 + lw, y, w - lw - 20, 25);
   y += gap + 10;
 
-  // Date row
+  // Date row - balanced sizing
   new Fl_Box(10, y, 50, 25, "Month:");
-  s_chMon = new Fl_Choice(60, y, 70, 25);
+  s_chMon = new Fl_Choice(60, y, 90, 25);
   for (int i = 1; i <= 12; i++)
     s_chMon->add(szMonth[i]);
 
-  new Fl_Box(140, y, 30, 25, "Day:");
-  s_inDay = new Fl_Int_Input(170, y, 40, 25);
+  new Fl_Box(160, y, 30, 25, "Day:");
+  s_inDay = new Fl_Int_Input(190, y, 35, 25);
 
-  new Fl_Box(220, y, 35, 25, "Year:");
-  s_inYea = new Fl_Int_Input(255, y, 60, 25);
+  new Fl_Box(235, y, 35, 25, "Year:");
+  s_inYea = new Fl_Int_Input(270, y, 50, 25);
 
-  new Fl_Box(325, y, 35, 25, "Time:");
-  s_inTim = new Fl_Input(360, y, w - 370, 25);
+  new Fl_Box(330, y, 35, 25, "Time:");
+  s_inTim = new Fl_Input(365, y, 100, 25);
   y += gap;
 
   // Zone row
@@ -315,6 +315,9 @@ void FShowDlgInfo(int nChart)
 
   // Initialize fields with current values
   UpdateInfoFields(s_ciEdit);
+
+  // Default DST to Autodetect for user convenience
+  s_chDst->value(2);
 
   s_dlgInfo->show();
 
