@@ -790,7 +790,6 @@ extern void DrawBox P((int, int, int, int, int, int));
 extern void WinClearScreen P((KI));
 extern void DrawClearScreen P((void));
 extern void DrawDash P((int, int, int, int, int));
-extern void DrawLens P((int, int, int, int, int));
 extern void DrawWrap P((int, int, int, int, int, int));
 extern void ClipLesser P((int *, int *, int *, int *, int));
 extern void ClipGreater P((int *, int *, int *, int *, int));

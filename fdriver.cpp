@@ -1411,7 +1411,6 @@ void AstrologWindow::createMenus()
   menubar_->add("&Graphics/Chart Effects/Show Chart &Info", 't', FMenuGraphicsText, 0, FL_MENU_TOGGLE);
   menubar_->add("&Graphics/Chart Effects/Show Info &Sidebar", 0, FMenuGraphicsSidebar, 0, FL_MENU_TOGGLE|FL_MENU_DIVIDER);
   menubar_->add("&Graphics/Chart Effects/&Thicker Lines", 'q', FMenuGraphicsThick, 0, FL_MENU_TOGGLE);
-  menubar_->add("&Graphics/Chart Effects/&Antialias Lines", 0, FMenuGraphicsAntialias, 0, FL_MENU_TOGGLE);
   menubar_->add("&Graphics/Chart Effects/Aspect Line Style/&Dotted", 0, FMenuDashStyle, (void*)0, FL_MENU_RADIO | FL_MENU_VALUE);
   menubar_->add("&Graphics/Chart Effects/Aspect Line Style/&Alpha", 0, FMenuDashStyle, (void*)1, FL_MENU_RADIO);
   menubar_->add("&Graphics/Chart Effects/Show Glyph &Labels", 'l', FMenuGraphicsLabel, 0, FL_MENU_TOGGLE);
