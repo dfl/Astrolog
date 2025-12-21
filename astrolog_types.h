@@ -590,6 +590,7 @@ typedef struct _GraphicsSettings {
   flag fAnimMap;     // Are we animating map instead of time (-XN set).
   flag fThick;       // Are we drawing thicker lines in charts (-Xx set).
   flag fAntialias;   // Are we drawing lines antialiased (-Xx0 set).
+  int nDashStyle;    // Line style: 0=dotted, 1=alpha, 2=lens (-Xx1 <n>).
   flag fIndianWheel; // Are wheel charts North/South Indian (-XJ set).
   flag fMoonWheel;   // Are moons drawn around planets in wheels (-X8 set).
   int xWin;          // Current hor. size of graphic chart (-Xw).

@@ -506,6 +506,20 @@ void DrawDash(int x1, int y1, int x2, int y2, int skip)
   }
 #ifdef ISG
   if (!gi.fFile) {
+    // Alpha line mode: use alpha transparency instead of dashing
+    if (gs.nDashStyle >= 1 && skip > 0) {
+      // Convert skip value to alpha (higher skip = more transparent)
+      // skip 1 = 180 alpha, skip 2 = 140, skip 3 = 110, skip 4+ = 80
+      int alpha = 255 - Min(skip, 5) * 35;
+      if (alpha < 80) alpha = 80;
+      GBSetColorAlpha(gi.kiCur, alpha);
+      if (gs.fThick)
+        GBDrawLineThick(x1, y1, x2, y2);
+      else
+        GBDrawLine(x1, y1, x2, y2);
+      GBSetColor(gi.kiCur);  // Restore full opacity
+      return;
+    }
     if (!skip) {
       // For non-dashed screen lines, use the graphics backend
       if (gs.fThick)
@@ -607,6 +621,102 @@ void DrawDash(int x1, int y1, int x2, int y2, int skip)
       x += xInc2; y += yInc2; d -= zMax;
     }
   }
+}
+
+
+// Draw a filled lens/lenticular shape (rotated ellipse with pointed ends)
+// between two points. The width parameter controls the thickness at the center.
+
+void DrawLens(int x1, int y1, int x2, int y2, int width)
+{
+  real dx, dy, len, a, b, cx, cy;
+  int i, steps, yMin, yMax, y;
+  int *xLeft, *xRight;
+
+  dx = (real)(x2 - x1);
+  dy = (real)(y2 - y1);
+  len = RSqr(dx*dx + dy*dy);
+  if (len < 1.0)
+    return;
+
+  // Ellipse parameters: a = semi-major (half length), b = semi-minor (half width)
+  a = len / 2.0;
+  b = (real)width;
+
+  // Center of ellipse
+  cx = (real)(x1 + x2) / 2.0;
+  cy = (real)(y1 + y2) / 2.0;
+
+#ifdef CAIRO
+  // Use native Cairo rotated ellipse for clean SVG/PDF output
+  cairo_t *cr = CairoContext();
+  if (cr != NULL) {
+    real angle = RAngle(dx, dy);
+    cairo_save(cr);
+    cairo_translate(cr, cx, cy);
+    cairo_rotate(cr, angle);
+    cairo_scale(cr, a, b);
+    cairo_arc(cr, 0, 0, 1.0, 0, 2 * rPi);
+    cairo_restore(cr);
+    cairo_fill(cr);
+    return;
+  }
+#endif
+
+  // Fallback: scanline fill for bitmap/screen backends
+  real ux = dx / len;
+  real uy = dy / len;
+  real px = -uy;
+  real py = ux;
+
+  // Find vertical bounds by checking ellipse extrema
+  yMin = (int)(cy - a - b) - 1;
+  yMax = (int)(cy + a + b) + 1;
+  if (yMin < 0) yMin = 0;
+  if (yMax >= gs.yWin) yMax = gs.yWin - 1;
+  if (yMax < yMin)
+    return;
+
+  // Allocate arrays to track left and right edges for each scanline
+  xLeft = (int *)PAllocate((yMax - yMin + 1) * sizeof(int), "lens left");
+  xRight = (int *)PAllocate((yMax - yMin + 1) * sizeof(int), "lens right");
+  if (xLeft == NULL || xRight == NULL) {
+    if (xLeft) DeallocateP(xLeft);
+    if (xRight) DeallocateP(xRight);
+    return;
+  }
+
+  // Initialize edges
+  for (i = 0; i <= yMax - yMin; i++) {
+    xLeft[i] = 32767;
+    xRight[i] = -32767;
+  }
+
+  // Trace ellipse perimeter and record left/right x for each y
+  steps = Max(72, (int)(len * 2));
+  for (i = 0; i <= steps; i++) {
+    real theta = rPi * 2.0 * (real)i / (real)steps;
+    real ex = cx + a * RCos(theta) * ux + b * RSin(theta) * px;
+    real ey = cy + a * RCos(theta) * uy + b * RSin(theta) * py;
+    int ix = (int)ex;
+    int iy = (int)ey;
+    if (iy >= yMin && iy <= yMax) {
+      int idx = iy - yMin;
+      if (ix < xLeft[idx]) xLeft[idx] = ix;
+      if (ix > xRight[idx]) xRight[idx] = ix;
+    }
+  }
+
+  // Fill each scanline
+  for (y = yMin; y <= yMax; y++) {
+    int idx = y - yMin;
+    if (xLeft[idx] <= xRight[idx]) {
+      DrawLineX(xLeft[idx], xRight[idx], y);
+    }
+  }
+
+  DeallocateP(xLeft);
+  DeallocateP(xRight);
 }
 
 

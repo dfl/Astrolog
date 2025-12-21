@@ -1115,7 +1115,17 @@ void DrawAspectLine(int obj1, int obj2, int cx, int cy,
   else
     nDash = NAbs(orb) * NAbs(gs.nDashMax) /
       (int)(GetOrb(obj1, obj2, asp)*3600.0);
-  DrawDash(x1, y1, x2, y2, nDash);
+  if (gs.nDashStyle == 2) {
+    // Lens mode: draw lens shape with alpha, width based on orb
+    int width = Max(1, 2 - nDash/2);
+    int alpha = 255 - Min(nDash, 5) * 35;
+    if (alpha < 80) alpha = 80;
+    DrawColorAlpha(col, alpha);
+    DrawLens(x1, y1, x2, y2, width);
+    DrawColor(col);  // Restore full opacity
+  } else {
+    DrawDash(x1, y1, x2, y2, nDash);
+  }
 
   // Draw aspect glyph over middle of line.
   if (gs.fLabelAsp) {

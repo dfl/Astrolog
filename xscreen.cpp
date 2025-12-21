@@ -1571,6 +1571,15 @@ int NProcessSwitchesX(int argc, char **argv, int pos,
       SwitchF(gs.fAntialias);
       break;
     }
+    if (ch1 == '1') {
+      if (FErrorArgc("Xx1", argc, 1))
+        return tcError;
+      gs.nDashStyle = NFromSz(argv[1]);
+      if (gs.nDashStyle < 0) gs.nDashStyle = 0;
+      else if (gs.nDashStyle > 2) gs.nDashStyle = 2;
+      darg++;
+      break;
+    }
     SwitchF(gs.fThick);
     break;
 

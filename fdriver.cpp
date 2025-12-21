@@ -219,6 +219,7 @@ void FMenuHouseSetIndian(Fl_Widget *w, void *data);
 void FMenuGraphicsSidebar(Fl_Widget *w, void *data);
 void FMenuGraphicsSquare(Fl_Widget *w, void *data);
 void FMenuGraphicsAntialias(Fl_Widget *w, void *data);
+void FMenuDashStyle(Fl_Widget *w, void *data);
 void FMenuModifyChart(Fl_Widget *w, void *data);
 void FMenuPenColor(Fl_Widget *w, void *data);
 void FMenuScaleDecrease(Fl_Widget *w, void *data);
@@ -1391,10 +1392,10 @@ void AstrologWindow::createMenus()
 #endif
   menubar_->add("&Graphics/&Reverse Background", 'x', FMenuGraphicsReverse, 0, FL_MENU_TOGGLE);
   menubar_->add("&Graphics/&Monochrome", 'm', FMenuGraphicsMonochrome, 0, FL_MENU_TOGGLE);
-  menubar_->add("&Graphics/Reduce Contrast/&None (0%)", 0, FMenuReduceContrast, (void*)0);
-  menubar_->add("&Graphics/Reduce Contrast/&Light (25%)", 0, FMenuReduceContrast, (void*)25);
-  menubar_->add("&Graphics/Reduce Contrast/&Medium (50%)", 0, FMenuReduceContrast, (void*)50);
-  menubar_->add("&Graphics/Reduce Contrast/&Heavy (75%)", 0, FMenuReduceContrast, (void*)75);
+  menubar_->add("&Graphics/Reduce Contrast/&None (0%)", 0, FMenuReduceContrast, (void*)0, FL_MENU_RADIO);
+  menubar_->add("&Graphics/Reduce Contrast/&Light (25%)", 0, FMenuReduceContrast, (void*)25, FL_MENU_RADIO);
+  menubar_->add("&Graphics/Reduce Contrast/&Medium (50%)", 0, FMenuReduceContrast, (void*)50, FL_MENU_RADIO | FL_MENU_VALUE);
+  menubar_->add("&Graphics/Reduce Contrast/&Heavy (75%)", 0, FMenuReduceContrast, (void*)75, FL_MENU_RADIO);
   menubar_->add("&Graphics/S&quare Screen", 'Q', FMenuGraphicsSquare, 0, FL_MENU_TOGGLE);
   // Character Scale submenu
   menubar_->add("&Graphics/Character Scale/&Small", 0, FMenuScale1);
@@ -1411,6 +1412,8 @@ void AstrologWindow::createMenus()
   menubar_->add("&Graphics/Chart Effects/Show Info &Sidebar", 0, FMenuGraphicsSidebar, 0, FL_MENU_TOGGLE|FL_MENU_DIVIDER);
   menubar_->add("&Graphics/Chart Effects/&Thicker Lines", 'q', FMenuGraphicsThick, 0, FL_MENU_TOGGLE);
   menubar_->add("&Graphics/Chart Effects/&Antialias Lines", 0, FMenuGraphicsAntialias, 0, FL_MENU_TOGGLE);
+  menubar_->add("&Graphics/Chart Effects/Aspect Line Style/&Dotted", 0, FMenuDashStyle, (void*)0, FL_MENU_RADIO | FL_MENU_VALUE);
+  menubar_->add("&Graphics/Chart Effects/Aspect Line Style/&Alpha", 0, FMenuDashStyle, (void*)1, FL_MENU_RADIO);
   menubar_->add("&Graphics/Chart Effects/Show Glyph &Labels", 'l', FMenuGraphicsLabel, 0, FL_MENU_TOGGLE);
   menubar_->add("&Graphics/Chart Effects/Show &Glyphs on Aspect Lines", 'k', FMenuGraphicsLabelAsp, 0, FL_MENU_TOGGLE);
   // Map Effects submenu
@@ -2945,6 +2948,17 @@ static void UpdateMenuCheck(Fl_Callback *cb, flag f)
   }
 }
 
+// Helper to update radio button selection
+static void UpdateMenuRadio(Fl_Callback *cb)
+{
+  if (fi.menubar) {
+    Fl_Menu_Item *item = (Fl_Menu_Item *)fi.menubar->find_item(cb);
+    if (item) {
+      item->setonly();
+    }
+  }
+}
+
 // Include menu callbacks
 void FMenuIncludeMinors(Fl_Widget *w, void *data)
 {
@@ -3073,6 +3087,7 @@ void FMenuGraphicsMonochrome(Fl_Widget *w, void *data)
 void FMenuReduceContrast(Fl_Widget *w, void *data)
 {
   gs.nReduceContrast = (int)(long)data;
+  UpdateMenuRadio(FMenuReduceContrast);
   InitColorsX();
   if (fi.chart) fi.chart->redraw();
 }
@@ -3184,6 +3199,13 @@ void FMenuGraphicsAntialias(Fl_Widget *w, void *data)
 {
   inv(gs.fAntialias);
   UpdateMenuCheck(FMenuGraphicsAntialias, gs.fAntialias);
+  if (fi.chart) fi.chart->redraw();
+}
+
+void FMenuDashStyle(Fl_Widget *w, void *data)
+{
+  gs.nDashStyle = (int)(long)data;
+  UpdateMenuRadio(FMenuDashStyle);
   if (fi.chart) fi.chart->redraw();
 }
 
