@@ -43,6 +43,9 @@ static int fUseCairo = fTrue;
 // Manual character scale multiplier (100=1x, 200=2x, 300=3x, 400=4x)
 static int nCharScaleManual = 100;
 
+// Auto-square window on resize (for chart types that need it)
+static flag fAutoSquare = fFalse;
+
 // Flag to enable OpenGL 3D rendering
 #ifdef OPENGL
 static int fUseOpenGL = fTrue;  // Default to OpenGL rendering when available
@@ -221,7 +224,7 @@ void FMenuHouseSetIndian(Fl_Widget *w, void *data);
 
 // Forward declarations for new graphics callbacks
 void FMenuGraphicsSidebar(Fl_Widget *w, void *data);
-void FMenuGraphicsSquare(Fl_Widget *w, void *data);
+void FMenuGraphicsAutoSquare(Fl_Widget *w, void *data);
 void FMenuGraphicsAntialias(Fl_Widget *w, void *data);
 void FMenuDashStyle(Fl_Widget *w, void *data);
 void FMenuModifyChart(Fl_Widget *w, void *data);
@@ -942,19 +945,6 @@ int ChartWidget::handleKey(int key)
     return 1;
 #endif
 
-  // Square Screen (Shift+Q)
-  case 'Q':
-    SquareX(&gs.xWin, &gs.yWin, fTrue);
-    // Resize window to match the new square chart size
-    if (fi.window) {
-      int menuH = 25;  // Menu bar height
-      fi.window->size(gs.xWin, gs.yWin + menuH);
-    }
-    us.fGraphics = fTrue;
-    fi.fDoCast = fTrue;
-    redraw();
-    return 1;
-
   case FL_Escape:
     if (fi.window)
       fi.window->hide();
@@ -1041,8 +1031,7 @@ AstrologWindow::AstrologWindow(int w, int h, const char *title)
 #ifdef OPENGL
     chart3D_(NULL),
 #endif
-    animating_(false),
-    aspectRatio_((double)w / (double)h)
+    animating_(false)
 {
   // Set background to black to avoid white gaps during resize
   color(FL_BLACK);
@@ -1133,6 +1122,20 @@ void AstrologWindow::switchTo3D(bool use3D)
 }
 #endif
 
+// Deferred callback to square the window after resize completes
+static void SquareWindowCallback(void *data)
+{
+  if (!fSquare || !fi.window)
+    return;
+
+  int oldW = gs.xWin, oldH = gs.yWin;
+  SquareX(&gs.xWin, &gs.yWin, fTrue);
+  if (gs.xWin != oldW || gs.yWin != oldH) {
+    int menuH = 25;
+    fi.window->size(gs.xWin, gs.yWin + menuH);
+  }
+}
+
 void AstrologWindow::resize(int x, int y, int w, int h)
 {
   Fl_Double_Window::resize(x, y, w, h);
@@ -1148,6 +1151,13 @@ void AstrologWindow::resize(int x, int y, int w, int h)
   gs.yWin = fi.yClient;
   gi.xWinResize = gs.xWin;
   gi.yWinResize = gs.yWin;
+
+  // Schedule deferred squaring if auto-square is enabled
+  if (fAutoSquare && fSquare) {
+    // Cancel any pending callback and schedule a new one
+    Fl::remove_timeout(SquareWindowCallback, this);
+    Fl::add_timeout(0.0, SquareWindowCallback, this);
+  }
 
   // Trigger redraw of chart widgets after resize
   if (chart_)
@@ -1405,7 +1415,7 @@ void AstrologWindow::createMenus()
   menubar_->add("&Graphics/Reduce Contrast/&Light (25%)", 0, FMenuReduceContrast, (void*)25, FL_MENU_RADIO);
   menubar_->add("&Graphics/Reduce Contrast/&Medium (50%)", 0, FMenuReduceContrast, (void*)50, FL_MENU_RADIO | FL_MENU_VALUE);
   menubar_->add("&Graphics/Reduce Contrast/&Heavy (75%)", 0, FMenuReduceContrast, (void*)75, FL_MENU_RADIO);
-  menubar_->add("&Graphics/S&quare Screen", 'Q', FMenuGraphicsSquare);
+  menubar_->add("&Graphics/Auto S&quare Window", 0, FMenuGraphicsAutoSquare, 0, FL_MENU_TOGGLE);
   // Character Scale submenu
   menubar_->add("&Graphics/Character Scale/&Small", 0, FMenuScale1, 0, FL_MENU_RADIO | FL_MENU_VALUE);
   menubar_->add("&Graphics/Character Scale/&Medium", 0, FMenuScale2, 0, FL_MENU_RADIO);
@@ -3180,20 +3190,16 @@ void FMenuGraphicsSidebar(Fl_Widget *w, void *data)
   if (fi.chart) fi.chart->redraw();
 }
 
-void FMenuGraphicsSquare(Fl_Widget *w, void *data)
+void FMenuGraphicsAutoSquare(Fl_Widget *w, void *data)
 {
-  // Make chart dimensions square (like Windows cmdGraphicsSquare)
-  SquareX(&gs.xWin, &gs.yWin, fTrue);
-
-  // Resize window to match the new square chart size
-  if (fi.window) {
-    int menuH = 25;  // Menu bar height
+  inv(fAutoSquare);
+  UpdateMenuCheck(FMenuGraphicsAutoSquare, fAutoSquare);
+  // If enabling, square the window immediately
+  if (fAutoSquare && fSquare && fi.window) {
+    SquareX(&gs.xWin, &gs.yWin, fTrue);
+    int menuH = 25;
     fi.window->size(gs.xWin, gs.yWin + menuH);
   }
-
-  us.fGraphics = fTrue;
-  fi.fDoCast = fTrue;
-  if (fi.chart) fi.chart->redraw();
 }
 
 void FMenuGraphicsAntialias(Fl_Widget *w, void *data)

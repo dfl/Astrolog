@@ -95,7 +95,6 @@ private:
 #endif
   Fl_Menu_Bar *menubar_;
   bool animating_;
-  double aspectRatio_;    // Initial aspect ratio (width/height)
 
   void createMenus();
 };
