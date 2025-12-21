@@ -488,6 +488,35 @@ void DrawClearScreen()
 }
 
 
+// Draw a solid line using floating-point coordinates for precise vector output.
+// This avoids integer rounding issues that cause radial lines to look crooked.
+
+void DrawLineF(real x1, real y1, real x2, real y2)
+{
+#ifdef ISG
+  if (!gi.fFile) {
+    GBDrawLineF(x1, y1, x2, y2);
+    return;
+  }
+#endif
+
+#ifdef PS
+  if (gs.ft == ftPS) {
+    PsLineCap(fTrue);
+    PsDash(0);
+    fprintf(gi.file, "%.2f %.2f %.2f %.2f l\n", x1, y1, x2, y2);
+    gi.xPen = (int)x2; gi.yPen = (int)y2;
+    PsStroke(2);
+    return;
+  }
+#endif
+
+  // Fallback to integer line for other output formats
+  DrawLine((int)(x1 + rRound), (int)(y1 + rRound),
+           (int)(x2 + rRound), (int)(y2 + rRound));
+}
+
+
 // Draw a line on the screen, specified by its endpoints. In addition, there
 // is a specified a skip factor, which allows drawing dashed lines.
 

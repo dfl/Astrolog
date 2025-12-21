@@ -39,6 +39,7 @@ typedef struct _GraphicsBackend {
   void (*PutPixel)(int x, int y);     // Draw single pixel
   void (*PutPixelThick)(int x, int y); // Draw pixel with thickness
   void (*PutLine)(int x1, int y1, int x2, int y2);  // Draw line
+  void (*PutLineF)(double x1, double y1, double x2, double y2);  // Draw line (float coords)
   void (*PutLineThick)(int x1, int y1, int x2, int y2);  // Draw thick line
   void (*PutRect)(int x1, int y1, int w, int h);    // Draw filled rectangle
   void (*PutArc)(int x, int y, int w, int h, double deg1, double deg2);  // Draw arc
@@ -93,6 +94,10 @@ extern cairo_t *CairoContext(void);  // Get current Cairo context for advanced o
 
 #define GBDrawLine(x1, y1, x2, y2) \
   do { if (gpBackend && gpBackend->PutLine) gpBackend->PutLine(x1, y1, x2, y2); } while(0)
+
+#define GBDrawLineF(x1, y1, x2, y2) \
+  do { if (gpBackend && gpBackend->PutLineF) gpBackend->PutLineF(x1, y1, x2, y2); \
+       else if (gpBackend && gpBackend->PutLine) gpBackend->PutLine((int)(x1), (int)(y1), (int)(x2), (int)(y2)); } while(0)
 
 #define GBDrawLineThick(x1, y1, x2, y2) \
   do { if (gpBackend && gpBackend->PutLineThick) gpBackend->PutLineThick(x1, y1, x2, y2); } while(0)

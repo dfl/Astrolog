@@ -623,8 +623,16 @@ void DrawWheel(real *xsign, real *xhouse, int cx, int cy, real unitx,
       if (fSimpleDecan && i%10 == 0 && i%30 != 0)
         rb += (rs2 - rs1) * 0.30;
     }
-    DrawDash(cx+POINT0(unitx, ra, px), cy+POINT0(unity, ra, py),
-      cx+POINT0(unitx, rb, px), cy+POINT0(unity, rb, py), k);
+    // Use floating-point drawing for truly radial lines (no integer rounding)
+    if (k == 0) {
+      DrawLineF(cx + unitx * ra * px, cy + unity * ra * py,
+                cx + unitx * rb * px, cy + unity * rb * py);
+    } else {
+      DrawDash((int)(cx + unitx * ra * px + rRound),
+               (int)(cy + unity * ra * py + rRound),
+               (int)(cx + unitx * rb * px + rRound),
+               (int)(cy + unity * rb * py + rRound), k);
+    }
   }
   us.fHouse3D = fSav;
 
@@ -641,8 +649,8 @@ void DrawWheel(real *xsign, real *xhouse, int cx, int cy, real unitx,
     // Draw lines separating each sign from each other.
     DrawColor(gs.fColorSign ? kSignB(i) : gi.kiOn);
     px = PX(rDeg); py = PY(rDeg);
-    DrawLine(cx+POINT2(unitx, rs2, px), cy+POINT2(unity, rs2, py),
-      cx+POINT1(unitx, rs1, px), cy+POINT1(unity, rs1, py));
+    DrawLineF(cx + unitx * rs2 * px, cy + unity * rs2 * py,
+              cx + unitx * rs1 * px, cy + unity * rs1 * py);
   }
   if (us.fListDecan) {
     rs = rs1 + (rs2 - rs1) * 0.67;
@@ -770,8 +778,8 @@ void DrawWheel(real *xsign, real *xhouse, int cx, int cy, real unitx,
           px = PX(rDeg); py = PY(rDeg);
           DrawColor(gs.fColorSign ? kSignB(i/30 + 1) : gi.kiOn);
           ra = rs1; rb = rs1 + (rs2 - rs1) * 0.30;
-          DrawLine(cx+POINT1(unitx, ra, px), cy+POINT1(unity, ra, py),
-            cx+POINT2(unitx, rb, px), cy+POINT2(unity, rb, py));
+          DrawLineF(cx + unitx * ra * px, cy + unity * ra * py,
+                    cx + unitx * rb * px, cy + unity * rb * py);
         }
       }
     }
@@ -815,10 +823,9 @@ void DrawWheel(real *xsign, real *xhouse, int cx, int cy, real unitx,
           MinDifference(xhouse[i], xhouse[Mod12(i+1)]) * (real)j / (real)k;
         px = PX(rDeg); py = PY(rDeg);
         DrawColor(gs.fColorHouse ? kSignB(i) : gi.kiOn);
-        DrawLine(cx+POINT2(unitx, j ? ra : rh1, px),
-          cy+POINT2(unity, j ? ra : rh1, py),
-          cx+POINT1(unitx, rb, px),
-          cy+POINT1(unity, rb, py));
+        real rInner = j ? ra : rh1;
+        DrawLineF(cx + unitx * rInner * px, cy + unity * rInner * py,
+                  cx + unitx * rb * px, cy + unity * rb * py);
       }
   }
 
@@ -827,13 +834,13 @@ void DrawWheel(real *xsign, real *xhouse, int cx, int cy, real unitx,
   for (i = 1; i <= cSign; i++) {
     DrawColor(gs.fColorHouse ? kSignB(i) : gi.kiOn);
     px = PX(xhouse[i]); py = PY(xhouse[i]);
-    DrawLine(cx+POINT2(unitx, rh2, px), cy+POINT2(unity, rh2, py),
-      cx+POINT1(unitx, rh1, px), cy+POINT1(unity, rh1, py));
+    DrawLineF(cx + unitx * rh2 * px, cy + unity * rh2 * py,
+              cx + unitx * rh1 * px, cy + unity * rh1 * py);
     // Draw minor lines from non-angular houses to center of wheel.
     if (i%3 != 1) {
       DrawColor(gs.fColorHouse ? kSignB(i) : gi.kiGray);
-      DrawDash(cx, cy, cx+POINT2(unitx, rh1, px),
-        cy+POINT2(unity, rh1, py), 1 + !gs.fColor*3);
+      DrawDash(cx, cy, (int)(cx + unitx * rh1 * px + rRound),
+        (int)(cy + unity * rh1 * py + rRound), 1 + !gs.fColor*3);
     }
   }
   for (i = 1; i <= cSign; i++) {

@@ -434,6 +434,12 @@ static void FltkDrawLine(int x1, int y1, int x2, int y2)
   fl_line(x1, y1, x2, y2);
 }
 
+static void FltkDrawLineF(double x1, double y1, double x2, double y2)
+{
+  // FLTK doesn't support sub-pixel coordinates, round at the last moment
+  fl_line((int)(x1 + 0.5), (int)(y1 + 0.5), (int)(x2 + 0.5), (int)(y2 + 0.5));
+}
+
 static void FltkDrawLineThick(int x1, int y1, int x2, int y2)
 {
   fl_line(x1, y1, x2, y2);
@@ -622,6 +628,7 @@ static GB gbFltk = {
   FltkDrawPixel,
   FltkDrawPixelThick,
   FltkDrawLine,
+  FltkDrawLineF,
   FltkDrawLineThick,
   FltkDrawRect,
   FltkDrawArc,
@@ -704,6 +711,14 @@ static void CairoDrawLine(int x1, int y1, int x2, int y2)
   // Cairo will antialias across pixel boundaries
   cairo_move_to(gi_cr, (double)x1, (double)y1);
   cairo_line_to(gi_cr, (double)x2, (double)y2);
+  cairo_stroke(gi_cr);
+}
+
+static void CairoDrawLineF(double x1, double y1, double x2, double y2)
+{
+  // Native floating-point coordinates for smooth vector output
+  cairo_move_to(gi_cr, x1, y1);
+  cairo_line_to(gi_cr, x2, y2);
   cairo_stroke(gi_cr);
 }
 
@@ -908,6 +923,7 @@ static GB gbCairo = {
   CairoDrawPixel,
   CairoDrawPixelThick,
   CairoDrawLine,
+  CairoDrawLineF,
   CairoDrawLineThick,
   CairoDrawRect,
   CairoDrawArc,
