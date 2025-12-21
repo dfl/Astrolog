@@ -97,6 +97,7 @@ Fl_Color FltkColorFromKI(int ki)
 static void UpdateMenuCheck(Fl_Callback *cb, flag f);
 static void UpdateMenuRadio(Fl_Callback *cb);
 static void UpdateMenuRadioByValue(Fl_Callback *cb, intptr_t value);
+static flag HandleAltMenuShortcut(int key);
 
 // Forward declarations for view menu callbacks (used by handleKey)
 void FMenuViewWheel(Fl_Widget *w, void *data);
@@ -699,6 +700,9 @@ int ChartWidget::handle(int event)
     {
       const char *text = Fl::event_text();
       int key = (text && text[0] && !text[1]) ? (unsigned char)text[0] : Fl::event_key();
+      // Handle Alt+letter for menu navigation (macOS parity with Windows)
+      if (HandleAltMenuShortcut(key))
+        return 1;
       return handleKey(key);
     }
 
@@ -2987,6 +2991,49 @@ static void UpdateMenuRadioByValue(Fl_Callback *cb, intptr_t value)
       }
     }
   }
+}
+
+// Helper to handle Alt+letter menu shortcuts (for macOS parity with Windows)
+static flag HandleAltMenuShortcut(int key)
+{
+  if (!fi.menubar || !(Fl::event_state() & FL_ALT))
+    return fFalse;
+
+  // Convert key to lowercase for matching
+  int ch = key;
+  if (ch >= 'A' && ch <= 'Z')
+    ch = ch - 'A' + 'a';
+  if (ch < 'a' || ch > 'z')
+    return fFalse;
+
+  // Search top-level menu items for matching mnemonic
+  const Fl_Menu_Item *menu = fi.menubar->menu();
+  int n = fi.menubar->size();
+  for (int i = 0; i < n; i++) {
+    const char *label = menu[i].label();
+    if (!label || !menu[i].submenu())
+      continue;
+
+    // Find mnemonic character (after '&')
+    const char *amp = strchr(label, '&');
+    if (amp && amp[1]) {
+      int mnemonic = amp[1];
+      if (mnemonic >= 'A' && mnemonic <= 'Z')
+        mnemonic = mnemonic - 'A' + 'a';
+      if (mnemonic == ch) {
+        // Found matching menu - trigger it via value() and pulldown
+        fi.menubar->value(i);
+        // Use picked() to simulate selection which triggers submenu display
+        const Fl_Menu_Item *picked = menu[i].pulldown(
+          fi.menubar->x(), fi.menubar->y() + fi.menubar->h(),
+          0, 0, &menu[i], fi.menubar);
+        if (picked && picked->callback())
+          picked->do_callback(fi.menubar);
+        return fTrue;
+      }
+    }
+  }
+  return fFalse;
 }
 
 // Include menu callbacks
