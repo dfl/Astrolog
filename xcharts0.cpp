@@ -623,8 +623,8 @@ void DrawWheel(real *xsign, real *xhouse, int cx, int cy, real unitx,
       if (fSimpleDecan && i%10 == 0 && i%30 != 0)
         rb += (rs2 - rs1) * 0.30;
     }
-    DrawDash(cx+POINT1(unitx, ra, px), cy+POINT1(unity, ra, py),
-      cx+POINT2(unitx, rb, px), cy+POINT2(unity, rb, py), k);
+    DrawDash(cx+POINT0(unitx, ra, px), cy+POINT0(unity, ra, py),
+      cx+POINT0(unitx, rb, px), cy+POINT0(unity, rb, py), k);
   }
   us.fHouse3D = fSav;
 
