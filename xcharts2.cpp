@@ -418,7 +418,7 @@ void XChartWheelRelation()
       ignore[i] = ignore2[i];
     }
   DrawRing(2, 2 /* so lines are dotted */ + 1, xplanet2, symbol, cx, cy,
-    rp1, rl11, ri, rp2, rl12, rl22, rz2, rg2, 1.0);
+    rp1, rl11, ri, rp2, rl12, rl22, rz2, rg2, 2.0);
   if (us.nRel <= rcTransit)
     for (i = 0; i <= is.nObj; i++)
       ignore[i] = ignoreT[i];
@@ -428,7 +428,7 @@ void XChartWheelRelation()
   // only one set of planets. Again, draw glyph, and a line to the true point.
 
   DrawRing(1, 2, xplanet1, symbol, cx, cy,
-    0.0, 0.0, 0.0, rp1, rl11, rl21, rz1, rg1, 1.1);
+    0.0, 0.0, 0.0, rp1, rl11, rl21, rz1, rg1, 2.2);
   FProcessCommandLine(szWheelX[0]);
 
   // Draw lines connecting planets between the two charts that have aspects.
@@ -544,14 +544,14 @@ void XChartWheelMulti()
     ri2 = 0.59; rp = 0.62; rl1 = 0.63; rl2 = 0.66; rg = 0.70;
   }
   DrawRing(1, nRing, xplanet1, symbol, cx, cy,
-    base, base2, ri2, rp, rl1, rl2, 0.0, rg, 0.9);
+    base, base2, ri2, rp, rl1, rl2, 0.0, rg, 1.8);
 
   // Now draw the second to outermost ring of planets. Again, draw each glyph,
   // a line to its true point, and a line to the innermost ring.
 
   ri2 -= off; rp -= off; rl1 -= off; rl2 -= off; rg -= off;
   DrawRing(2, nRing, xplanet2, symbol, cx, cy,
-    base, base2, ri2, rp, rl1, rl2, 0.0, rg, 1.1);
+    base, base2, ri2, rp, rl1, rl2, 0.0, rg, 2.2);
 
   // The third ring is next. Chart was cast earlier, and draw the glyphs and
   // lines to true point. If a fourth ring is being done, first finish the
@@ -559,7 +559,7 @@ void XChartWheelMulti()
 
   ri2 -= off; rp -= off; rl1 -= off; rl2 -= off; rg -= off;
   DrawRing(3, nRing, xplanet3, symbol, cx, cy,
-    base, base2, ri2, rp, rl1, rl2, 0.0, rg, 1.4);
+    base, base2, ri2, rp, rl1, rl2, 0.0, rg, 2.8);
 
   if (fQuad) {
     // If the fourth ring is being done, take the chart that was cast earlier,
@@ -569,7 +569,7 @@ void XChartWheelMulti()
 
     ri2 -= off; rp -= off; rl1 -= off; rl2 -= off; rg -= off;
     DrawRing(4, nRing, xplanet4, symbol, cx, cy,
-      base, base2, ri2, rp, rl1, rl2, 0.0, rg, 1.8);
+      base, base2, ri2, rp, rl1, rl2, 0.0, rg, 3.6);
 
     if (fQuin) {
       // If the fifth ring is being done, take the chart that was cast
@@ -579,7 +579,7 @@ void XChartWheelMulti()
 
       ri2 -= off; rp -= off; rl1 -= off; rl2 -= off; rg -= off;
       DrawRing(5, nRing, xplanet5, symbol, cx, cy,
-        base, base2, ri2, rp, rl1, rl2, 0.0, rg, 2.3);
+        base, base2, ri2, rp, rl1, rl2, 0.0, rg, 4.6);
 
       if (fHexa) {
         // If the sixth (innermost) ring is being done, take the chart that was
@@ -587,7 +587,7 @@ void XChartWheelMulti()
 
         ri2 -= off; rp -= off; rl1 -= off; rl2 -= off; rg -= off;
         DrawRing(6, nRing, xplanet6, symbol, cx, cy,
-          base, base2, ri2, rp, rl1, rl2, 0.0, rg, 3.8);
+          base, base2, ri2, rp, rl1, rl2, 0.0, rg, 7.6);
       }
     }
   }

@@ -115,7 +115,7 @@ void XChartWheel()
   // line from that point to the planet's glyph.
 
   DrawRing(1, 1, xplanet, symbol, cx, cy, 0.0, 0.0, 0.0,
-    rp, rl1, rl2, rz, rg, 1.0);
+    rp, rl1, rl2, rz, rg, 2.0);
   FProcessCommandLine(szWheelX[0]);
 
   // Draw lines connecting planets which have aspects between them.
@@ -2818,7 +2818,7 @@ void XChartSector()
   // For each planet, draw a small dot indicating where it is, and then a line
   // from that point to the planet's glyph.
   DrawRing(1, 1, xplanet, symbol, cx, cy, 0.0, 0.0, 0.0,
-    0.65, 0.67, 0.71, 0.0, 0.75, 1.0);
+    0.65, 0.67, 0.71, 0.0, 0.75, 2.0);
   FProcessCommandLine(szWheelX[0]);
 
   // Draw lines connecting planets which have aspects between them.
@@ -2903,9 +2903,9 @@ void XChartMidpoint()
   }
 
   // For each planet, draw a small dot indicating where it is, and then a line
-  // from that point to the planet's glyph.
+  // from that point to the planet's glyph. Use factor 2.0 for better spacing.
   DrawRing(1, 1, xplanet, symbol, cx, cy, 0.0, 0.0, 0.0,
-    0.65, 0.67, 0.71, 0.0, 0.75, 1.0);
+    0.65, 0.67, 0.71, 0.0, 0.75, 2.0);
   FProcessCommandLine(szWheelX[0]);
 
   // Draw lines connecting planets.
