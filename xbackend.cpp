@@ -455,9 +455,21 @@ static Fl_Font FltkFontFromFI(int fi)
   // Fonts: 0=Astrolog vector, 1=Wingdings, 2=Astro, 3=EnigmaAstrology,
   //        4=HamburgSymbols, 5=Astronomicon, 6=Courier New, 7=Consolas,
   //        8=Arial, 9=HanksNakshatra
+  static flag fMonoFontSet = fFalse;
+  static Fl_Font fltkMonoFont = FL_COURIER;
+
+  // On first call, set up Menlo on macOS (native monospace font)
+  if (!fMonoFontSet) {
+#ifdef __APPLE__
+    Fl::set_font(FL_FREE_FONT, "Menlo");
+    fltkMonoFont = FL_FREE_FONT;
+#endif
+    fMonoFontSet = fTrue;
+  }
+
   switch (fi) {
-  case fiCourier:  return FL_COURIER;
-  case fiConsolas: return FL_SCREEN;       // Monospace alternative
+  case fiCourier:  return fltkMonoFont;
+  case fiConsolas: return fltkMonoFont;    // Use same monospace font
   case fiArial:    return FL_HELVETICA;    // Sans-serif alternative
   case fiAstro:
   case fiEnigma:
@@ -751,8 +763,13 @@ static const char *CairoFontName(int fi)
   case fiHamburg:  return "HamburgSymbols";
   case fiAstronom: return "Astronomicon";
   case fiNakshatr: return "HanksNakshatra";
+#ifdef __APPLE__
+  case fiCourier:  return "Menlo";
+  case fiConsolas: return "Menlo";
+#else
   case fiCourier:  return "Courier New";
   case fiConsolas: return "Consolas";
+#endif
   case fiArial:    return "Arial";
   default:         return NULL;
   }
@@ -835,6 +852,40 @@ static int CairoPutGlyph(int ch, int x, int y, int nFont, int nScale)
   return 1;  // Successfully rendered
 }
 
+// Draw a text string using Cairo fonts
+// Returns 1 if drawn, 0 to fall back to vector rendering
+static int CairoPutText(const char *sz, int x, int y, int nFont, int nScale)
+{
+  const char *fontName = CairoFontName(nFont);
+  if (!fontName)
+    return 0;  // Unknown font, use vector fallback
+
+  // Calculate font size to match vector font character width.
+  // Vector font uses xFont2 * nScale = 3 * nScale pixels per character.
+  // For Menlo, char_width ≈ 0.6 * fontSize, so fontSize = 3*nScale/0.6 = 5*nScale.
+  double fontSize = 5.0 * nScale;
+  if (fontSize < 8.0)
+    fontSize = 8.0;
+
+  // Select font
+  cairo_select_font_face(gi_cr, fontName, CAIRO_FONT_SLANT_NORMAL,
+    gs.fThick ? CAIRO_FONT_WEIGHT_BOLD : CAIRO_FONT_WEIGHT_NORMAL);
+  cairo_set_font_size(gi_cr, fontSize);
+
+  // Measure text for vertical positioning
+  cairo_text_extents_t extents;
+  cairo_text_extents(gi_cr, sz, &extents);
+
+  // Draw left-aligned at (x, y) where y is approximate baseline
+  // x is the left edge, y is vertically centered
+  double dx = x - extents.x_bearing;
+  double dy = y - extents.y_bearing - extents.height / 2.0;
+  cairo_move_to(gi_cr, dx, dy);
+  cairo_show_text(gi_cr, sz);
+
+  return 1;  // Successfully rendered
+}
+
 static GB gbCairo = {
   "Cairo",
   CairoSetColor,
@@ -847,7 +898,7 @@ static GB gbCairo = {
   CairoDrawArc,
   CairoDrawEllipse,
   CairoPutGlyph,
-  NULL,  // PutText - use vector fallback for now
+  CairoPutText,
   CairoClearScreen,
   CairoFlush,
   NULL

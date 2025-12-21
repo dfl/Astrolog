@@ -4508,7 +4508,8 @@ void XChartAspect(void)
   int ca[cAspect + 1], co[objMax];
   int icut, jcut, ihi, jhi, ahi, i0, j0, i, j, k, count = 0;
   real ip, jp, vcut = (real)nLarge, vhi, phi, v, p, rT;
-  int y, yLine, nScale, xCur, cw;
+  int y, yLine, nScale, nScaleSav, xCur, cw, cwPos;
+  int nFontSav;
 
   // Create the aspect grid first
   if (!FCreateGrid(fFalse))
@@ -4517,10 +4518,16 @@ void XChartAspect(void)
   ClearB((pbyte)ca, sizeof(ca));
   ClearB((pbyte)co, sizeof(co));
 
+  // Use system font (Menlo on macOS) for this text-based chart
+  nFontSav = gs.nFontTxt;
+  gs.nFontTxt = fiCourier;
+
   // Calculate scale and positions
   nScale = Max(gi.nScale, 1);
   yLine = 10 * nScale;
   cw = xFontT * nScale;  // Character width for spacing
+  // Position column width: 10 chars normally, 13 with seconds
+  cwPos = us.fSeconds ? 14 : 10;
 
   // Draw header
   y = 5 * nScale;
@@ -4588,15 +4595,23 @@ void XChartAspect(void)
     DrawSz(sz, xCur, y, dtLeft | dtScale2);
     xCur += 8 * cw;
 
-    // Planet 1 position (9 chars)
+    // Planet 1 position
     DrawColor(kSignA(SFromZ(planet[i])));
     sprintf(sz, "%s", SzZodiac(planet[i]));
     DrawSz(sz, xCur, y, dtLeft | dtScale2);
-    xCur += 10 * cw;
+    xCur += cwPos * cw;
 
-    // Aspect glyph (centered in its space)
+    // Aspect glyph (fixed size to match line height, not window-scaled)
     DrawColor(kAspA[ahi]);
-    DrawAspect(ahi, xCur + cw, y);
+    {
+      int gsScaleSav = gs.nScale;
+      nScaleSav = gi.nScale;
+      gs.nScale = 100;  // Fixed 100% scale for list glyphs
+      gi.nScale = gi.nScaleT;
+      DrawAspect(ahi, xCur + cw, y);
+      gi.nScale = nScaleSav;
+      gs.nScale = gsScaleSav;
+    }
     xCur += 3 * cw;
 
     // Planet 2 name (7 chars)
@@ -4605,19 +4620,19 @@ void XChartAspect(void)
     DrawSz(sz, xCur, y, dtLeft | dtScale2);
     xCur += 8 * cw;
 
-    // Planet 2 position (9 chars)
+    // Planet 2 position
     DrawColor(kSignA(SFromZ(planet[j])));
     sprintf(sz, "%s", SzZodiac(planet[j]));
     DrawSz(sz, xCur, y, dtLeft | dtScale2);
-    xCur += 10 * cw;
+    xCur += cwPos * cw;
 
-    // Orb (8 chars)
+    // Orb
     DrawColor(rT < 0.0 ? gi.kiOn : gi.kiLite);
     sprintf(sz, "%c%s", rT >= 0.0 ? '+' : '-', SzDegree2(RAbs(rT)));
     DrawSz(sz, xCur, y, dtLeft | dtScale2);
     xCur += 9 * cw;
 
-    // Power (5 chars)
+    // Power
     DrawColor(gi.kiLite);
     sprintf(sz, "%5.2f", phi);
     DrawSz(sz, xCur, y, dtLeft | dtScale2);
@@ -4632,6 +4647,8 @@ void XChartAspect(void)
   sprintf(sz, "Aspect List - %d aspects", count);
   DrawSz(sz, gs.xWin/2, 5*nScale, dtCent | dtScale2);
 
+  // Restore font before sidebar (sidebar needs vector font)
+  gs.nFontTxt = nFontSav;
   DrawSidebar();
 }
 

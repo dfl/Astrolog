@@ -1060,6 +1060,20 @@ void DrawSz(CONST char *sz, int x, int y, int dt)
     return;
   }
 #endif
+#if defined(FLTK) || defined(CAIRO)
+  // Try backend font rendering for non-vector fonts
+  if (!gi.fFile && nFont > 0) {
+    // CairoPutText draws left-aligned. x is already the left edge (or adjusted
+    // for centering). y needs vertical center adjustment.
+    int yCenter = y + yFont * nScale2 / 4;
+    if (GBDrawText(sz, x, yCenter, nFont, nScale2)) {
+      gi.nScale = nScaleSav;
+      if (fThin)
+        DrawThick(fTrue);
+      return;
+    }
+  }
+#endif
 #ifdef WINANY
   if (!gi.fFile && nFont > 0) {
     hfont = CreateFont(6*nScale2, 0, 0, 0, !gs.fThick ? 400 : 800,
