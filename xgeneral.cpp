@@ -508,15 +508,21 @@ void DrawDash(int x1, int y1, int x2, int y2, int skip)
   if (!gi.fFile) {
     // Alpha line mode: use alpha transparency instead of dashing
     if (gs.nDashStyle >= 1 && skip > 0) {
-      // Convert skip value to alpha (higher skip = more transparent)
-      // skip 1 = 180 alpha, skip 2 = 140, skip 3 = 110, skip 4+ = 80
-      int alpha = 255 - Min(skip, 5) * 35;
-      if (alpha < 80) alpha = 80;
+      // Convert skip to strength (0=weakest, 1=strongest)
+      // skip typically ranges 0-5, with 0=exact aspect
+      double strength = 1.0 - Min(skip, 5) / 5.0;
+      // Nonlinear power curve (0.75) for more perceptible visual differences
+      // Strong aspects stay visible, weak aspects fade faster
+      double alphaNorm = pow(strength, 0.75);  // 0.0 to 1.0
+      int alpha = (int)(80 + alphaNorm * 175); // Map to 80-255 range
       GBSetColorAlpha(gi.kiCur, alpha);
-      if (gs.fThick)
-        GBDrawLineThick(x1, y1, x2, y2);
-      else
-        GBDrawLine(x1, y1, x2, y2);
+      // Width: nonlinear curve so strong aspects are noticeably thicker
+      // strength^0.8 mapped to 0.4-1.2 (or 0.8-2.0 for thick mode)
+      double widthNorm = pow(strength, 0.8);
+      double width = gs.fThick ? (0.8 + widthNorm * 1.2) : (0.4 + widthNorm * 0.8);
+      GBSetLineWidth(width);
+      GBDrawLine(x1, y1, x2, y2);
+      GBSetLineWidth(1.0);  // Restore default width
       GBSetColor(gi.kiCur);  // Restore full opacity
       return;
     }

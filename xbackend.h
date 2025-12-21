@@ -35,6 +35,7 @@ typedef struct _GraphicsBackend {
   // Core drawing operations (using Put* naming to avoid macro conflicts)
   void (*PutColor)(int ki);           // Set current drawing color
   void (*PutColorAlpha)(int ki, int alpha);  // Set color with alpha (0-255)
+  void (*PutLineWidth)(double width); // Set line width (supports fractional)
   void (*PutPixel)(int x, int y);     // Draw single pixel
   void (*PutPixelThick)(int x, int y); // Draw pixel with thickness
   void (*PutLine)(int x1, int y1, int x2, int y2);  // Draw line
@@ -80,6 +81,9 @@ extern cairo_t *CairoContext(void);  // Get current Cairo context for advanced o
 #define GBSetColorAlpha(ki, alpha) \
   do { if (gpBackend && gpBackend->PutColorAlpha) gpBackend->PutColorAlpha(ki, alpha); \
        else if (gpBackend && gpBackend->PutColor) gpBackend->PutColor(ki); } while(0)
+
+#define GBSetLineWidth(width) \
+  do { if (gpBackend && gpBackend->PutLineWidth) gpBackend->PutLineWidth(width); } while(0)
 
 #define GBDrawPixel(x, y) \
   do { if (gpBackend && gpBackend->PutPixel) gpBackend->PutPixel(x, y); } while(0)

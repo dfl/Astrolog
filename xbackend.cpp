@@ -408,6 +408,14 @@ static void FltkSetColorAlpha(int ki, int alpha)
   fl_color(fl_rgb_color(r, g, b));
 }
 
+static void FltkSetLineWidth(double width)
+{
+  // FLTK line width is integer-based, round to nearest
+  int w = (int)(width + 0.5);
+  if (w < 1) w = 1;
+  fl_line_style(FL_SOLID, w);
+}
+
 static void FltkDrawPixel(int x, int y)
 {
   fl_point(x, y);
@@ -610,6 +618,7 @@ static GB gbFltk = {
   "FLTK",
   FltkSetColor,
   FltkSetColorAlpha,
+  FltkSetLineWidth,
   FltkDrawPixel,
   FltkDrawPixelThick,
   FltkDrawLine,
@@ -670,6 +679,11 @@ static void CairoSetColorAlpha(int ki, int alpha)
     (double)RgbG(kv) / 255.0,
     (double)RgbB(kv) / 255.0,
     (double)alpha / 255.0);
+}
+
+static void CairoSetLineWidth(double width)
+{
+  cairo_set_line_width(gi_cr, width);
 }
 
 static void CairoDrawPixel(int x, int y)
@@ -890,6 +904,7 @@ static GB gbCairo = {
   "Cairo",
   CairoSetColor,
   CairoSetColorAlpha,
+  CairoSetLineWidth,
   CairoDrawPixel,
   CairoDrawPixelThick,
   CairoDrawLine,
