@@ -290,8 +290,6 @@ void FMenuDocOrbit(Fl_Widget *w, void *data);
 void FMenuDocExo(Fl_Widget *w, void *data);
 
 // Forward declarations for window settings callbacks
-void FMenuSizeChartToWindow(Fl_Widget *w, void *data);
-void FMenuSizeWindowToChart(Fl_Widget *w, void *data);
 void FMenuFullScreen(Fl_Widget *w, void *data);
 
 // Edit menu - Copy/Export Text
@@ -944,9 +942,16 @@ int ChartWidget::handleKey(int key)
     return 1;
 #endif
 
-  // Quit
+  // Square Screen (Shift+Q)
   case 'Q':
     SquareX(&gs.xWin, &gs.yWin, fTrue);
+    // Resize window to match the new square chart size
+    if (fi.window) {
+      int menuH = 25;  // Menu bar height
+      fi.window->size(gs.xWin, gs.yWin + menuH);
+    }
+    us.fGraphics = fTrue;
+    fi.fDoCast = fTrue;
     redraw();
     return 1;
 
@@ -1289,8 +1294,6 @@ void AstrologWindow::createMenus()
   menubar_->add("&View/Show &Graphics", 'v', FMenuGraphicsToggle, 0, FL_MENU_TOGGLE);
   menubar_->add("&View/Window Settings/&Redraw Screen", ' ', FMenuRedraw);
   menubar_->add("&View/Window Settings/&Clear Screen", FL_Delete, FMenuClear, 0, FL_MENU_DIVIDER);
-  menubar_->add("&View/Window Settings/Size Chart to &Window", 0, FMenuSizeChartToWindow);
-  menubar_->add("&View/Window Settings/Size &Window to Chart", 0, FMenuSizeWindowToChart);
   menubar_->add("&View/Window Settings/&Full Screen", FL_F+11, FMenuFullScreen, 0, FL_MENU_DIVIDER);
   menubar_->add("&View/Show &Interpretations", 0, FMenuInterpret, 0, FL_MENU_TOGGLE);
   menubar_->add("&View/Print &Nearest Second", 0, FMenuSecond, 0, FL_MENU_TOGGLE);
@@ -1402,7 +1405,7 @@ void AstrologWindow::createMenus()
   menubar_->add("&Graphics/Reduce Contrast/&Light (25%)", 0, FMenuReduceContrast, (void*)25, FL_MENU_RADIO);
   menubar_->add("&Graphics/Reduce Contrast/&Medium (50%)", 0, FMenuReduceContrast, (void*)50, FL_MENU_RADIO | FL_MENU_VALUE);
   menubar_->add("&Graphics/Reduce Contrast/&Heavy (75%)", 0, FMenuReduceContrast, (void*)75, FL_MENU_RADIO);
-  menubar_->add("&Graphics/S&quare Screen", 'Q', FMenuGraphicsSquare, 0, FL_MENU_TOGGLE);
+  menubar_->add("&Graphics/S&quare Screen", 'Q', FMenuGraphicsSquare);
   // Character Scale submenu
   menubar_->add("&Graphics/Character Scale/&Small", 0, FMenuScale1, 0, FL_MENU_RADIO | FL_MENU_VALUE);
   menubar_->add("&Graphics/Character Scale/&Medium", 0, FMenuScale2, 0, FL_MENU_RADIO);
@@ -2583,26 +2586,6 @@ void FMenuDocExo(Fl_Widget *w, void *data)
   OpenFileInEditor(szFileExoCore);
 }
 
-void FMenuSizeChartToWindow(Fl_Widget *w, void *data)
-{
-  // Set chart size to match window client area
-  gs.xWin = fi.xClient;
-  gs.yWin = fi.yClient;
-  us.fGraphics = fTrue;
-  fi.fDoCast = fTrue;
-  if (fi.chart)
-    fi.chart->redraw();
-}
-
-void FMenuSizeWindowToChart(Fl_Widget *w, void *data)
-{
-  // Resize window to match chart size
-  if (fi.window) {
-    int menuH = 25;  // Menu bar height
-    fi.window->size(gs.xWin, gs.yWin + menuH);
-  }
-}
-
 void FMenuFullScreen(Fl_Widget *w, void *data)
 {
   if (fi.window) {
@@ -3199,8 +3182,17 @@ void FMenuGraphicsSidebar(Fl_Widget *w, void *data)
 
 void FMenuGraphicsSquare(Fl_Widget *w, void *data)
 {
-  inv(gs.fKeepSquare);
-  UpdateMenuCheck(FMenuGraphicsSquare, gs.fKeepSquare);
+  // Make chart dimensions square (like Windows cmdGraphicsSquare)
+  SquareX(&gs.xWin, &gs.yWin, fTrue);
+
+  // Resize window to match the new square chart size
+  if (fi.window) {
+    int menuH = 25;  // Menu bar height
+    fi.window->size(gs.xWin, gs.yWin + menuH);
+  }
+
+  us.fGraphics = fTrue;
+  fi.fDoCast = fTrue;
   if (fi.chart) fi.chart->redraw();
 }
 
