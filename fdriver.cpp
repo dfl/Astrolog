@@ -2832,7 +2832,7 @@ void FMenuViewHouse(Fl_Widget *w, void *data)
 void FMenuViewAspect(Fl_Widget *w, void *data)
 {
   gi.nMode = gAspect;
-  us.fGraphics = fFalse;
+  us.fAspList = fTrue;
   fi.fDoCast = fTrue;
   if (fi.chart) fi.chart->redraw();
 }
@@ -2848,7 +2848,7 @@ void FMenuViewEsoteric(Fl_Widget *w, void *data)
 void FMenuViewArabic(Fl_Widget *w, void *data)
 {
   gi.nMode = gArabic;
-  us.fGraphics = fFalse;
+  us.fArabic = fTrue;
   fi.fDoCast = fTrue;
   if (fi.chart) fi.chart->redraw();
 }

@@ -4496,6 +4496,338 @@ void XChartSphere()
 
   DrawSidebar();
 }
+
+
+// Draw a graphical aspect list chart, i.e. a text list of all aspects in the
+// chart sorted by power, displayed in the graphics window. This is called from
+// DrawChartX() when the -a -X switch combination is in effect.
+
+void XChartAspect(void)
+{
+  char sz[cchSzDef];
+  int ca[cAspect + 1], co[objMax];
+  int icut, jcut, ihi, jhi, ahi, i0, j0, i, j, k, count = 0;
+  real ip, jp, vcut = (real)nLarge, vhi, phi, v, p, rT;
+  int y, yLine, nScale, xCur, cw;
+
+  // Create the aspect grid first
+  if (!FCreateGrid(fFalse))
+    return;
+
+  ClearB((pbyte)ca, sizeof(ca));
+  ClearB((pbyte)co, sizeof(co));
+
+  // Calculate scale and positions
+  nScale = Max(gi.nScale, 1);
+  yLine = 10 * nScale;
+  cw = xFontT * nScale;  // Character width for spacing
+
+  // Draw header
+  y = 5 * nScale;
+  DrawColor(gi.kiOn);
+  sprintf(sz, "Aspect List - %d aspects", 0);  // Will update later
+  DrawSz(sz, gs.xWin/2, y, dtCent | dtScale2);
+  y += yLine * 2;
+
+  // Build and display aspect list sorted by power
+  loop {
+    vhi = -(real)nLarge;
+
+    // Search for the next most powerful aspect in the aspect grid.
+    for (i0 = 0; i0 <= is.nObj; i0++) {
+      i = rgobjList[i0];
+      if (FIgnore(i))
+        continue;
+      for (j0 = 0; j0 <= is.nObj; j0++) {
+        j = rgobjList[j0];
+        if (j >= i || FIgnore(j))
+          continue;
+        k = grid->n[j][i];
+        if (k > 0) {
+          ip = RObjInf(i);
+          jp = RObjInf(j);
+          p = rAspInf[k] * (ip+jp)/2.0 *
+            (1.0-RAbs(grid->v[j][i])/GetOrb(i, j, k));
+          switch (us.nAspectSort) {
+          default:  v = p;                    break;
+          case aso: v = -RAbs(grid->v[j][i]); break;
+          case asn: v = -grid->v[j][i];       break;
+          case asO: v = -(real)(Min(j0,i0)*cObj + Max(i0,j0)); break;
+          case asP: v = -(real)(Max(i0,j0)*cObj + Min(j0,i0)); break;
+          case asA: v = -(real)(k*cObj*cObj + j*cObj + i);     break;
+          case asC: v = -planet[j];           break;
+          case asD: v = -planet[i];           break;
+          case asM: v = -Midpoint(planet[j], planet[i]); break;
+          }
+          if ((v < vcut || (v == vcut && (i0 > icut ||
+            (i0 == icut && j0 > jcut)))) && v > vhi) {
+            vhi = v; ihi = i0; jhi = j0; ahi = k; phi = p;
+          }
+        }
+      }
+    }
+    if (vhi <= -(real)nLarge)    // Exit when no less powerful aspect found.
+      break;
+    vcut = vhi; icut = ihi; jcut = jhi;
+    i = rgobjList[ihi]; j = rgobjList[jhi];
+    count++;
+    ca[ahi]++;
+    co[j]++; co[i]++;
+
+    // Check if we've gone past the bottom of the screen
+    if (y + yLine > gs.yWin - 20*nScale)
+      continue;
+
+    // Draw the aspect line: planet1 pos1 [aspect] planet2 pos2 orb power
+    rT = grid->v[j][i];
+    xCur = 2 * cw;
+
+    // Planet 1 name (7 chars)
+    DrawColor(kObjA[i]);
+    sprintf(sz, "%-7.7s", szObjDisp[i]);
+    DrawSz(sz, xCur, y, dtLeft | dtScale2);
+    xCur += 8 * cw;
+
+    // Planet 1 position (9 chars)
+    DrawColor(kSignA(SFromZ(planet[i])));
+    sprintf(sz, "%s", SzZodiac(planet[i]));
+    DrawSz(sz, xCur, y, dtLeft | dtScale2);
+    xCur += 10 * cw;
+
+    // Aspect glyph (centered in its space)
+    DrawColor(kAspA[ahi]);
+    DrawAspect(ahi, xCur + cw, y);
+    xCur += 3 * cw;
+
+    // Planet 2 name (7 chars)
+    DrawColor(kObjA[j]);
+    sprintf(sz, "%-7.7s", szObjDisp[j]);
+    DrawSz(sz, xCur, y, dtLeft | dtScale2);
+    xCur += 8 * cw;
+
+    // Planet 2 position (9 chars)
+    DrawColor(kSignA(SFromZ(planet[j])));
+    sprintf(sz, "%s", SzZodiac(planet[j]));
+    DrawSz(sz, xCur, y, dtLeft | dtScale2);
+    xCur += 10 * cw;
+
+    // Orb (8 chars)
+    DrawColor(rT < 0.0 ? gi.kiOn : gi.kiLite);
+    sprintf(sz, "%c%s", rT >= 0.0 ? '+' : '-', SzDegree2(RAbs(rT)));
+    DrawSz(sz, xCur, y, dtLeft | dtScale2);
+    xCur += 9 * cw;
+
+    // Power (5 chars)
+    DrawColor(gi.kiLite);
+    sprintf(sz, "%5.2f", phi);
+    DrawSz(sz, xCur, y, dtLeft | dtScale2);
+
+    y += yLine;
+  }
+
+  // Update header with actual count
+  DrawColor(gi.kiOff);
+  DrawBlock(0, 0, gs.xWin, 5*nScale + yLine);
+  DrawColor(gi.kiOn);
+  sprintf(sz, "Aspect List - %d aspects", count);
+  DrawSz(sz, gs.xWin/2, 5*nScale, dtCent | dtScale2);
+
+  DrawSidebar();
+}
+
+
+// Draw a graphical Arabic Parts list chart, displaying all Arabic parts
+// and their positions in the graphics window.
+
+void XChartArabic(void)
+{
+#ifdef ARABIC
+  char sz[cchSzDef], *pch, ch;
+  real rPart[cPart], rBit[3], rCur;
+  int i, j, k, y, yLine, nScale, count = 0, h;
+
+  // Calculate scale and positions
+  nScale = Max(gi.nScale, 1);
+  yLine = 12 * nScale;
+
+  // Draw header
+  y = 5 * nScale;
+  DrawColor(gi.kiOn);
+  DrawSz("Arabic Parts", gs.xWin/2, y, dtCent | dtScale2);
+  y += yLine * 2;
+
+  // Draw column headers
+  DrawColor(gi.kiLite);
+  DrawSz("Part Name", 10*nScale, y, dtLeft | dtScale2);
+  DrawSz("Position", gs.xWin/2, y, dtLeft | dtScale2);
+  DrawSz("House", gs.xWin - 60*nScale, y, dtLeft | dtScale2);
+  y += yLine;
+  DrawColor(gi.kiGray);
+  DrawLine(10*nScale, y, gs.xWin - 10*nScale, y);
+  y += yLine/2;
+
+  // Calculate the zodiac positions of all the parts (like DisplayArabic)
+  for (i = 0; i < cPart; i++) {
+    rPart[i] = -rDegMax;
+    if (i >= us.nArabicParts)
+      continue;
+    for (j = 0; j < 3; j++) {
+      pch = &ai[i].form[j*3];
+      ch = pch[1];
+      if (ch == ' ')
+        k = oAsc;
+      else if (ch == 'F')
+        k = -apFor;
+      else if (ch == 'S')
+        k = -apSpi;
+      else
+        k = (ch-'0') * 10 + (pch[2]-'0');
+      ch = *pch;
+      if (ch == 'h')
+        rCur = chouse[k];
+      else if (ch == 'r')
+        rCur = planet[rules[SFromZ(chouse[k])]];
+      else if (ch == 'j')
+        rCur = chouse[k] + 10.0;
+      else if (ch == 'H')
+        rCur = chouse[inhouse[k]];
+      else if (ch == 'R')
+        rCur = planet[rules[SFromZ(chouse[inhouse[k]])]];
+      else if (ch == 'D')
+        rCur = planet[rules[SFromZ(planet[k])]];
+      else if (FBetween(ch, '0', '3'))
+        rCur = (real)((ch-'0') * 100 + k);
+      else {
+        if (k < 1) {
+          rCur = rPart[-k];
+          if (rCur < 0.0)
+            goto LNextPart;
+        } else {
+          if (ignore[k] && (us.fCusp || !FCusp(k)))
+            goto LNextPart;
+          else
+            rCur = planet[k];
+        }
+      }
+      rBit[j] = rCur;
+    }
+    rCur = rBit[1] - rBit[2];
+    if (us.nArabicNight < 0 || (us.nArabicNight == 0 &&
+      ai[i].form[9] == 'F' && (!us.fHouse3D ?
+      MinDifference(planet[oSun], is.Asc) < 0.0 :
+      RHousePlaceIn3DCore(planet[oSun], planetalt[oSun]) < rDegHalf)))
+      neg(rCur);
+    rCur = Mod(rCur + rBit[0]);
+    rPart[i] = rCur;
+LNextPart:
+    ;
+  }
+
+  // Display Arabic parts
+  for (i = 0; i < cPart && i < us.nArabicParts; i++) {
+    if (y + yLine > gs.yWin - 20*nScale)
+      break;
+
+    if (rPart[i] < 0.0)
+      continue;
+    count++;
+
+    // Part name
+    DrawColor(gi.kiOn);
+    sprintf(sz, "%.20s", ai[i].name);
+    DrawSz(sz, 10*nScale, y, dtLeft | dtScale2);
+
+    // Position
+    DrawColor(kSignA(SFromZ(rPart[i])));
+    sprintf(sz, "%s", SzZodiac(rPart[i]));
+    DrawSz(sz, gs.xWin/2, y, dtLeft | dtScale2);
+
+    // House
+    h = NHousePlaceIn(rPart[i], 0.0);
+    DrawColor(kSignA(h));
+    sprintf(sz, "%d", h);
+    DrawSz(sz, gs.xWin - 50*nScale, y, dtCent | dtScale2);
+
+    y += yLine;
+  }
+
+  // Summary
+  y = gs.yWin - 15*nScale;
+  DrawColor(gi.kiLite);
+  sprintf(sz, "Total: %d parts", count);
+  DrawSz(sz, gs.xWin/2, y, dtCent | dtScale2);
+
+  DrawSidebar();
+#else
+  DrawColor(gi.kiOn);
+  DrawSz("Arabic Parts not compiled in", gs.xWin/2, gs.yWin/2, dtCent | dtScale2);
+  DrawSidebar();
+#endif
+}
+
+
+// Draw a graphical Exoplanet Transit chart, displaying exoplanet transit
+// information in the graphics window.
+
+void XChartExo(void)
+{
+  char sz[cchSzDef];
+  int y, yLine, nScale, count = 0;
+
+  // Calculate scale and positions
+  nScale = Max(gi.nScale, 1);
+  yLine = 12 * nScale;
+
+  // Draw header
+  y = 5 * nScale;
+  DrawColor(gi.kiOn);
+  DrawSz("Exoplanet Transits", gs.xWin/2, y, dtCent | dtScale2);
+  y += yLine * 2;
+
+  // Call the chart function to populate exoplanet data
+  ChartExoplanet(fTrue);
+
+  // Draw column headers
+  DrawColor(gi.kiLite);
+  DrawSz("Exoplanet", 10*nScale, y, dtLeft | dtScale2);
+  DrawSz("RA", gs.xWin/3, y, dtCent | dtScale2);
+  DrawSz("Dec", gs.xWin*2/3, y, dtCent | dtScale2);
+  y += yLine;
+  DrawColor(gi.kiGray);
+  DrawLine(10*nScale, y, gs.xWin - 10*nScale, y);
+  y += yLine/2;
+
+  // Display exoplanet data
+  for (int i = 0; i < is.cexod && y + yLine < gs.yWin - 10*nScale; i++) {
+    if (is.rgexod[i].kiLoop == kRed)  // Skip non-transiting
+      continue;
+    count++;
+
+    // Exoplanet name
+    DrawColor(is.rgexod[i].kiLoop == kGreen ? kGreenB : kYellowB);
+    sprintf(sz, "%.25s", is.rgexod[i].sz);
+    DrawSz(sz, 10*nScale, y, dtLeft | dtScale2);
+
+    // RA
+    DrawColor(gi.kiLite);
+    sprintf(sz, "%.2fh", is.rgexod[i].ra);
+    DrawSz(sz, gs.xWin/3, y, dtCent | dtScale2);
+
+    // Dec
+    sprintf(sz, "%+.2f", is.rgexod[i].dec);
+    DrawSz(sz, gs.xWin*2/3, y, dtCent | dtScale2);
+
+    y += yLine;
+  }
+
+  // Summary
+  y = gs.yWin - 15*nScale;
+  DrawColor(gi.kiLite);
+  sprintf(sz, "Total transiting: %d exoplanets", count);
+  DrawSz(sz, gs.xWin/2, y, dtCent | dtScale2);
+
+  DrawSidebar();
+}
 #endif // GRAPH
 
 /* xcharts1.cpp */

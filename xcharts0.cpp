@@ -2382,6 +2382,17 @@ void DrawChartX()
   case gMoons:
     XChartMoons();
     break;
+  case gAspect:
+    XChartAspect();
+    break;
+#ifdef ARABIC
+  case gArabic:
+    XChartArabic();
+    break;
+#endif
+  case gExo:
+    XChartExo();
+    break;
 #ifdef WIN
   case gTraTraTim:
   case gTraTraInf:
