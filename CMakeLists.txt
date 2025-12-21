@@ -183,7 +183,13 @@ if(APPLE AND USE_FLTK)
     MACOSX_PACKAGE_LOCATION "Resources/Fonts"
   )
 
-  target_sources(astrolog PRIVATE ${APP_ICON_MACOS} ${ASTROLOGY_FONTS})
+  # Bundle Swiss Ephemeris data files
+  file(GLOB EPHE_FILES "${CMAKE_CURRENT_SOURCE_DIR}/*.se1")
+  set_source_files_properties(${EPHE_FILES} PROPERTIES
+    MACOSX_PACKAGE_LOCATION "Resources/ephe"
+  )
+
+  target_sources(astrolog PRIVATE ${APP_ICON_MACOS} ${ASTROLOGY_FONTS} ${EPHE_FILES})
   set_target_properties(astrolog PROPERTIES
     MACOSX_BUNDLE TRUE
     MACOSX_BUNDLE_BUNDLE_NAME "Astrolog"

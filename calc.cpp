@@ -51,6 +51,11 @@
 ** Last code change made 6/19/2025.
 */
 
+// Include macOS frameworks before astrolog.h to avoid macro conflicts
+#ifdef __APPLE__
+#include <CoreFoundation/CoreFoundation.h>
+#endif
+
 #include "astrolog.h"
 
 
@@ -2466,6 +2471,27 @@ void CreateElemTable(ET *pet)
 #include "swephlib.h"
 #define ret cp0.dir
 
+#ifdef __APPLE__
+// Get the path to the app bundle's Resources directory for ephemeris files.
+// Returns fTrue if successful and path is copied to szPath, fFalse otherwise.
+
+static flag FGetBundleResourcesPath(char *szPath, int cchMax)
+{
+  CFBundleRef mainBundle = CFBundleGetMainBundle();
+  if (mainBundle == NULL)
+    return fFalse;
+
+  CFURLRef resourcesURL = CFBundleCopyResourcesDirectoryURL(mainBundle);
+  if (resourcesURL == NULL)
+    return fFalse;
+
+  Boolean fOk = CFURLGetFileSystemRepresentation(resourcesURL, true,
+    (UInt8*)szPath, cchMax);
+  CFRelease(resourcesURL);
+  return fOk ? fTrue : fFalse;
+}
+#endif
+
 // Set up path for Swiss Ephemeris to search in for ephemeris files.
 
 void SwissEnsurePath()
@@ -2530,6 +2556,18 @@ void SwissEnsurePath()
   env = getenv(ENVIRONVER);
   if (FSzSet(env))
     sprintf2(SO(szPath + CchSz(szPath), szPath), "%s%s", PATH_SEPARATOR, env);
+#endif
+#ifdef __APPLE__
+  // On macOS, look in the app bundle's Resources directory.
+  {
+    char szBundle[cchSzMax];
+    if (FGetBundleResourcesPath(szBundle, cchSzMax)) {
+      sprintf2(SO(szPath + CchSz(szPath), szPath), "%s%s", PATH_SEPARATOR,
+        szBundle);
+      sprintf2(SO(szPath + CchSz(szPath), szPath), "%s%s/ephe", PATH_SEPARATOR,
+        szBundle);
+    }
+  }
 #endif
   // Finally look in a directory specified at compile time.
   sprintf2(SO(szPath + CchSz(szPath), szPath), "%s%s", PATH_SEPARATOR,
