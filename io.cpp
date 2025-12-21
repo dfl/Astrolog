@@ -57,6 +57,9 @@
 #else
 #include <dirent.h>
 #endif
+#ifdef __APPLE__
+#include <CoreFoundation/CoreFoundation.h>
+#endif
 
 
 /*
@@ -112,6 +115,29 @@ FILE *FileOpen(CONST char *szFile, int nFileMode, char *szPath)
     file = fopen(sz, szMode);
     if (file != NULL)
       goto LDone;
+
+#ifdef __APPLE__
+    // On macOS, look in the app bundle's Resources directory.
+    {
+      CFBundleRef mainBundle = CFBundleGetMainBundle();
+      if (mainBundle != NULL) {
+        CFURLRef resourcesURL = CFBundleCopyResourcesDirectoryURL(mainBundle);
+        if (resourcesURL != NULL) {
+          char szBundle[cchSzMax];
+          if (CFURLGetFileSystemRepresentation(resourcesURL, true,
+              (UInt8*)szBundle, cchSzMax)) {
+            sprintf(sz, "%s/%s", szBundle, szFileT);
+            file = fopen(sz, szMode);
+            if (file != NULL) {
+              CFRelease(resourcesURL);
+              goto LDone;
+            }
+          }
+          CFRelease(resourcesURL);
+        }
+      }
+    }
+#endif
 
     // Next look for the file in the current directory.
     sprintf(sz, "%s", szFileT);

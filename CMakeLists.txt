@@ -193,7 +193,15 @@ if(APPLE AND USE_FLTK)
     MACOSX_PACKAGE_LOCATION "Resources/ephe"
   )
 
-  target_sources(astrolog PRIVATE ${APP_ICON_MACOS} ${ASTROLOGY_FONTS} ${EPHE_FILES} ${EPHE_DATA_FILES})
+  # Bundle Astrolog data files (exoplanet catalog, etc.)
+  set(ASTROLOG_DATA_FILES
+    "${CMAKE_CURRENT_SOURCE_DIR}/astexo.csv"
+  )
+  set_source_files_properties(${ASTROLOG_DATA_FILES} PROPERTIES
+    MACOSX_PACKAGE_LOCATION "Resources"
+  )
+
+  target_sources(astrolog PRIVATE ${APP_ICON_MACOS} ${ASTROLOGY_FONTS} ${EPHE_FILES} ${EPHE_DATA_FILES} ${ASTROLOG_DATA_FILES})
   set_target_properties(astrolog PROPERTIES
     MACOSX_BUNDLE TRUE
     MACOSX_BUNDLE_BUNDLE_NAME "Astrolog"
