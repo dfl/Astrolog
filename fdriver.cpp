@@ -814,22 +814,9 @@ int ChartWidget::handleKey(int key)
   case '~': FMenuIncludeCOB(NULL, NULL); return 1;
   case 'U': FMenuIncludeStars(NULL, NULL); return 1;
 
-  // Scale adjustments
-  case '<':
-    if (gs.nScale > 100) {
-      gs.nScale -= 100;
-      gi.nScale = gs.nScale / 100;
-      redraw();
-    }
-    return 1;
-
-  case '>':
-    if (gs.nScale < MAXSCALE) {
-      gs.nScale += 100;
-      gi.nScale = gs.nScale / 100;
-      redraw();
-    }
-    return 1;
+  // Scale adjustments - delegate to menu callbacks
+  case '<': FMenuScaleDecrease(NULL, NULL); return 1;
+  case '>': FMenuScaleIncrease(NULL, NULL); return 1;
 
   // Tilt controls
   case '[':
