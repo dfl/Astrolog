@@ -2962,7 +2962,6 @@ void XChartMidpoint()
 
   // List midpoints in middle of wheel.
   if (!gs.fEquator && !gs.fLabelAsp) {
-    int nScaleSav;
     for (i = 1; i < count; i++) {
       j = i-1;
       loop {
@@ -2980,17 +2979,19 @@ void XChartMidpoint()
         j--;
       }
     }
-    // Use smaller scale for center list (similar to sidebar)
-    nScaleSav = gi.nScale;
-    gi.nScale = gi.nScaleT;
-    i = (int)(unity * 2.0 * 0.65) / (gi.nScale*10);
+    // Use larger scale for center list to make glyphs readable
+    int nScaleList = gi.nScale * 3;
+    i = (int)(unity * 2.0 * 0.65) / (nScaleList*10);
     count = Min(count+1, i-1);
     for (i = -1; i < count-1; i++) {
-      y = cy + (i*2+3 - count) * gi.nScale * 5;
+      y = cy + (i*2+3 - count) * nScaleList * 5;
       if (i < 0) {
-        if (gs.objTrack >= 0)
+        if (gs.objTrack >= 0) {
+          int nScaleSav = gi.nScale;
+          gi.nScale = nScaleList;
           DrawObject(gs.objTrack, cx, y);
-        else {
+          gi.nScale = nScaleSav;
+        } else {
           DrawColor(kSignB(SFromZ(gs.rRot)));
           f = us.fSeconds; us.fSeconds &= (!fLabelOrb || gs.nScale >= 300);
           DrawSz(SzZodiac(gs.rRot), cx, y, dtCent);
@@ -2998,24 +2999,28 @@ void XChartMidpoint()
         }
         if (fLabelOrb) {
           DrawColor(gi.kiOn);
-          DrawSz("Orb",   cx + 12*gi.nScale +   xFontT, y, dtLeft | dtMid);
-          DrawSz("Angle", cx - 12*gi.nScale - 6*xFontT, y, dtLeft | dtMid);
+          DrawSz("Orb",   cx + 13*nScaleList +   xFontT, y, dtLeft | dtMid);
+          DrawSz("Angle", cx - 13*nScaleList - 6*xFontT, y, dtLeft | dtMid);
         }
         continue;
       }
-      DrawObject(obj1[i], cx - 6*gi.nScale, y);
-      DrawObject(obj2[i], cx + 6*gi.nScale, y);
+      {
+        int nScaleSav = gi.nScale;
+        gi.nScale = nScaleList;
+        DrawObject(obj1[i], cx - 7*nScaleList, y);
+        DrawObject(obj2[i], cx + 7*nScaleList, y);
+        gi.nScale = nScaleSav;
+      }
       if (fLabelOrb) {
         DrawColor(gi.kiLite);
-        DrawSz(rOrb[i] < 0.0 ? "-" : "+", cx + 12*gi.nScale + xFontT, y,
+        DrawSz(rOrb[i] < 0.0 ? "-" : "+", cx + 13*nScaleList + xFontT, y,
           dtLeft | dtMid);
-        DrawSz(SzDegree2(RAbs(rOrb[i])),  cx + 12*gi.nScale + 2*xFontT, y,
+        DrawSz(SzDegree2(RAbs(rOrb[i])),  cx + 13*nScaleList + 2*xFontT, y,
           dtLeft | dtMid);
         DrawSz(SzDegree(rDiff[i]),
-          cx - 12*gi.nScale - VSeconds(8, 11, 15)*xFontT, y, dtLeft | dtMid);
+          cx - 13*nScaleList - VSeconds(8, 11, 15)*xFontT, y, dtLeft | dtMid);
       }
     }
-    gi.nScale = nScaleSav;
   }
 
   DrawSidebar();
