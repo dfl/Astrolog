@@ -372,10 +372,19 @@ void ChartWidget::draw()
     // Use a smaller reference (440) so glyphs scale up even at default window size
     // This accounts for the fact that the default 600px matches typical minimum dimension
     int defDim = 440;
-    gi.rScaleX = gi.rScaleY = (real)minDim / (real)defDim;
-    gi.nScale = Max((int)gi.rScaleX, 1);
-    // Use fractional scale for smooth glyph sizing (100 = 1x, 150 = 1.5x, etc.)
-    gs.nScale = Max((int)(gi.rScaleX * 100.0), 100);
+    real baseScale = (real)minDim / (real)defDim;
+    // Preserve manual scale setting from Character Scale menu (100, 200, 300, 400)
+    // The stored gs.nScale acts as a multiplier: 100 = 1x, 200 = 2x, etc.
+    static int nScaleManual = 100;  // Default to 100 (1x)
+    // Update manual scale if it was changed by menu (values are 100, 200, 300, 400)
+    if (gs.nScale == 100 || gs.nScale == 200 || gs.nScale == 300 || gs.nScale == 400) {
+      nScaleManual = gs.nScale;
+    }
+    // Apply manual scale multiplier to base scale
+    real finalScale = baseScale * (nScaleManual / 100.0);
+    gi.rScaleX = gi.rScaleY = finalScale;
+    gi.nScale = Max((int)finalScale, 1);
+    gs.nScale = Max((int)(finalScale * 100.0), 100);
   }
 
 #ifdef CAIRO
