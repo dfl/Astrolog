@@ -571,23 +571,20 @@ int ChartWidget::handle(int event)
     if (us.fGraphics && FSupportsRotation(gi.nMode) &&
         !(Fl::event_state() & (FL_SHIFT | FL_ALT))) {
       if (gi.nMode == gMidpoint && !gs.fEquator) {
-        // Midpoint dial: use angular rotation around center
+        // Midpoint dial: make arrow follow mouse position directly
         int chartWidth = gs.xWin;
         if (gs.fText && gs.fDoSidebar)
           chartWidth -= xSideT;
         int cx = chartWidth / 2 - 1;
         int cy = gs.yWin / 2 - 1;
-        real prevAngle = RAngleD((real)(mousex_ - cx), (real)(mousey_ - cy));
-        real currAngle = RAngleD((real)(mx - cx), (real)(my - cy));
-        real deltaAngle = currAngle - prevAngle;
-        // Handle wraparound at 0/360 boundary
-        if (deltaAngle > 180.0) deltaAngle -= 360.0;
-        else if (deltaAngle < -180.0) deltaAngle += 360.0;
-        // Apply angular change (rxi handles Indian vs Western)
-        real rxi = !us.fIndian ? 1.0 : -1.0;
-        gs.rRot -= deltaAngle * rxi;
-        ClampRotation();
-        gs.objTrack = -1;
+        real dx = (real)(mx - cx);
+        real dy = (real)(my - cy);
+        if (dx != 0.0 || dy != 0.0) {
+          real screenAngle = RAngleD(dx, dy);
+          real rxi = !us.fIndian ? 1.0 : -1.0;
+          gs.rRot = Mod((270.0 - screenAngle) * rxi);
+          gs.objTrack = -1;
+        }
       } else {
         // Calculate rotation delta with mode-specific factor
         real rFactor = (gi.nMode == gLocal || gi.nMode == gTelescope) ?
