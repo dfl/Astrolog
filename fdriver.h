@@ -18,11 +18,12 @@
 
 #include <FL/Fl.H>
 #include <FL/Fl_Double_Window.H>
-#include <FL/Fl_Widget.H>
 #include <FL/Fl_Menu_Bar.H>
-#include <FL/Fl_Text_Display.H>
 #include <FL/Fl_Text_Buffer.H>
+#include <FL/Fl_Text_Display.H>
+#include <FL/Fl_Widget.H>
 #include <FL/fl_draw.H>
+
 
 // Forward declarations
 class ChartWidget;
@@ -31,26 +32,7 @@ class AstrologWindow;
 class Globe3DWidget;
 #endif
 
-// FLTK-specific global state
-// Note: Using int instead of flag since this header is included early
-typedef struct _FltkInfo {
-  AstrologWindow *window;    // Main application window
-  ChartWidget *chart;        // Chart drawing widget (2D)
-#ifdef OPENGL
-  Globe3DWidget *chart3D;    // OpenGL 3D chart widget
-#endif
-  Fl_Menu_Bar *menubar;      // Menu bar
-  Fl_Window *textWindow;     // Text output window
-  Fl_Text_Display *textDisplay; // Text display widget
-  Fl_Text_Buffer *textBuffer;   // Text buffer
-  int xClient;               // Client area width
-  int yClient;               // Client area height
-  int fDoResize;             // Resize pending (flag)
-  int fDoRedraw;             // Redraw pending (flag)
-  int fDoCast;               // Recast chart pending (flag)
-  int xMouse;                // Last mouse X position
-  int yMouse;                // Last mouse Y position
-} FI;
+// FI is now defined in astrolog_types.h
 
 extern FI fi;
 
@@ -69,8 +51,8 @@ public:
   int handleKey(int key);
 
 private:
-  int mousex_, mousey_;      // Current mouse position
-  int buttonx_, buttony_;    // Button press position
+  int mousex_, mousey_;   // Current mouse position
+  int buttonx_, buttony_; // Button press position
 };
 
 // AstrologWindow - Main application window
@@ -82,7 +64,7 @@ public:
   ChartWidget *chartWidget() { return chart_; }
 #ifdef OPENGL
   Globe3DWidget *chart3DWidget() { return chart3D_; }
-  void switchTo3D(bool use3D);  // Switch between 2D and 3D widgets
+  void switchTo3D(bool use3D); // Switch between 2D and 3D widgets
 #endif
   Fl_Menu_Bar *menuBar() { return menubar_; }
 

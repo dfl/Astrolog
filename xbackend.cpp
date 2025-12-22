@@ -33,92 +33,73 @@ GB *gpBackend = NULL;
 */
 
 #ifdef X11
-static void X11SetColor(int ki)
-{
-  XSetForeground(gi.disp, gi.gc, rgbind[ki]);
-}
+static void X11SetColor(int ki) { XSetForeground(gi.disp, gi.gc, rgbind[ki]); }
 
-static void X11DrawPixel(int x, int y)
-{
+static void X11DrawPixel(int x, int y) {
   XDrawPoint(gi.disp, gi.pmap, gi.gc, x, y);
 }
 
-static void X11DrawPixelThick(int x, int y)
-{
+static void X11DrawPixelThick(int x, int y) {
   XDrawPoint(gi.disp, gi.pmap, gi.gc, x, y);
-  XDrawPoint(gi.disp, gi.pmap, gi.gc, x+1, y);
-  XDrawPoint(gi.disp, gi.pmap, gi.gc, x, y+1);
-  XDrawPoint(gi.disp, gi.pmap, gi.gc, x+1, y+1);
+  XDrawPoint(gi.disp, gi.pmap, gi.gc, x + 1, y);
+  XDrawPoint(gi.disp, gi.pmap, gi.gc, x, y + 1);
+  XDrawPoint(gi.disp, gi.pmap, gi.gc, x + 1, y + 1);
 }
 
-static void X11DrawLine(int x1, int y1, int x2, int y2)
-{
+static void X11DrawLine(int x1, int y1, int x2, int y2) {
   XDrawLine(gi.disp, gi.pmap, gi.gc, x1, y1, x2, y2);
   // Some XDrawLine implementations don't draw the last pixel
   XDrawPoint(gi.disp, gi.pmap, gi.gc, x2, y2);
 }
 
-static void X11DrawLineThick(int x1, int y1, int x2, int y2)
-{
+static void X11DrawLineThick(int x1, int y1, int x2, int y2) {
   XDrawLine(gi.disp, gi.pmap, gi.gc, x1, y1, x2, y2);
-  XDrawLine(gi.disp, gi.pmap, gi.gc, x1+1, y1, x2+1, y2);
-  XDrawLine(gi.disp, gi.pmap, gi.gc, x1, y1+1, x2, y2+1);
-  XDrawLine(gi.disp, gi.pmap, gi.gc, x1+1, y1+1, x2+1, y2+1);
+  XDrawLine(gi.disp, gi.pmap, gi.gc, x1 + 1, y1, x2 + 1, y2);
+  XDrawLine(gi.disp, gi.pmap, gi.gc, x1, y1 + 1, x2, y2 + 1);
+  XDrawLine(gi.disp, gi.pmap, gi.gc, x1 + 1, y1 + 1, x2 + 1, y2 + 1);
   XDrawPoint(gi.disp, gi.pmap, gi.gc, x2, y2);
-  XDrawPoint(gi.disp, gi.pmap, gi.gc, x2+1, y2);
-  XDrawPoint(gi.disp, gi.pmap, gi.gc, x2, y2+1);
-  XDrawPoint(gi.disp, gi.pmap, gi.gc, x2+1, y2+1);
+  XDrawPoint(gi.disp, gi.pmap, gi.gc, x2 + 1, y2);
+  XDrawPoint(gi.disp, gi.pmap, gi.gc, x2, y2 + 1);
+  XDrawPoint(gi.disp, gi.pmap, gi.gc, x2 + 1, y2 + 1);
 }
 
-static void X11DrawRect(int x, int y, int w, int h)
-{
+static void X11DrawRect(int x, int y, int w, int h) {
   XFillRectangle(gi.disp, gi.pmap, gi.gc, x, y, w, h);
 }
 
-static void X11DrawArc(int x, int y, int w, int h, double deg1, double deg2)
-{
-  XDrawArc(gi.disp, gi.pmap, gi.gc, x, y, w, h,
-    (int)(deg1 * 64.0), (int)((deg2 - deg1) * 64.0));
+static void X11DrawArc(int x, int y, int w, int h, double deg1, double deg2) {
+  XDrawArc(gi.disp, gi.pmap, gi.gc, x, y, w, h, (int)(deg1 * 64.0),
+           (int)((deg2 - deg1) * 64.0));
 }
 
-static void X11DrawEllipse(int x, int y, int w, int h)
-{
-  XFillArc(gi.disp, gi.pmap, gi.gc, x, y, w, h, 0, 360*64);
+static void X11DrawEllipse(int x, int y, int w, int h) {
+  XFillArc(gi.disp, gi.pmap, gi.gc, x, y, w, h, 0, 360 * 64);
 }
 
-static void X11ClearScreen(int ki)
-{
+static void X11ClearScreen(int ki) {
   XSetForeground(gi.disp, gi.gc, rgbind[ki]);
   XFillRectangle(gi.disp, gi.pmap, gi.gc, 0, 0, gs.xWin, gs.yWin);
 }
 
-static void X11Flush(void)
-{
-  XSync(gi.disp, 0);
-}
+static void X11Flush(void) { XSync(gi.disp, 0); }
 
-static GB gbX11 = {
-  "X11",
-  X11SetColor,
-  NULL,  // PutColorAlpha - X11 doesn't support alpha
-  X11DrawPixel,
-  X11DrawPixelThick,
-  X11DrawLine,
-  X11DrawLineThick,
-  X11DrawRect,
-  X11DrawArc,
-  X11DrawEllipse,
-  NULL,  // PutGlyph - X11 uses vector fallback
-  NULL,  // PutText - X11 uses vector fallback
-  X11ClearScreen,
-  X11Flush,
-  NULL
-};
+static GB gbX11 = {"X11",
+                   X11SetColor,
+                   NULL, // PutColorAlpha - X11 doesn't support alpha
+                   X11DrawPixel,
+                   X11DrawPixelThick,
+                   X11DrawLine,
+                   X11DrawLineThick,
+                   X11DrawRect,
+                   X11DrawArc,
+                   X11DrawEllipse,
+                   NULL, // PutGlyph - X11 uses vector fallback
+                   NULL, // PutText - X11 uses vector fallback
+                   X11ClearScreen,
+                   X11Flush,
+                   NULL};
 
-void InitBackendX11(void)
-{
-  gpBackend = &gbX11;
-}
+void InitBackendX11(void) { gpBackend = &gbX11; }
 #endif // X11
 
 /*
@@ -128,16 +109,17 @@ void InitBackendX11(void)
 */
 
 #ifdef WINANY
-static void WinSetColor(int ki)
-{
+static void WinSetColor(int ki) {
   HPEN hpenT;
   if (gi.kiCur != ki) {
     hpenT = wi.hpen;
-    wi.hpen = CreatePen(PS_SOLID, gi.nScaleT
+    wi.hpen = CreatePen(PS_SOLID,
+                        gi.nScaleT
 #ifdef WIN
-      * (1 + (gs.fThick && wi.hdcPrint != NULL))
+                            * (1 + (gs.fThick && wi.hdcPrint != NULL))
 #endif
-      , (COLORREF)rgbbmp[ki]);
+                            ,
+                        (COLORREF)rgbbmp[ki]);
     SelectObject(wi.hdc, wi.hpen);
     if (hpenT != (HPEN)NULL)
       DeleteObject(hpenT);
@@ -145,8 +127,7 @@ static void WinSetColor(int ki)
   }
 }
 
-static void WinDrawPixel(int x, int y)
-{
+static void WinDrawPixel(int x, int y) {
 #ifdef WIN
   if (wi.hdcPrint == hdcNil) {
 #endif
@@ -154,30 +135,28 @@ static void WinDrawPixel(int x, int y)
 #ifdef WIN
   } else {
     MoveTo(wi.hdc, x, y);
-    LineTo(wi.hdc, x+1, y);
+    LineTo(wi.hdc, x + 1, y);
   }
 #endif
 }
 
-static void WinDrawPixelThick(int x, int y)
-{
+static void WinDrawPixelThick(int x, int y) {
 #ifdef WIN
   if (wi.hdcPrint == hdcNil) {
 #endif
     SetPixel(wi.hdc, x, y, (COLORREF)rgbbmp[gi.kiCur]);
-    SetPixel(wi.hdc, x+1, y, (COLORREF)rgbbmp[gi.kiCur]);
-    SetPixel(wi.hdc, x, y+1, (COLORREF)rgbbmp[gi.kiCur]);
-    SetPixel(wi.hdc, x+1, y+1, (COLORREF)rgbbmp[gi.kiCur]);
+    SetPixel(wi.hdc, x + 1, y, (COLORREF)rgbbmp[gi.kiCur]);
+    SetPixel(wi.hdc, x, y + 1, (COLORREF)rgbbmp[gi.kiCur]);
+    SetPixel(wi.hdc, x + 1, y + 1, (COLORREF)rgbbmp[gi.kiCur]);
 #ifdef WIN
   } else {
     MoveTo(wi.hdc, x, y);
-    LineTo(wi.hdc, x+1, y);
+    LineTo(wi.hdc, x + 1, y);
   }
 #endif
 }
 
-static void WinDrawLine(int x1, int y1, int x2, int y2)
-{
+static void WinDrawLine(int x1, int y1, int x2, int y2) {
   MoveTo(wi.hdc, x1, y1);
   LineTo(wi.hdc, x2, y2);
 #ifdef WIN
@@ -188,8 +167,7 @@ static void WinDrawLine(int x1, int y1, int x2, int y2)
   SetPixel(wi.hdc, x2, y2, (COLORREF)rgbbmp[gi.kiCur]);
 }
 
-static void WinDrawLineThick(int x1, int y1, int x2, int y2)
-{
+static void WinDrawLineThick(int x1, int y1, int x2, int y2) {
   MoveTo(wi.hdc, x1, y1);
   LineTo(wi.hdc, x2, y2);
 #ifdef WIN
@@ -197,17 +175,16 @@ static void WinDrawLineThick(int x1, int y1, int x2, int y2)
     return;
 #endif
   // Make the line thicker by drawing it four times
-  LineTo(wi.hdc, x2+1, y2);
-  LineTo(wi.hdc, x1+1, y1);
-  LineTo(wi.hdc, x1, y1+1);
-  LineTo(wi.hdc, x2, y2+1);
-  LineTo(wi.hdc, x2+1, y2+1);
-  LineTo(wi.hdc, x1+1, y1+1);
+  LineTo(wi.hdc, x2 + 1, y2);
+  LineTo(wi.hdc, x1 + 1, y1);
+  LineTo(wi.hdc, x1, y1 + 1);
+  LineTo(wi.hdc, x2, y2 + 1);
+  LineTo(wi.hdc, x2 + 1, y2 + 1);
+  LineTo(wi.hdc, x1 + 1, y1 + 1);
   LineTo(wi.hdc, x1, y1);
 }
 
-static void WinDrawRect(int x, int y, int w, int h)
-{
+static void WinDrawRect(int x, int y, int w, int h) {
   wi.hbrush = CreateSolidBrush((COLORREF)rgbbmp[gi.kiCur]);
   SelectObject(wi.hdc, wi.hbrush);
   PatBlt(wi.hdc, x, y, w + gi.nScaleT, h + gi.nScaleT, PATCOPY);
@@ -215,29 +192,26 @@ static void WinDrawRect(int x, int y, int w, int h)
   DeleteObject(wi.hbrush);
 }
 
-static void WinDrawArc(int x, int y, int w, int h, double deg1, double deg2)
-{
+static void WinDrawArc(int x, int y, int w, int h, double deg1, double deg2) {
   // Windows Arc() uses start/end points, not angles
-  int xc = x + w/2, yc = y + h/2;
+  int xc = x + w / 2, yc = y + h / 2;
   int r = Max(w, h) / 2;
   int xs = xc + (int)(r * RCosD(deg1));
   int ys = yc - (int)(r * RSinD(deg1));
   int xe = xc + (int)(r * RCosD(deg2));
   int ye = yc - (int)(r * RSinD(deg2));
-  Arc(wi.hdc, x, y, x+w, y+h, xs, ys, xe, ye);
+  Arc(wi.hdc, x, y, x + w, y + h, xs, ys, xe, ye);
 }
 
-static void WinDrawEllipse(int x, int y, int w, int h)
-{
+static void WinDrawEllipse(int x, int y, int w, int h) {
   wi.hbrush = CreateSolidBrush((COLORREF)rgbbmp[gi.kiCur]);
   SelectObject(wi.hdc, wi.hbrush);
-  Ellipse(wi.hdc, x, y, x+w, y+h);
+  Ellipse(wi.hdc, x, y, x + w, y + h);
   SelectObject(wi.hdc, GetStockObject(NULL_BRUSH));
   DeleteObject(wi.hbrush);
 }
 
-static void WinClearScreenImpl(int ki)
-{
+static void WinClearScreenImpl(int ki) {
   wi.hbrush = CreateSolidBrush((COLORREF)rgbbmp[ki]);
   SelectObject(wi.hdc, wi.hbrush);
   PatBlt(wi.hdc, -gi.xOffset, -gi.yOffset, wi.xClient, wi.yClient, PATCOPY);
@@ -245,33 +219,27 @@ static void WinClearScreenImpl(int ki)
   DeleteObject(wi.hbrush);
 }
 
-static void WinFlush(void)
-{
+static void WinFlush(void) {
   // Windows doesn't need explicit flush for GDI operations
 }
 
-static GB gbWin = {
-  "Windows",
-  WinSetColor,
-  NULL,  // PutColorAlpha - Windows doesn't support alpha
-  WinDrawPixel,
-  WinDrawPixelThick,
-  WinDrawLine,
-  WinDrawLineThick,
-  WinDrawRect,
-  WinDrawArc,
-  WinDrawEllipse,
-  NULL,  // PutGlyph - Windows uses DrawGlyph directly for now
-  NULL,  // PutText - Windows uses direct GDI calls for now
-  WinClearScreenImpl,
-  WinFlush,
-  NULL
-};
+static GB gbWin = {"Windows",
+                   WinSetColor,
+                   NULL, // PutColorAlpha - Windows doesn't support alpha
+                   WinDrawPixel,
+                   WinDrawPixelThick,
+                   WinDrawLine,
+                   WinDrawLineThick,
+                   WinDrawRect,
+                   WinDrawArc,
+                   WinDrawEllipse,
+                   NULL, // PutGlyph - Windows uses DrawGlyph directly for now
+                   NULL, // PutText - Windows uses direct GDI calls for now
+                   WinClearScreenImpl,
+                   WinFlush,
+                   NULL};
 
-void InitBackendWin(void)
-{
-  gpBackend = &gbWin;
-}
+void InitBackendWin(void) { gpBackend = &gbWin; }
 #endif // WINANY
 
 /*
@@ -285,15 +253,13 @@ void InitBackendWin(void)
 // Astrology font indices for custom FLTK fonts (start after built-in fonts)
 // Initialize to -1 (unavailable) - will be set when fonts are loaded
 static Fl_Font rgFltkAstroFont[cFont] = {
-  (Fl_Font)-1, (Fl_Font)-1, (Fl_Font)-1, (Fl_Font)-1, (Fl_Font)-1,
-  (Fl_Font)-1, (Fl_Font)-1, (Fl_Font)-1, (Fl_Font)-1, (Fl_Font)-1
-};
+    (Fl_Font)-1, (Fl_Font)-1, (Fl_Font)-1, (Fl_Font)-1, (Fl_Font)-1,
+    (Fl_Font)-1, (Fl_Font)-1, (Fl_Font)-1, (Fl_Font)-1, (Fl_Font)-1};
 static flag fAstroFontsLoaded = fFalse;
 
 #ifdef __APPLE__
 // Load bundled fonts from the app bundle on macOS
-static void LoadBundledFonts(void)
-{
+static void LoadBundledFonts(void) {
   printf("LoadBundledFonts: starting...\n");
   fflush(stdout);
 
@@ -311,7 +277,8 @@ static void LoadBundledFonts(void)
 
   // Debug: print resources path
   char resourcesPath[1024];
-  if (CFURLGetFileSystemRepresentation(resourcesURL, true, (UInt8*)resourcesPath, sizeof(resourcesPath))) {
+  if (CFURLGetFileSystemRepresentation(
+          resourcesURL, true, (UInt8 *)resourcesPath, sizeof(resourcesPath))) {
     printf("LoadBundledFonts: resources path = %s\n", resourcesPath);
   }
 
@@ -321,44 +288,48 @@ static void LoadBundledFonts(void)
     int fontIndex;
     const char *fontName;
   } fontFiles[] = {
-    {"Fonts/Astro.ttf", fiAstro, "Astro"},
-    {"Fonts/EnigmaAstrology.ttf", fiEnigma, "EnigmaAstrology"},
-    {"Fonts/HamburgSymbols.ttf", fiHamburg, "HamburgSymbols"},
-    {"Fonts/Astronomicon.ttf", fiAstronom, "Astronomicon"},
-    {"Fonts/HanksNakshatra.ttf", fiNakshatr, "HanksNakshatra"},
+      {"Fonts/Astro.ttf", fiAstro, "Astro"},
+      {"Fonts/EnigmaAstrology.ttf", fiEnigma, "EnigmaAstrology"},
+      {"Fonts/HamburgSymbols.ttf", fiHamburg, "HamburgSymbols"},
+      {"Fonts/Astronomicon.ttf", fiAstronom, "Astronomicon"},
+      {"Fonts/HanksNakshatra.ttf", fiNakshatr, "HanksNakshatra"},
   };
 
   for (int i = 0; i < (int)(sizeof(fontFiles) / sizeof(fontFiles[0])); i++) {
-    CFStringRef fontFileName = CFStringCreateWithCString(NULL,
-      fontFiles[i].filename, kCFStringEncodingUTF8);
+    CFStringRef fontFileName = CFStringCreateWithCString(
+        NULL, fontFiles[i].filename, kCFStringEncodingUTF8);
     if (!fontFileName) {
-      printf("LoadBundledFonts: failed to create string for %s\n", fontFiles[i].filename);
+      printf("LoadBundledFonts: failed to create string for %s\n",
+             fontFiles[i].filename);
       continue;
     }
 
-    CFURLRef fontURL = CFURLCreateCopyAppendingPathComponent(NULL,
-      resourcesURL, fontFileName, false);
+    CFURLRef fontURL = CFURLCreateCopyAppendingPathComponent(
+        NULL, resourcesURL, fontFileName, false);
     CFRelease(fontFileName);
     if (!fontURL) {
-      printf("LoadBundledFonts: failed to create URL for %s\n", fontFiles[i].filename);
+      printf("LoadBundledFonts: failed to create URL for %s\n",
+             fontFiles[i].filename);
       continue;
     }
 
     // Debug: print font URL
     char fontPath[1024];
-    if (CFURLGetFileSystemRepresentation(fontURL, true, (UInt8*)fontPath, sizeof(fontPath))) {
+    if (CFURLGetFileSystemRepresentation(fontURL, true, (UInt8 *)fontPath,
+                                         sizeof(fontPath))) {
       printf("LoadBundledFonts: trying to load %s\n", fontPath);
     }
 
     // Register the font with Core Text (process-scope only)
     CFErrorRef error = NULL;
     if (CTFontManagerRegisterFontsForURL(fontURL, kCTFontManagerScopeProcess,
-        &error)) {
+                                         &error)) {
       // Font registered successfully - now set up FLTK to use it
       Fl_Font fltkFont = FL_FREE_FONT + fontFiles[i].fontIndex;
       Fl::set_font(fltkFont, fontFiles[i].fontName);
       rgFltkAstroFont[fontFiles[i].fontIndex] = fltkFont;
-      printf("Loaded font: %s (FLTK font %d)\n", fontFiles[i].fontName, fltkFont);
+      printf("Loaded font: %s (FLTK font %d)\n", fontFiles[i].fontName,
+             fltkFont);
     } else {
       if (error) {
         CFStringRef desc = CFErrorCopyDescription(error);
@@ -380,13 +351,9 @@ static void LoadBundledFonts(void)
 }
 #endif // __APPLE__
 
-static void FltkSetColor(int ki)
-{
-  fl_color(FltkColorFromKI(ki));
-}
+static void FltkSetColor(int ki) { fl_color(FltkColorFromKI(ki)); }
 
-static void FltkSetColorAlpha(int ki, int alpha)
-{
+static void FltkSetColorAlpha(int ki, int alpha) {
   // FLTK doesn't support true alpha blending, so we simulate it by
   // blending the foreground color with the background color (gi.kiOff)
   if (alpha >= 255) {
@@ -408,64 +375,51 @@ static void FltkSetColorAlpha(int ki, int alpha)
   fl_color(fl_rgb_color(r, g, b));
 }
 
-static void FltkSetLineWidth(double width)
-{
+static void FltkSetLineWidth(double width) {
   // FLTK line width is integer-based, round to nearest
   int w = (int)(width + 0.5);
-  if (w < 1) w = 1;
+  if (w < 1)
+    w = 1;
   fl_line_style(FL_SOLID, w);
 }
 
-static void FltkDrawPixel(int x, int y)
-{
+static void FltkDrawPixel(int x, int y) { fl_point(x, y); }
+
+static void FltkDrawPixelThick(int x, int y) {
   fl_point(x, y);
+  fl_point(x + 1, y);
+  fl_point(x, y + 1);
+  fl_point(x + 1, y + 1);
 }
 
-static void FltkDrawPixelThick(int x, int y)
-{
-  fl_point(x, y);
-  fl_point(x+1, y);
-  fl_point(x, y+1);
-  fl_point(x+1, y+1);
-}
-
-static void FltkDrawLine(int x1, int y1, int x2, int y2)
-{
+static void FltkDrawLine(int x1, int y1, int x2, int y2) {
   fl_line(x1, y1, x2, y2);
 }
 
-static void FltkDrawLineF(double x1, double y1, double x2, double y2)
-{
+static void FltkDrawLineF(double x1, double y1, double x2, double y2) {
   // FLTK doesn't support sub-pixel coordinates, round at the last moment
   fl_line((int)(x1 + 0.5), (int)(y1 + 0.5), (int)(x2 + 0.5), (int)(y2 + 0.5));
 }
 
-static void FltkDrawLineThick(int x1, int y1, int x2, int y2)
-{
+static void FltkDrawLineThick(int x1, int y1, int x2, int y2) {
   fl_line(x1, y1, x2, y2);
-  fl_line(x1+1, y1, x2+1, y2);
-  fl_line(x1, y1+1, x2, y2+1);
-  fl_line(x1+1, y1+1, x2+1, y2+1);
+  fl_line(x1 + 1, y1, x2 + 1, y2);
+  fl_line(x1, y1 + 1, x2, y2 + 1);
+  fl_line(x1 + 1, y1 + 1, x2 + 1, y2 + 1);
 }
 
-static void FltkDrawRect(int x, int y, int w, int h)
-{
-  fl_rectf(x, y, w, h);
-}
+static void FltkDrawRect(int x, int y, int w, int h) { fl_rectf(x, y, w, h); }
 
-static void FltkDrawArc(int x, int y, int w, int h, double deg1, double deg2)
-{
+static void FltkDrawArc(int x, int y, int w, int h, double deg1, double deg2) {
   fl_arc(x, y, w, h, deg1, deg2);
 }
 
-static void FltkDrawEllipse(int x, int y, int w, int h)
-{
+static void FltkDrawEllipse(int x, int y, int w, int h) {
   fl_pie(x, y, w, h, 0.0, 360.0);
 }
 
 // Map Astrolog font index to FLTK font. Returns Fl_Font or -1 if not available.
-static Fl_Font FltkFontFromFI(int fi)
-{
+static Fl_Font FltkFontFromFI(int fi) {
   // Fonts: 0=Astrolog vector, 1=Wingdings, 2=Astro, 3=EnigmaAstrology,
   //        4=HamburgSymbols, 5=Astronomicon, 6=Courier New, 7=Consolas,
   //        8=Arial, 9=HanksNakshatra
@@ -482,9 +436,12 @@ static Fl_Font FltkFontFromFI(int fi)
   }
 
   switch (fi) {
-  case fiCourier:  return fltkMonoFont;
-  case fiConsolas: return fltkMonoFont;    // Use same monospace font
-  case fiArial:    return FL_HELVETICA;    // Sans-serif alternative
+  case fiCourier:
+    return fltkMonoFont;
+  case fiConsolas:
+    return fltkMonoFont; // Use same monospace font
+  case fiArial:
+    return FL_HELVETICA; // Sans-serif alternative
   case fiAstro:
   case fiEnigma:
   case fiHamburg:
@@ -500,25 +457,24 @@ static Fl_Font FltkFontFromFI(int fi)
   return (Fl_Font)-1;
 }
 
-// Get HiDPI scale factor for font rendering
-static float FltkGetFontScale(void)
-{
-  static float scale = 0.0f;
-  if (scale == 0.0f) {
-    scale = Fl::screen_scale(0);
-#ifdef __APPLE__
-    // On macOS Retina, FLTK often reports 1.0 but we need 2.0 for crisp fonts
-    if (scale < 1.5f)
-      scale = 2.0f;
-#endif
-  }
-  return scale;
+// Map specific glyph scale (percentage)
+// This is separate from gs.nScaleText so map glyphs can be scaled independently
+// of the UI text/information/legends.
+static int nMapGlyphScale = 100;
+
+void FltkInitMapGlyphScale(void) { nMapGlyphScale = 100; }
+
+void FltkAdjustMapGlyphScale(int delta) {
+  nMapGlyphScale += delta;
+  if (nMapGlyphScale < 50)
+    nMapGlyphScale = 50;
+  if (nMapGlyphScale > 400)
+    nMapGlyphScale = 400;
 }
 
 // Draw a single glyph using FLTK fonts
 // Returns 1 if drawn, 0 to fall back to vector rendering
-static int FltkPutGlyph(int ch, int x, int y, int nFont, int nScale)
-{
+static int FltkPutGlyph(int ch, int x, int y, int nFont, int nScale) {
   Fl_Font font;
   int fontSize;
   char sz[8];
@@ -527,7 +483,7 @@ static int FltkPutGlyph(int ch, int x, int y, int nFont, int nScale)
   // Check if font is available
   font = FltkFontFromFI(nFont);
   if (font == (Fl_Font)-1)
-    return 0;  // Font not available, use vector fallback
+    return 0; // Font not available, use vector fallback
 
   // Calculate font size with smooth scaling based on window size.
   // Same sidebar detection logic as CairoPutGlyph.
@@ -541,17 +497,39 @@ static int FltkPutGlyph(int ch, int x, int y, int nFont, int nScale)
   if (isSidebarGlyph) {
     fontSize = 9 * nScale / 100;
   } else {
-    fontSize = baseSize * gs.nScale * nScale / 10000;
+    // For map modes (AstroGraph/WorldMap), clamp the nScale used for font
+    // sizing to prevent excessively large glyphs when the map is expanded.
+    int effectiveScale = gs.nScale;
+    if (gi.nMode == gAstroGraph || gi.nMode == gWorldMap ||
+        gi.nMode == gGlobe || gi.nMode == gPolar) {
+      // Cap the effective scale for glyph calculation.
+      // A scale of 180 gives ~28pt max font size, which is large enough but not
+      // huge.
+      if (effectiveScale > 180)
+        effectiveScale = 180;
+    }
+    // Calculate base font size from scale
+    fontSize = baseSize * effectiveScale * nScale / 10000;
+
+    // Apply map-specific text scale factor if in map mode
+    if (gi.nMode == gAstroGraph || gi.nMode == gWorldMap ||
+        gi.nMode == gGlobe || gi.nMode == gPolar) {
+      if (nMapGlyphScale != 100) {
+        fontSize = fontSize * nMapGlyphScale / 100;
+      }
+    }
+    // For non-map modes, or if explicitly desired, we could respect
+    // gs.nScaleText but typically standard charts scale everything evenly via
+    // gs.nScale.
   }
 
   if (fontSize < 6)
     fontSize = 6;
 
-  // On HiDPI displays, increase font size for crisp rendering
-  // FLTK's coordinate system is 1:1 with logical pixels, so we scale up
-  float hiDpiScale = FltkGetFontScale();
-  if (hiDpiScale > 1.0f)
-    fontSize = (int)(fontSize * hiDpiScale);
+  // On HiDPI displays with FLTK, we use logical font sizes.
+  // FLTK handles the high-resolution rasterization internally.
+  // We do NOT need to manually scale up the font size for Retina,
+  // as that would result in double-scaling (oversized text).
 
   fl_font(font, fontSize);
 
@@ -578,22 +556,21 @@ static int FltkPutGlyph(int ch, int x, int y, int nFont, int nScale)
 
   // Measure text to center it
   fl_measure(sz, w, h, 0);
-  fl_draw(sz, x - w/2, y + h/2 - fl_descent());
+  fl_draw(sz, x - w / 2, y + h / 2 - fl_descent());
 
-  return 1;  // Successfully rendered
+  return 1; // Successfully rendered
 }
 
 // Draw a text string using FLTK fonts
 // Returns 1 if drawn, 0 to fall back to vector rendering
-static int FltkPutText(const char *sz, int x, int y, int nFont, int nScale)
-{
+static int FltkPutText(const char *sz, int x, int y, int nFont, int nScale) {
   Fl_Font font;
   int fontSize;
   int w, h;
 
   font = FltkFontFromFI(nFont);
   if (font == (Fl_Font)-1)
-    return 0;  // Font not available, use vector fallback
+    return 0; // Font not available, use vector fallback
 
   // Calculate font size based on scale
   fontSize = 6 * nScale;
@@ -604,44 +581,26 @@ static int FltkPutText(const char *sz, int x, int y, int nFont, int nScale)
 
   // Measure text to center it
   fl_measure(sz, w, h, 0);
-  fl_draw(sz, x - w/2, y + h/2 - fl_descent());
+  fl_draw(sz, x - w / 2, y + h / 2 - fl_descent());
 
-  return 1;  // Successfully rendered
+  return 1; // Successfully rendered
 }
 
-static void FltkClearScreen(int ki)
-{
+static void FltkClearScreen(int ki) {
   fl_color(FltkColorFromKI(ki));
   fl_rectf(0, 0, gs.xWin, gs.yWin);
 }
 
-static void FltkFlush(void)
-{
-  Fl::flush();
-}
+static void FltkFlush(void) { Fl::flush(); }
 
-static GB gbFltk = {
-  "FLTK",
-  FltkSetColor,
-  FltkSetColorAlpha,
-  FltkSetLineWidth,
-  FltkDrawPixel,
-  FltkDrawPixelThick,
-  FltkDrawLine,
-  FltkDrawLineF,
-  FltkDrawLineThick,
-  FltkDrawRect,
-  FltkDrawArc,
-  FltkDrawEllipse,
-  FltkPutGlyph,
-  FltkPutText,
-  FltkClearScreen,
-  FltkFlush,
-  NULL
-};
+static GB gbFltk = {"FLTK",           FltkSetColor,  FltkSetColorAlpha,
+                    FltkSetLineWidth, FltkDrawPixel, FltkDrawPixelThick,
+                    FltkDrawLine,     FltkDrawLineF, FltkDrawLineThick,
+                    FltkDrawRect,     FltkDrawArc,   FltkDrawEllipse,
+                    FltkPutGlyph,     FltkPutText,   FltkClearScreen,
+                    FltkFlush,        NULL};
 
-void InitBackendFltk(void)
-{
+void InitBackendFltk(void) {
 #ifdef __APPLE__
   // Load bundled astrology fonts from app bundle
   LoadBundledFonts();
@@ -657,56 +616,46 @@ void InitBackendFltk(void)
 */
 
 #ifdef CAIRO
-#include <cairo/cairo.h>
-#include <cairo/cairo-svg.h>
 #include <cairo/cairo-pdf.h>
+#include <cairo/cairo-svg.h>
+#include <cairo/cairo.h>
 
 static cairo_t *gi_cr = NULL;
 static cairo_surface_t *gi_surface = NULL;
-static GB *gpBackendPrev = NULL;  // Previous backend to restore
+static GB *gpBackendPrev = NULL; // Previous backend to restore
 
-static void CairoSetColor(int ki)
-{
+static void CairoSetColor(int ki) {
   if (ki < 0 || ki >= cColor)
     ki = 0;
   KV kv = rgbbmp[ki];
-  cairo_set_source_rgb(gi_cr,
-    (double)RgbR(kv) / 255.0,
-    (double)RgbG(kv) / 255.0,
-    (double)RgbB(kv) / 255.0);
+  cairo_set_source_rgb(gi_cr, (double)RgbR(kv) / 255.0,
+                       (double)RgbG(kv) / 255.0, (double)RgbB(kv) / 255.0);
 }
 
-static void CairoSetColorAlpha(int ki, int alpha)
-{
+static void CairoSetColorAlpha(int ki, int alpha) {
   if (ki < 0 || ki >= cColor)
     ki = 0;
   KV kv = rgbbmp[ki];
-  cairo_set_source_rgba(gi_cr,
-    (double)RgbR(kv) / 255.0,
-    (double)RgbG(kv) / 255.0,
-    (double)RgbB(kv) / 255.0,
-    (double)alpha / 255.0);
+  cairo_set_source_rgba(gi_cr, (double)RgbR(kv) / 255.0,
+                        (double)RgbG(kv) / 255.0, (double)RgbB(kv) / 255.0,
+                        (double)alpha / 255.0);
 }
 
-static void CairoSetLineWidth(double width)
-{
+static void CairoSetLineWidth(double width) {
   cairo_set_line_width(gi_cr, width);
 }
 
-static void CairoDrawPixel(int x, int y)
-{
+static void CairoDrawPixel(int x, int y) {
   cairo_rectangle(gi_cr, x, y, 1, 1);
   cairo_fill(gi_cr);
 }
 
-static void CairoDrawPixelThick(int x, int y)
-{
+static void CairoDrawPixelThick(int x, int y) {
   cairo_rectangle(gi_cr, x, y, 2, 2);
   cairo_fill(gi_cr);
 }
 
-static void CairoDrawLine(int x1, int y1, int x2, int y2)
-{
+static void CairoDrawLine(int x1, int y1, int x2, int y2) {
   // Draw without offset for proper antialiasing
   // Cairo will antialias across pixel boundaries
   cairo_move_to(gi_cr, (double)x1, (double)y1);
@@ -714,16 +663,14 @@ static void CairoDrawLine(int x1, int y1, int x2, int y2)
   cairo_stroke(gi_cr);
 }
 
-static void CairoDrawLineF(double x1, double y1, double x2, double y2)
-{
+static void CairoDrawLineF(double x1, double y1, double x2, double y2) {
   // Native floating-point coordinates for smooth vector output
   cairo_move_to(gi_cr, x1, y1);
   cairo_line_to(gi_cr, x2, y2);
   cairo_stroke(gi_cr);
 }
 
-static void CairoDrawLineThick(int x1, int y1, int x2, int y2)
-{
+static void CairoDrawLineThick(int x1, int y1, int x2, int y2) {
   double oldWidth = cairo_get_line_width(gi_cr);
   cairo_set_line_width(gi_cr, 2.0);
   cairo_move_to(gi_cr, (double)x1, (double)y1);
@@ -732,14 +679,12 @@ static void CairoDrawLineThick(int x1, int y1, int x2, int y2)
   cairo_set_line_width(gi_cr, oldWidth);
 }
 
-static void CairoDrawRect(int x, int y, int w, int h)
-{
+static void CairoDrawRect(int x, int y, int w, int h) {
   cairo_rectangle(gi_cr, x, y, w, h);
   cairo_fill(gi_cr);
 }
 
-static void CairoDrawArc(int x, int y, int w, int h, double deg1, double deg2)
-{
+static void CairoDrawArc(int x, int y, int w, int h, double deg1, double deg2) {
   // Cairo uses radians, Astrolog uses degrees
   // Also need to handle ellipse (non-circular arc)
   double cx = x + w / 2.0;
@@ -757,8 +702,7 @@ static void CairoDrawArc(int x, int y, int w, int h, double deg1, double deg2)
   cairo_stroke(gi_cr);
 }
 
-static void CairoDrawEllipse(int x, int y, int w, int h)
-{
+static void CairoDrawEllipse(int x, int y, int w, int h) {
   double cx = x + w / 2.0;
   double cy = y + h / 2.0;
   double rx = w / 2.0;
@@ -772,45 +716,50 @@ static void CairoDrawEllipse(int x, int y, int w, int h)
   cairo_fill(gi_cr);
 }
 
-static void CairoClearScreen(int ki)
-{
+static void CairoClearScreen(int ki) {
   CairoSetColor(ki);
   cairo_paint(gi_cr);
 }
 
-static void CairoFlush(void)
-{
-  cairo_surface_flush(gi_surface);
-}
+static void CairoFlush(void) { cairo_surface_flush(gi_surface); }
 
 // Get font name for Cairo from Astrolog font index
-static const char *CairoFontName(int fi)
-{
+static const char *CairoFontName(int fi) {
   switch (fi) {
-  case fiAstro:    return "Astro";
-  case fiEnigma:   return "EnigmaAstrology";
-  case fiHamburg:  return "HamburgSymbols";
-  case fiAstronom: return "Astronomicon";
-  case fiNakshatr: return "HanksNakshatra";
+  case fiAstro:
+    return "Astro";
+  case fiEnigma:
+    return "EnigmaAstrology";
+  case fiHamburg:
+    return "HamburgSymbols";
+  case fiAstronom:
+    return "Astronomicon";
+  case fiNakshatr:
+    return "HanksNakshatra";
 #ifdef __APPLE__
-  case fiCourier:  return "Menlo";
-  case fiConsolas: return "Menlo";
+  case fiCourier:
+    return "Menlo";
+  case fiConsolas:
+    return "Menlo";
 #else
-  case fiCourier:  return "Courier New";
-  case fiConsolas: return "Consolas";
+  case fiCourier:
+    return "Courier New";
+  case fiConsolas:
+    return "Consolas";
 #endif
-  case fiArial:    return "Arial";
-  default:         return NULL;
+  case fiArial:
+    return "Arial";
+  default:
+    return NULL;
   }
 }
 
 // Draw a single glyph using Cairo fonts
 // Returns 1 if drawn, 0 to fall back to vector rendering
-static int CairoPutGlyph(int ch, int x, int y, int nFont, int nScale)
-{
+static int CairoPutGlyph(int ch, int x, int y, int nFont, int nScale) {
   const char *fontName = CairoFontName(nFont);
   if (!fontName)
-    return 0;  // Unknown font, use vector fallback
+    return 0; // Unknown font, use vector fallback
 
   // Calculate font size with smooth scaling based on window size.
   // Detect sidebar: track gs.xWin changes. During chart drawing, gs.xWin is
@@ -821,7 +770,8 @@ static int CairoPutGlyph(int ch, int x, int y, int nFont, int nScale)
 
   // Sidebar detection: sidebar glyphs are drawn at x = gs.xWin - 12*gi.nScale
   // (near right edge). Chart glyphs are distributed across the chart area.
-  // Use a tight margin based on scale to avoid false positives for chart glyphs.
+  // Use a tight margin based on scale to avoid false positives for chart
+  // glyphs.
   int sidebarMargin = 14 * gi.nScale;
   int isSidebarGlyph = (x > gs.xWin - sidebarMargin);
 
@@ -839,7 +789,8 @@ static int CairoPutGlyph(int ch, int x, int y, int nFont, int nScale)
 
   // Select font
   cairo_select_font_face(gi_cr, fontName, CAIRO_FONT_SLANT_NORMAL,
-    gs.fThick ? CAIRO_FONT_WEIGHT_BOLD : CAIRO_FONT_WEIGHT_NORMAL);
+                         gs.fThick ? CAIRO_FONT_WEIGHT_BOLD
+                                   : CAIRO_FONT_WEIGHT_NORMAL);
   cairo_set_font_size(gi_cr, fontSize);
 
   // Build the character string - convert to UTF-8 for Cairo
@@ -870,7 +821,7 @@ static int CairoPutGlyph(int ch, int x, int y, int nFont, int nScale)
 
   // Check if glyph exists (width > 0)
   if (extents.width < 0.5)
-    return 0;  // Glyph not found, fall back to vector
+    return 0; // Glyph not found, fall back to vector
 
   // Draw centered at (x, y)
   double dx = x - (extents.width / 2.0 + extents.x_bearing);
@@ -878,27 +829,28 @@ static int CairoPutGlyph(int ch, int x, int y, int nFont, int nScale)
   cairo_move_to(gi_cr, dx, dy);
   cairo_show_text(gi_cr, sz);
 
-  return 1;  // Successfully rendered
+  return 1; // Successfully rendered
 }
 
 // Draw a text string using Cairo fonts
 // Returns 1 if drawn, 0 to fall back to vector rendering
-static int CairoPutText(const char *sz, int x, int y, int nFont, int nScale)
-{
+static int CairoPutText(const char *sz, int x, int y, int nFont, int nScale) {
   const char *fontName = CairoFontName(nFont);
   if (!fontName)
-    return 0;  // Unknown font, use vector fallback
+    return 0; // Unknown font, use vector fallback
 
   // Calculate font size to match vector font character width.
   // Vector font uses xFont2 * nScale = 3 * nScale pixels per character.
-  // For Menlo, char_width ≈ 0.6 * fontSize, so fontSize = 3*nScale/0.6 = 5*nScale.
+  // For Menlo, char_width ≈ 0.6 * fontSize, so fontSize = 3*nScale/0.6 =
+  // 5*nScale.
   double fontSize = 5.0 * nScale;
   if (fontSize < 8.0)
     fontSize = 8.0;
 
   // Select font
   cairo_select_font_face(gi_cr, fontName, CAIRO_FONT_SLANT_NORMAL,
-    gs.fThick ? CAIRO_FONT_WEIGHT_BOLD : CAIRO_FONT_WEIGHT_NORMAL);
+                         gs.fThick ? CAIRO_FONT_WEIGHT_BOLD
+                                   : CAIRO_FONT_WEIGHT_NORMAL);
   cairo_set_font_size(gi_cr, fontSize);
 
   // Measure text for vertical positioning
@@ -912,46 +864,44 @@ static int CairoPutText(const char *sz, int x, int y, int nFont, int nScale)
   cairo_move_to(gi_cr, dx, dy);
   cairo_show_text(gi_cr, sz);
 
-  return 1;  // Successfully rendered
+  return 1; // Successfully rendered
 }
 
-static GB gbCairo = {
-  "Cairo",
-  CairoSetColor,
-  CairoSetColorAlpha,
-  CairoSetLineWidth,
-  CairoDrawPixel,
-  CairoDrawPixelThick,
-  CairoDrawLine,
-  CairoDrawLineF,
-  CairoDrawLineThick,
-  CairoDrawRect,
-  CairoDrawArc,
-  CairoDrawEllipse,
-  CairoPutGlyph,
-  CairoPutText,
-  CairoClearScreen,
-  CairoFlush,
-  NULL
-};
+static GB gbCairo = {"Cairo",
+                     CairoSetColor,
+                     CairoSetColorAlpha,
+                     CairoSetLineWidth,
+                     CairoDrawPixel,
+                     CairoDrawPixelThick,
+                     CairoDrawLine,
+                     CairoDrawLineF,
+                     CairoDrawLineThick,
+                     CairoDrawRect,
+                     CairoDrawArc,
+                     CairoDrawEllipse,
+                     CairoPutGlyph,
+                     CairoPutText,
+                     CairoClearScreen,
+                     CairoFlush,
+                     NULL};
 
-void InitBackendCairo(cairo_surface_t *surface)
-{
+void InitBackendCairo(cairo_surface_t *surface) {
   gpBackendPrev = gpBackend;
   gi_surface = surface;
   gi_cr = cairo_create(gi_surface);
 
   // Set default drawing properties for antialiased rendering
   cairo_set_line_width(gi_cr, 1.0);
-  cairo_set_line_cap(gi_cr, CAIRO_LINE_CAP_ROUND);   // Round caps for smooth line ends
-  cairo_set_line_join(gi_cr, CAIRO_LINE_JOIN_ROUND); // Round joins for smooth corners
+  cairo_set_line_cap(gi_cr,
+                     CAIRO_LINE_CAP_ROUND); // Round caps for smooth line ends
+  cairo_set_line_join(gi_cr,
+                      CAIRO_LINE_JOIN_ROUND); // Round joins for smooth corners
   cairo_set_antialias(gi_cr, CAIRO_ANTIALIAS_BEST);
 
   gpBackend = &gbCairo;
 }
 
-void EndBackendCairo(void)
-{
+void EndBackendCairo(void) {
   if (gi_cr) {
     cairo_destroy(gi_cr);
     gi_cr = NULL;
@@ -961,10 +911,7 @@ void EndBackendCairo(void)
   gpBackendPrev = NULL;
 }
 
-cairo_t *CairoContext(void)
-{
-  return gi_cr;
-}
+cairo_t *CairoContext(void) { return gi_cr; }
 #endif // CAIRO
 
 /*
@@ -974,8 +921,7 @@ cairo_t *CairoContext(void)
 */
 
 // Initialize the appropriate backend based on compile-time configuration
-void InitGraphicsBackend(void)
-{
+void InitGraphicsBackend(void) {
 #ifdef FLTK
   InitBackendFltk();
 #elif defined(X11)

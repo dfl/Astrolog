@@ -82,7 +82,8 @@
 
 #include <stdio.h>
 #ifdef __APPLE__
-// Silence macOS sprintf deprecation warning (1300+ calls impractical to convert)
+// Silence macOS sprintf deprecation warning (1300+ calls impractical to
+// convert)
 #pragma clang diagnostic ignored "-Wfortify-source"
 #define sprintf(buf, ...) snprintf(buf, __INT_MAX__, __VA_ARGS__)
 #endif
@@ -106,15 +107,17 @@
 #ifdef WIN
 #define ISG
 #define WINANY
-#include <windows.h>
 #include <commdlg.h>
+#include <windows.h>
+
 #ifdef WSETUP
-#include <objbase.h>
 #include <comdef.h>
 #include <comdefsp.h>
+#include <objbase.h>
 #include <shlobj.h>
-#include <shobjidl.h>
 #include <shlwapi.h>
+#include <shobjidl.h>
+
 #endif
 #include "resource.h"
 #endif // WIN
@@ -123,9 +126,9 @@
 #define WINANY
 #include <windows.h>
 #endif
+
 #ifdef FLTK
 #define ISG
-#include "fdriver.h"
 #endif
 
 // Include graphics backend abstraction layer
@@ -156,6 +159,10 @@
 */
 
 #include "astrolog_types.h"
+
+#ifdef FLTK
+#include "fdriver.h"
+#endif
 
 /*
 ******************************************************************************

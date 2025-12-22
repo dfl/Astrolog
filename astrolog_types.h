@@ -867,6 +867,28 @@ typedef struct _WindowInternal {
 } WI;
 #endif
 
+#ifdef FLTK
+typedef struct _FltkInfo {
+  class AstrologWindow *window;    // Main application window
+  class ChartWidget *chart;        // Chart drawing widget (2D)
+#ifdef OPENGL
+  class Globe3DWidget *chart3D;    // OpenGL 3D chart widget
+#endif
+  class Fl_Menu_Bar *menubar;      // Menu bar
+  class Fl_Window *textWindow;     // Text output window
+  class Fl_Text_Display *textDisplay; // Text display widget
+  class Fl_Text_Buffer *textBuffer;   // Text buffer
+  int xClient;               // Client area width
+  int yClient;               // Client area height
+  int fDoResize;             // Resize pending (flag)
+  int fDoRedraw;             // Redraw pending (flag)
+  int fDoCast;               // Recast chart pending (flag)
+  int xMouse;                // Last mouse X position
+  int yMouse;                // Last mouse Y position
+  Bitmap bmpWin;             // Bitmap storing contents to be copied to window.
+} FI;
+#endif
+
 #endif // ASTROLOG_TYPES_H
 
 /* astrolog_types.h */
