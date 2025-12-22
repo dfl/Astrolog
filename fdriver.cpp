@@ -1636,10 +1636,8 @@ void AstrologWindow::createMenus() {
                 FMenuGraphicsSidebar, 0, FL_MENU_TOGGLE | FL_MENU_DIVIDER);
   menubar_->add("&Graphics/Chart Effects/&Thicker Lines", 'q',
                 FMenuGraphicsThick, 0, FL_MENU_TOGGLE);
-  menubar_->add("&Graphics/Chart Effects/Aspect Line Style/&Dotted", 0,
-                FMenuDashStyle, (void *)0, FL_MENU_RADIO | FL_MENU_VALUE);
-  menubar_->add("&Graphics/Chart Effects/Aspect Line Style/&Alpha", 0,
-                FMenuDashStyle, (void *)1, FL_MENU_RADIO);
+  menubar_->add("&Graphics/Chart Effects/&Transparent Aspect Lines", 0,
+                FMenuDashStyle, 0, FL_MENU_TOGGLE);
   menubar_->add("&Graphics/Chart Effects/Show Glyph &Labels", 'l',
                 FMenuGraphicsLabel, 0, FL_MENU_TOGGLE);
   menubar_->add("&Graphics/Chart Effects/Show &Glyphs on Aspect Lines", 'k',
@@ -3501,8 +3499,9 @@ void FMenuGraphicsAntialias(Fl_Widget *w, void *data) {
 }
 
 void FMenuDashStyle(Fl_Widget *w, void *data) {
-  gs.nDashStyle = (int)(long)data;
-  UpdateMenuRadio(FMenuDashStyle);
+  // Toggle between 0 (stippled) and 1 (alpha)
+  gs.nDashStyle = !gs.nDashStyle;
+  UpdateMenuCheck(FMenuDashStyle, gs.nDashStyle == 1);
   if (fi.chart)
     fi.chart->redraw();
 }

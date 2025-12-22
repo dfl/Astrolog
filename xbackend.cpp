@@ -380,7 +380,9 @@ static void FltkSetLineWidth(double width) {
   int w = (int)(width + 0.5);
   if (w < 1)
     w = 1;
-  fl_line_style(FL_SOLID, w);
+  // Reset to default solid line style with given width
+  // Using 0 for default width to let FLTK use its default
+  fl_line_style(FL_SOLID, w == 1 ? 0 : w);
 }
 
 static void FltkDrawPixel(int x, int y) { fl_point(x, y); }
@@ -475,6 +477,9 @@ void FltkAdjustMapGlyphScale(int delta) {
 // Draw a single glyph using FLTK fonts
 // Returns 1 if drawn, 0 to fall back to vector rendering
 static int FltkPutGlyph(int ch, int x, int y, int nFont, int nScale) {
+  // Reset line style to default before text rendering to avoid interference
+  fl_line_style(0);
+
   Fl_Font font;
   int fontSize;
   char sz[8];
@@ -564,6 +569,9 @@ static int FltkPutGlyph(int ch, int x, int y, int nFont, int nScale) {
 // Draw a text string using FLTK fonts
 // Returns 1 if drawn, 0 to fall back to vector rendering
 static int FltkPutText(const char *sz, int x, int y, int nFont, int nScale) {
+  // Reset line style to default before text rendering to avoid interference
+  fl_line_style(0);
+
   Fl_Font font;
   int fontSize;
   int w, h;
