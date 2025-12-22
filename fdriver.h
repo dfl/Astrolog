@@ -20,6 +20,8 @@
 #include <FL/Fl_Double_Window.H>
 #include <FL/Fl_Widget.H>
 #include <FL/Fl_Menu_Bar.H>
+#include <FL/Fl_Text_Display.H>
+#include <FL/Fl_Text_Buffer.H>
 #include <FL/fl_draw.H>
 
 // Forward declarations
@@ -38,6 +40,9 @@ typedef struct _FltkInfo {
   Globe3DWidget *chart3D;    // OpenGL 3D chart widget
 #endif
   Fl_Menu_Bar *menubar;      // Menu bar
+  Fl_Window *textWindow;     // Text output window
+  Fl_Text_Display *textDisplay; // Text display widget
+  Fl_Text_Buffer *textBuffer;   // Text buffer
   int xClient;               // Client area width
   int yClient;               // Client area height
   int fDoResize;             // Resize pending (flag)
@@ -125,6 +130,8 @@ extern void FMenuGraphicsSettings(Fl_Widget *w, void *data);
 extern void FMenuAnimSettings(Fl_Widget *w, void *data);
 extern void FMenuAspectSettings(Fl_Widget *w, void *data);
 extern void FMenuHelpAbout(Fl_Widget *w, void *data);
+extern void FMenuShowTextWindow(Fl_Widget *w, void *data);
+extern void RefreshTextWindow(void);
 
 // Convert Astrolog color index to FLTK color
 extern Fl_Color FltkColorFromKI(int ki);

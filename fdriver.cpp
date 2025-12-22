@@ -301,6 +301,9 @@ void FMenuFullScreen(Fl_Widget *w, void *data);
 void FMenuExportText(Fl_Widget *w, void *data);
 void FMenuCopyText(Fl_Widget *w, void *data);
 
+// Text window
+void FMenuShowTextWindow(Fl_Widget *w, void *data);
+
 // Macro callbacks
 void FMenuMacro(Fl_Widget *w, void *data);
 
@@ -1848,6 +1851,79 @@ void FMenuCopyText(Fl_Widget *w, void *data)
   unlink(szTempFile);
 }
 
+// Text window close callback - update menu state when window is closed via X button
+static void TextWindowCloseCallback(Fl_Widget *w, void *data)
+{
+  if (fi.textWindow) {
+    fi.textWindow->hide();
+    // Also disable interpretations when window is closed
+    us.fInterpret = fFalse;
+    UpdateMenuCheck(FMenuInterpret, us.fInterpret);
+  }
+}
+
+// Create the text output window
+static void CreateTextWindow()
+{
+  if (fi.textWindow) return;  // Already exists
+
+  fi.textWindow = new Fl_Window(600, 500, "Chart Text Output");
+  fi.textBuffer = new Fl_Text_Buffer();
+  fi.textDisplay = new Fl_Text_Display(0, 0, 600, 500);
+  fi.textDisplay->buffer(fi.textBuffer);
+  fi.textDisplay->textfont(FL_COURIER);
+  fi.textDisplay->textsize(12);
+  fi.textDisplay->color(FL_BLACK);
+  fi.textDisplay->textcolor(FL_WHITE);
+  fi.textWindow->resizable(fi.textDisplay);
+  fi.textWindow->callback(TextWindowCloseCallback);
+  fi.textWindow->end();
+}
+
+// Refresh the text window content with current chart text output
+void RefreshTextWindow()
+{
+  if (!fi.textWindow || !fi.textWindow->shown()) return;
+
+  // Capture text output to temp file (reuse existing pattern from FMenuCopyText)
+  char szTempFile[cchSzMax];
+#ifdef __APPLE__
+  const char *tmpDir = getenv("TMPDIR");
+  if (tmpDir == NULL) tmpDir = "/tmp";
+  snprintf(szTempFile, sizeof(szTempFile), "%s/astrolog_textwin.tmp", tmpDir);
+#else
+  snprintf(szTempFile, sizeof(szTempFile), "/tmp/astrolog_textwin.tmp");
+#endif
+
+  flag fGraphicsSave = us.fGraphics;
+  FCloneSz(szTempFile, &is.szFileScreen);
+  us.fGraphics = fFalse;
+  Action();
+  FCloneSz(NULL, &is.szFileScreen);
+  us.fGraphics = fGraphicsSave;
+
+  // Load into text buffer
+  fi.textBuffer->loadfile(szTempFile);
+  unlink(szTempFile);
+}
+
+// Toggle the text window visibility
+void FMenuShowTextWindow(Fl_Widget *w, void *data)
+{
+  if (!fi.textWindow) {
+    CreateTextWindow();
+  }
+
+  if (fi.textWindow->shown()) {
+    fi.textWindow->hide();
+    UpdateMenuCheck(FMenuShowTextWindow, false);
+  } else {
+    RefreshTextWindow();  // Generate text
+    fi.textWindow->show();
+    UpdateMenuCheck(FMenuShowTextWindow, true);
+  }
+}
+
 // Execute a macro command
 void FMenuMacro(Fl_Widget *w, void *data)
 {
@@ -3232,6 +3308,22 @@ void FMenuInterpret(Fl_Widget *w, void *data)
   UpdateMenuCheck(FMenuInterpret, us.fInterpret);
   fi.fDoCast = fTrue;
   if (fi.chart) fi.chart->redraw();
+
+  // Show/hide text window based on interpretation state
+  if (us.fInterpret) {
+    // Open text window when interpretations enabled
+    if (!fi.textWindow || !fi.textWindow->shown()) {
+      FMenuShowTextWindow(NULL, NULL);
+    } else {
+      RefreshTextWindow();
+    }
+  } else {
+    // Close text window when interpretations disabled
+    if (fi.textWindow && fi.textWindow->shown()) {
+      fi.textWindow->hide();
+      UpdateMenuCheck(FMenuShowTextWindow, false);
+    }
+  }
 }
 
 void FMenuSecond(Fl_Widget *w, void *data)
@@ -3510,11 +3602,13 @@ void InteractFltk()
         CastChart(0);
       if (fi.chart)
         fi.chart->redraw();
+      RefreshTextWindow();  // Update text window if visible
     }
     if (fi.fDoRedraw) {
       fi.fDoRedraw = fFalse;
       if (fi.chart)
         fi.chart->redraw();
+      RefreshTextWindow();  // Update text window if visible
     }
 
     // Process events
