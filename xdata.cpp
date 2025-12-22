@@ -84,7 +84,7 @@ GS gs = {
 GI gi = {
   0, fFalse, -1,
   NULL, 0, NULL, NULL, 0.0, fFalse, fFalse, 1.0,
-  2, 1, 1, 1, 1, 1.0, 1.0, 20, 10, 618229, kWhite, kBlack, kLtGray, kDkGray, 0, 0, 0, 0,
+  2, 1, 1, 1, 1, 1.0, 1.0, 100, 20, 10, 618229, kWhite, kBlack, kLtGray, kDkGray, 0, 0, 0, 0,
   -1, -1, NULL, 0, 0, NULL, NULL,
   fTrue, {0, 0, 0, NULL}, {0, 0, 0, NULL}, {0, 0, 0, NULL}, {0, 0, 0, NULL},
   {0, 0, 0, NULL},

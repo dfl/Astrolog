@@ -1212,6 +1212,9 @@ void DrawSign(int i, int x, int y)
   if (!FBetween(nFont, 0, cFont-1))
     ch = -1;
 #endif
+  // Apply glyph scale override if set (used for grid cells with labels)
+  if (gi.nGlyphScale != 100)
+    nScale = nScale * gi.nGlyphScale / 100;
   fDoThin = gs.fThick && nFont == 0 && ch <= 0 && gi.nScale <= gi.nScaleT;
   if (fDoThin)
     DrawThick(fFalse);
@@ -1417,6 +1420,9 @@ void DrawObject(int obj, int x, int y)
   if (!FBetween(nFont, 0, cFont-1))
     ch = -1;
 #endif
+  // Apply glyph scale override if set (used for grid cells with labels)
+  if (gi.nGlyphScale != 100)
+    nScale = nScale * gi.nGlyphScale / 100;
   fDoThin = gs.fThick && nFont == 0 && ch <= 0 && gi.nScale <= gi.nScaleT;
   if (fDoThin)
     DrawThick(fFalse);
@@ -1618,6 +1624,9 @@ void DrawAspect(int asp, int x, int y)
   if (!FBetween(nFont, 0, cFont-1))
     ch = -1;
 #endif
+  // Apply glyph scale override if set (used for grid cells with labels)
+  if (gi.nGlyphScale != 100)
+    nScale = nScale * gi.nGlyphScale / 100;
   fDoThin = gs.fThick && nFont == 0 && ch <= 0 && gi.nScale <= gi.nScaleT;
   if (fDoThin)
     DrawThick(fFalse);

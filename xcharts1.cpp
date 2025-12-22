@@ -535,6 +535,10 @@ void XChartGrid(int x0, int y0)
         gi.yTurtle = (int)(y*rUnit - rUnit/2.0) - (gi.rScaleX > 2.0 ? 5*gi.nScaleT : 0);
         k = grid->n[ig][jg];
 
+        // Reduce glyph size when labels are shown to avoid crowding text
+        if (gi.rScaleX > 2.0 && gs.fLabel)
+          gi.nGlyphScale = 55;  // 55% size
+
         // If this is an aspect cell, draw glyph of aspect in effect.
         if (gs.fAlt ? x > y : x < y) {
           if (k) {
@@ -567,6 +571,8 @@ void XChartGrid(int x0, int y0)
             x0 + (int)(x*rUnit)-1, y0 + (int)(y*rUnit)-1);
           DrawObject(i, x0 + gi.xTurtle, y0 + gi.yTurtle);
         }
+
+        gi.nGlyphScale = 100;  // Restore glyph scale
 
         // When the scale size is large enough, can print text in each cell.
         if (gi.rScaleX > 2.0 && gs.fLabel) {

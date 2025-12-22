@@ -659,6 +659,7 @@ typedef struct _GraphicsInternal {
   int nScaleTextT2;   // Twice internal text scale, i.e. nScaleTextT * 2.
   real rScaleX;       // Floating-point X scale for smooth map resizing.
   real rScaleY;       // Floating-point Y scale for smooth map resizing.
+  int nGlyphScale;    // Glyph scale override percentage (100 = normal).
   int nGridCell;      // Actual number of cells in -g grids.
   int nPenWid;        // Pen width to use when creating metafiles.
   int nFontPrev;      // System fonts to restore when turning fonts on.
