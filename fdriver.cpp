@@ -23,6 +23,7 @@
 #include <FL/Fl_File_Chooser.H>
 #include <FL/Fl_Printer.H>
 #include <FL/Fl_RGB_Image.H>
+#include <FL/Fl_Terminal.H>
 #include <FL/fl_ask.H>
 #include <unistd.h> // For unlink()
 
@@ -1120,6 +1121,8 @@ void ChartWidget::requestResize(int w, int h) {
 // Forward declarations for menu callbacks
 void FMenuRestrict(Fl_Widget *w, void *data);
 void FMenuRestrictTransit(Fl_Widget *w, void *data);
+void FMenuShowTextWindow(Fl_Widget *w, void *data);
+void FMenuColoredText(Fl_Widget *w, void *data);
 void FMenuColorSettings(Fl_Widget *w, void *data);
 void FMenuChartType(Fl_Widget *w, void *data);
 void FMenuViewWheel(Fl_Widget *w, void *data);
@@ -1194,6 +1197,10 @@ AstrologWindow::~AstrologWindow() {
   fi.chart3D = NULL;
 #endif
   fi.menubar = NULL;
+  if (fi.textWindow) {
+    delete fi.textWindow;
+    fi.textWindow = NULL;
+  }
 }
 
 #ifdef OPENGL
@@ -1304,6 +1311,9 @@ void AstrologWindow::resize(int x, int y, int w, int h) {
   if (chart3D_ && chart3D_->visible())
     chart3D_->redraw();
 #endif
+  if (fi.textWindow && fi.textWindow->shown()) {
+    RefreshTextWindow();
+  }
 }
 
 int AstrologWindow::handle(int event) {
@@ -1339,6 +1349,9 @@ void AstrologWindow::timer_callback(void *data) {
     if (win->chart3D_ && win->chart3D_->visible())
       win->chart3D_->redraw();
 #endif
+    if (fi.textWindow && fi.textWindow->shown()) {
+      RefreshTextWindow();
+    }
   }
 
   // Always reschedule - timer runs continuously like Windows version
@@ -1472,12 +1485,18 @@ void AstrologWindow::createMenus() {
   // View menu - display settings only (matching Windows)
   menubar_->add(MENU_LABEL("&View/Show &Graphics"), 'v', FMenuGraphicsToggle, 0,
                 FL_MENU_TOGGLE);
+  menubar_->add(MENU_LABEL("&View/Show &Text Window"), FL_COMMAND + 't',
+                FMenuShowTextWindow, 0, FL_MENU_TOGGLE);
   menubar_->add(MENU_LABEL("&View/Window Settings/&Redraw Screen"), ' ',
                 FMenuRedraw);
   menubar_->add(MENU_LABEL("&View/Window Settings/&Clear Screen"), FL_Delete,
                 FMenuClear, 0, FL_MENU_DIVIDER);
   menubar_->add(MENU_LABEL("&View/Window Settings/&Full Screen"), FL_F + 11,
                 FMenuFullScreen, 0, FL_MENU_DIVIDER);
+  menubar_->add(MENU_LABEL("&View/&Colored Text"), FL_ALT + 'k',
+                FMenuColoredText, 0, FL_MENU_TOGGLE);
+  menubar_->add(MENU_LABEL("&View/&Set Colors..."), FL_ALT + FL_SHIFT + 'k',
+                FMenuColorSettings, 0, FL_MENU_DIVIDER);
   menubar_->add(MENU_LABEL("&View/Show &Interpretations"), 0, FMenuInterpret, 0,
                 FL_MENU_TOGGLE);
   menubar_->add(MENU_LABEL("&View/Print &Nearest Second"), 0, FMenuSecond, 0,
@@ -1908,6 +1927,23 @@ void AstrologWindow::createMenus() {
   UpdateMenuCheck(FMenuGraphicsModify, gs.fAlt);
   UpdateMenuCheck(FMenuGraphicsHouseExtra, gs.fHouseExtra);
   UpdateMenuCheck(FMenuGraphicsEquator, gs.fEquator);
+  UpdateMenuCheck(FMenuColoredText, us.fAnsiColor);
+  UpdateMenuCheck(FMenuShowTextWindow, fi.textWindow && fi.textWindow->shown());
+  UpdateMenuCheck(FMenuInterpret, us.fInterpret);
+  UpdateMenuCheck(FMenuSecond, us.fSeconds);
+  UpdateMenuCheck(FMenuParallel, us.fParallel);
+  UpdateMenuCheck(FMenuApplying, us.nAppSep == 1);
+  UpdateMenuCheck(FMenuSidereal, us.fSidereal);
+  UpdateMenuCheck(FMenuHeliocentric, us.objCenter != oEar);
+  UpdateMenuCheck(FMenuHouseSolar, us.objOnAsc != 0);
+  UpdateMenuCheck(FMenuHouse3D, us.fHouse3D);
+  UpdateMenuCheck(FMenuHouseDecan, us.fDecan);
+  UpdateMenuCheck(FMenuHouseSetDwad, us.nDwad > 0);
+  UpdateMenuCheck(FMenuHouseFlip, us.fFlip);
+  UpdateMenuCheck(FMenuHouseSetGeodetic, us.fGeodetic);
+  UpdateMenuCheck(FMenuHouseSetIndian, us.fIndian);
+  UpdateMenuCheck(FMenuHouseSetNavamsa, us.fNavamsa);
+  UpdateMenuCheck(FMenuGraphicsSidebar, gs.fDoSidebar);
 
   // Initialize radio button states
   UpdateMenuRadioByValue(FMenuReduceContrast, gs.nReduceContrast);
@@ -1916,8 +1952,16 @@ void AstrologWindow::createMenus() {
   UpdateMenuRadioByValue(FMenuGlyphFont, gs.nFontSig);
   // Initialize wheel fill menu
   UpdateMenuRadioByValue(FMenuWheelFill, gs.nDecaFill);
+  fi.chart->redraw();
 }
 
+void FMenuColoredText(Fl_Widget *w, void *data) {
+  us.fAnsiColor = !us.fAnsiColor;
+  UpdateMenuCheck(FMenuColoredText, us.fAnsiColor);
+  if (fi.textWindow && fi.textWindow->shown()) {
+    RefreshTextWindow();
+  }
+}
 /*
 ******************************************************************************
 ** Menu Callbacks
@@ -2194,13 +2238,13 @@ static void CreateTextWindow() {
     return; // Already exists
 
   fi.textWindow = new Fl_Window(600, 500, "Chart Text Output");
-  fi.textBuffer = new Fl_Text_Buffer();
-  fi.textDisplay = new Fl_Text_Display(0, 0, 600, 500);
-  fi.textDisplay->buffer(fi.textBuffer);
+  fi.textDisplay = new Fl_Terminal(0, 0, 600, 500);
   fi.textDisplay->textfont(FL_COURIER);
   fi.textDisplay->textsize(12);
   fi.textDisplay->color(FL_BLACK);
-  fi.textDisplay->textcolor(FL_WHITE);
+  // Terminal has its own color management for ANSI, but we can set default
+  // colors
+  fi.textDisplay->printf("\033[37m"); // Set default color to white
   fi.textWindow->resizable(fi.textDisplay);
   fi.textWindow->callback(TextWindowCloseCallback);
   fi.textWindow->end();
@@ -2230,8 +2274,17 @@ void RefreshTextWindow() {
   FCloneSz(NULL, &is.szFileScreen);
   us.fGraphics = fGraphicsSave;
 
-  // Load into text buffer
-  fi.textBuffer->loadfile(szTempFile);
+  // Load into terminal
+  fi.textDisplay->clear();
+  // Read file and append to terminal (Fl_Terminal::append parses ANSI)
+  FILE *fp = fopen(szTempFile, "r");
+  if (fp) {
+    char line[1024];
+    while (fgets(line, sizeof(line), fp)) {
+      fi.textDisplay->append(line);
+    }
+    fclose(fp);
+  }
   unlink(szTempFile);
 }
 

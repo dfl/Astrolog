@@ -995,6 +995,7 @@ extern void WireChartSphere P((void));
 extern int DrawPrint P((CONST char *, int, int));
 extern void DrawSidebar P((void));
 extern flag DrawFillWheel P((int, int, int, int));
+extern flag DrawFillWheelSector P((int, int, real, real, real, real, int, int));
 extern void DrawWheel P((real *, real *, int, int, real, real, real, real,
                          real));
 extern void DrawRing P((int, int, real *, real *, int, int, real, real, real,

@@ -33,8 +33,9 @@ typedef struct _GraphicsBackend {
   const char *szName;
 
   // Core drawing operations (using Put* naming to avoid macro conflicts)
-  void (*PutColor)(int ki);                 // Set current drawing color
-  void (*PutColorAlpha)(int ki, int alpha); // Set color with alpha (0-255)
+  void (*PutColor)(int ki);                  // Set current drawing color
+  void (*PutColorAlpha)(int ki, int alpha);  // Set color with alpha (0-255)
+  void (*PutColorAlphaKV)(KV kv, int alpha); // Set raw RGB color with alpha
   void (*PutLineWidth)(double width);  // Set line width (supports fractional)
   void (*PutPixel)(int x, int y);      // Draw single pixel
   void (*PutPixelThick)(int x, int y); // Draw pixel with thickness
@@ -46,6 +47,8 @@ typedef struct _GraphicsBackend {
   void (*PutArc)(int x, int y, int w, int h, double deg1,
                  double deg2);                    // Draw arc
   void (*PutEllipse)(int x, int y, int w, int h); // Draw filled ellipse
+  void (*PutSector)(int x, int y, int r1, int r2, double deg1,
+                    double deg2); // Draw filled annular sector
 
   // Text/font rendering (returns 1 if rendered, 0 to use vector fallback)
   int (*PutGlyph)(int ch, int x, int y, int nFont, int nScale); // Draw glyph
@@ -94,6 +97,12 @@ CairoContext(void); // Get current Cairo context for advanced operations
       gpBackend->PutColorAlpha(ki, alpha);                                     \
     else if (gpBackend && gpBackend->PutColor)                                 \
       gpBackend->PutColor(ki);                                                 \
+  } while (0)
+
+#define GBSetColorAlphaKV(kv, alpha)                                           \
+  do {                                                                         \
+    if (gpBackend && gpBackend->PutColorAlphaKV)                               \
+      gpBackend->PutColorAlphaKV(kv, alpha);                                   \
   } while (0)
 
 #define GBSetLineWidth(width)                                                  \
@@ -150,6 +159,12 @@ CairoContext(void); // Get current Cairo context for advanced operations
   do {                                                                         \
     if (gpBackend && gpBackend->PutEllipse)                                    \
       gpBackend->PutEllipse(x, y, w, h);                                       \
+  } while (0)
+
+#define GBDrawSector(x, y, r1, r2, d1, d2)                                     \
+  do {                                                                         \
+    if (gpBackend && gpBackend->PutSector)                                     \
+      gpBackend->PutSector(x, y, r1, r2, (double)(d1), (double)(d2));          \
   } while (0)
 
 #define GBClearScreen(ki)                                                      \

@@ -85,16 +85,20 @@ static void X11Flush(void) { XSync(gi.disp, 0); }
 
 static GB gbX11 = {"X11",
                    X11SetColor,
-                   NULL, // PutColorAlpha - X11 doesn't support alpha
+                   NULL, // PutColorAlpha
+                   NULL, // PutColorAlphaKV
+                   NULL, // PutLineWidth
                    X11DrawPixel,
                    X11DrawPixelThick,
                    X11DrawLine,
+                   NULL, // PutLineF
                    X11DrawLineThick,
                    X11DrawRect,
                    X11DrawArc,
                    X11DrawEllipse,
-                   NULL, // PutGlyph - X11 uses vector fallback
-                   NULL, // PutText - X11 uses vector fallback
+                   NULL, // PutSector
+                   NULL, // PutGlyph
+                   NULL, // PutText
                    X11ClearScreen,
                    X11Flush,
                    NULL};
@@ -225,16 +229,20 @@ static void WinFlush(void) {
 
 static GB gbWin = {"Windows",
                    WinSetColor,
-                   NULL, // PutColorAlpha - Windows doesn't support alpha
+                   NULL, // PutColorAlpha
+                   NULL, // PutColorAlphaKV
+                   NULL, // PutLineWidth
                    WinDrawPixel,
                    WinDrawPixelThick,
                    WinDrawLine,
+                   NULL, // PutLineF
                    WinDrawLineThick,
                    WinDrawRect,
                    WinDrawArc,
                    WinDrawEllipse,
-                   NULL, // PutGlyph - Windows uses DrawGlyph directly for now
-                   NULL, // PutText - Windows uses direct GDI calls for now
+                   WinDrawSector,
+                   NULL, // PutGlyph
+                   NULL, // PutText
                    WinClearScreenImpl,
                    WinFlush,
                    NULL};
@@ -375,6 +383,14 @@ static void FltkSetColorAlpha(int ki, int alpha) {
   fl_color(fl_rgb_color(r, g, b));
 }
 
+static void FltkSetColorAlphaKV(KV kv, int alpha) {
+  KV kvBg = rgbbmp[gi.kiOff];
+  uchar r = (uchar)((RgbR(kv) * alpha + RgbR(kvBg) * (255 - alpha)) / 255);
+  uchar g = (uchar)((RgbG(kv) * alpha + RgbG(kvBg) * (255 - alpha)) / 255);
+  uchar b = (uchar)((RgbB(kv) * alpha + RgbB(kvBg) * (255 - alpha)) / 255);
+  fl_color(fl_rgb_color(r, g, b));
+}
+
 static void FltkSetLineWidth(double width) {
   // FLTK line width is integer-based, round to nearest
   int w = (int)(width + 0.5);
@@ -418,6 +434,18 @@ static void FltkDrawArc(int x, int y, int w, int h, double deg1, double deg2) {
 
 static void FltkDrawEllipse(int x, int y, int w, int h) {
   fl_pie(x, y, w, h, 0.0, 360.0);
+}
+
+static void FltkDrawSector(int x, int y, int r1, int r2, double deg1,
+                           double deg2) {
+  // FLTK fl_pie draws a filled pie slice.
+  // Like GDI, we draw large then small in background color as a fallback.
+  fl_color(FltkColorFromKI(gi.kiCur));
+  fl_pie(x - r2, y - r2, r2 * 2, r2 * 2, deg1, deg2);
+  if (r1 > 0) {
+    fl_color(FltkColorFromKI(gi.kiOff));
+    fl_pie(x - r1, y - r1, r1 * 2, r1 * 2, deg1, deg2);
+  }
 }
 
 // Map Astrolog font index to FLTK font. Returns Fl_Font or -1 if not available.
@@ -605,8 +633,8 @@ static GB gbFltk = {"FLTK",           FltkSetColor,  FltkSetColorAlpha,
                     FltkSetLineWidth, FltkDrawPixel, FltkDrawPixelThick,
                     FltkDrawLine,     FltkDrawLineF, FltkDrawLineThick,
                     FltkDrawRect,     FltkDrawArc,   FltkDrawEllipse,
-                    FltkPutGlyph,     FltkPutText,   FltkClearScreen,
-                    FltkFlush,        NULL};
+                    FltkDrawSector,   FltkPutGlyph,  FltkPutText,
+                    FltkClearScreen,  FltkFlush,     NULL};
 
 void InitBackendFltk(void) {
 #ifdef __APPLE__
@@ -643,7 +671,10 @@ static void CairoSetColor(int ki) {
 static void CairoSetColorAlpha(int ki, int alpha) {
   if (ki < 0 || ki >= cColor)
     ki = 0;
-  KV kv = rgbbmp[ki];
+  CairoSetColorAlphaKV(rgbbmp[ki], alpha);
+}
+
+static void CairoSetColorAlphaKV(KV kv, int alpha) {
   cairo_set_source_rgba(gi_cr, (double)RgbR(kv) / 255.0,
                         (double)RgbG(kv) / 255.0, (double)RgbB(kv) / 255.0,
                         (double)alpha / 255.0);
@@ -721,6 +752,34 @@ static void CairoDrawEllipse(int x, int y, int w, int h) {
   cairo_scale(gi_cr, rx, ry);
   cairo_arc(gi_cr, 0, 0, 1.0, 0, 2 * rPi);
   cairo_restore(gi_cr);
+  cairo_fill(gi_cr);
+}
+
+static void CairoDrawSector(int x, int y, int r1, int r2, double deg1,
+                            double deg2) {
+  // Native Cairo implementation of annular sector (donut slice)
+  // Logic matches the SVG path suggestion: Outer Arc -> Line to Inner -> Inner
+  // Arc (Backwards) -> Close
+  double a1 = -deg1 * rPi / 180.0;
+  double a2 = -deg2 * rPi / 180.0;
+
+  cairo_new_path(gi_cr);
+  // Outer arc (clockwise in screen coords if deg1 -> deg2 is CCW in polar)
+  // deg is CCW from +X, but Y is down, so we negate angles.
+  cairo_arc(gi_cr, (double)x, (double)y, (double)r2, a1, a2);
+
+  if (r1 > 0) {
+    // Line to inner radius at deg2
+    cairo_line_to(gi_cr, (double)x + (double)r1 * cos(a2),
+                  (double)y + (double)r1 * sin(a2));
+    // Inner arc backwards from deg2 to deg1
+    cairo_arc_negative(gi_cr, (double)x, (double)y, (double)r1, a2, a1);
+  } else {
+    // If no inner radius, just triangle to center
+    cairo_line_to(gi_cr, (double)x, (double)y);
+  }
+
+  cairo_close_path(gi_cr);
   cairo_fill(gi_cr);
 }
 
@@ -875,9 +934,30 @@ static int CairoPutText(const char *sz, int x, int y, int nFont, int nScale) {
   return 1; // Successfully rendered
 }
 
+static GB gbFltk = {"FLTK",
+                    FltkSetColor,
+                    FltkSetColorAlpha,
+                    FltkSetColorAlphaKV,
+                    FltkSetLineWidth,
+                    FltkDrawPixel,
+                    FltkDrawPixelThick,
+                    FltkDrawLine,
+                    FltkDrawLineF,
+                    FltkDrawLineThick,
+                    FltkDrawRect,
+                    FltkDrawArc,
+                    FltkDrawEllipse,
+                    FltkDrawSector,
+                    FltkPutGlyph,
+                    FltkPutText,
+                    FltkClearScreen,
+                    FltkFlush,
+                    NULL};
+
 static GB gbCairo = {"Cairo",
                      CairoSetColor,
                      CairoSetColorAlpha,
+                     CairoSetColorAlphaKV,
                      CairoSetLineWidth,
                      CairoDrawPixel,
                      CairoDrawPixelThick,
@@ -887,6 +967,7 @@ static GB gbCairo = {"Cairo",
                      CairoDrawRect,
                      CairoDrawArc,
                      CairoDrawEllipse,
+                     CairoDrawSector,
                      CairoPutGlyph,
                      CairoPutText,
                      CairoClearScreen,

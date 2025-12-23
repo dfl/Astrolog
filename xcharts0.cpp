@@ -561,13 +561,23 @@ void DrawSidebar() {
 // Fill in the specified sector of a wheel chart at the given coordinates. The
 // sector type may be sign, house, or Gauquelin sector.
 
-flag DrawFillWheel(int x, int y, int i, int typ) {
+// Fill in the specified sector of a wheel chart using geometric primitives.
+// This is used for sign and house sectors in circular charts.
+
+flag DrawFillWheelSector(int cx, int cy, real r1, real r2, real d1, real d2,
+                         int i, int typ) {
   KV kvC, kvF;
   int nTrans;
   real rDeg;
+  int x, y;
 
   if (gs.nDecaFill <= 0)
     return fFalse;
+
+  // Calculate a seed point for backends that still use DrawFill fallback.
+  rDeg = Midpoint(d1, d2);
+  x = cx + POINT0(gi.rScaleX, (r1 + r2) / 2.0, PX(rDeg));
+  y = cy + POINT0(gi.rScaleY, (r1 + r2) / 2.0, PY(rDeg));
 
   // Don't do anything if background bitmap visible.
   nTrans = (int)(gs.rBackPct * 256.0 / 100.0);
@@ -599,10 +609,64 @@ flag DrawFillWheel(int x, int y, int i, int typ) {
   } else
     kvF = -1;
 
-  // Actually go fill in the area.
-  DrawFill(x, y, kvF);
+  // Perform geometric filling on screen backends.
+  if (!gi.fFile) {
+    // We need to set the color in the backend. Since we have the RGB color kvF,
+    // we'll use DrawColor with a temporary index if needed, or just set it.
+    // For now, let's use gi.kiCur if it matches, or find a close one.
+    // Actually, we can just use GBDrawSector's ability to use the current
+    // color.
+    if (kvF != -1) {
+      // Find or set a color index that matches kvF.
+      // In Astrolog, we have 16 standard colors. Wheels use customized ones.
+      // We'll just use the current color if nDecaFill == 1, or just set raw
+      // RGB. For Cairo, we can set the color directly.
+      if (gpBackend && gpBackend->PutColorAlpha)
+        gpBackend->PutColorAlpha(gi.kiCur, (int)(gs.rBackPct * 255.0 / 100.0));
+    }
+    GBDrawSector(cx, cy, (int)(r1 * gi.rScaleX + rRound),
+                 (int)(r2 * gi.rScaleX + rRound), d1, d2);
+  }
+  DrawFill(x, y, kvF); // Fallback for file/bitmap modes
 
   // Return whether glyphs drawn on filled area should be background color.
+  return (RgbR(kvF) + RgbG(kvF) * 151 / 100 + RgbB(kvF) >= 128 * 3) !=
+         gs.fInverse;
+}
+
+// Standard flood fill wrapper for irregular areas (like South Indian chart).
+flag DrawFillWheel(int x, int y, int i, int typ) {
+  KV kvC, kvF;
+  int nTrans;
+  real rDeg;
+
+  if (gs.nDecaFill <= 0)
+    return fFalse;
+  nTrans = (int)(gs.rBackPct * 256.0 / 100.0);
+  if (gi.bmpBack.rgb != NULL && nTrans > 0)
+    return fFalse;
+  if (!gi.fFile || gi.fBmp) {
+    if (nTrans <= 0)
+      return fFalse;
+    if (gs.nDecaFill == 1)
+      kvC = rgbbmp[gi.kiCur];
+    else {
+      rDeg = (real)(i - 1) * rDegMax / (real)(typ < 2 ? cSign : cSector);
+      kvC = gs.nDecaFill == 2 ? KvHue(rDeg) : KvHue2(rDeg);
+    }
+    kvF = KvBlend(rgbbmp[gi.kiOff], kvC, gs.rBackPct / 100.0);
+#ifdef EXPRESS
+    if (!us.fExpOff && FSzSet(us.szExpColFill)) {
+      ExpSetN(iLetterX, typ);
+      ExpSetN(iLetterY, i);
+      ExpSetN(iLetterZ, kvF);
+      ParseExpression(us.szExpColFill);
+      kvF = NExpGet(iLetterZ);
+    }
+#endif
+  } else
+    kvF = -1;
+  DrawFill(x, y, kvF);
   return (RgbR(kvF) + RgbG(kvF) * 151 / 100 + RgbB(kvF) >= 128 * 3) !=
          gs.fInverse;
 }
@@ -694,7 +758,8 @@ void DrawWheel(real *xsign, real *xhouse, int cx, int cy, real unitx,
     DrawColor(kSignB(i));
     x = cx + POINT0(unitx, rs, PX(rDeg));
     y = cy + POINT0(unity, rs, PY(rDeg));
-    fOff = DrawFillWheel(x, y, i, 0);
+    fOff = DrawFillWheelSector(cx, cy, rs1, rs2, xsign[i], xsign[Mod12(i + 1)],
+                               i, 0);
     if (nTrans >= 128)
       DrawColor(fOff ? gi.kiOff : gi.kiOn);
     DrawSign(i, x, y);
@@ -887,7 +952,8 @@ void DrawWheel(real *xsign, real *xhouse, int cx, int cy, real unitx,
     DrawColor(kSignB(i));
     x = cx + POINT0(unitx, rh, PX(rDeg));
     y = cy + POINT0(unity, rh, PY(rDeg));
-    fOff = DrawFillWheel(x, y, i, 1);
+    fOff = DrawFillWheelSector(cx, cy, rh1, rh2, xhouse[i],
+                               xhouse[Mod12(i + 1)], i, 1);
     if (nTrans >= 128)
       DrawColor(fOff ? gi.kiOff : gi.kiOn);
     DrawHouse(i, x, y);
