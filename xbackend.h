@@ -47,8 +47,8 @@ typedef struct _GraphicsBackend {
   void (*PutArc)(int x, int y, int w, int h, double deg1,
                  double deg2);                    // Draw arc
   void (*PutEllipse)(int x, int y, int w, int h); // Draw filled ellipse
-  void (*PutSector)(int x, int y, int r1, int r2, double deg1,
-                    double deg2); // Draw filled annular sector
+  void (*PutSector)(int cx, int cy, double ux, double uy, double r1, double r2,
+                    double deg1, double deg2); // Draw filled annular sector
 
   // Text/font rendering (returns 1 if rendered, 0 to use vector fallback)
   int (*PutGlyph)(int ch, int x, int y, int nFont, int nScale); // Draw glyph
@@ -161,10 +161,11 @@ CairoContext(void); // Get current Cairo context for advanced operations
       gpBackend->PutEllipse(x, y, w, h);                                       \
   } while (0)
 
-#define GBDrawSector(x, y, r1, r2, d1, d2)                                     \
+#define GBDrawSector(cx, cy, ux, uy, r1, r2, d1, d2)                           \
   do {                                                                         \
     if (gpBackend && gpBackend->PutSector)                                     \
-      gpBackend->PutSector(x, y, r1, r2, (double)(d1), (double)(d2));          \
+      gpBackend->PutSector(cx, cy, (double)(ux), (double)(uy), (double)(r1),   \
+                           (double)(r2), (double)(d1), (double)(d2));          \
   } while (0)
 
 #define GBClearScreen(ki)                                                      \

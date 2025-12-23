@@ -131,11 +131,6 @@
 #define ISG
 #endif
 
-// Include graphics backend abstraction layer
-#ifdef GRAPH
-#include "xbackend.h"
-#endif
-
 /*
 ******************************************************************************
 ** Program Constants.
@@ -162,6 +157,11 @@
 
 #ifdef FLTK
 #include "fdriver.h"
+#endif
+
+// Include graphics backend abstraction layer
+#ifdef GRAPH
+#include "xbackend.h"
 #endif
 
 /*

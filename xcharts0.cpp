@@ -564,8 +564,8 @@ void DrawSidebar() {
 // Fill in the specified sector of a wheel chart using geometric primitives.
 // This is used for sign and house sectors in circular charts.
 
-flag DrawFillWheelSector(int cx, int cy, real r1, real r2, real d1, real d2,
-                         int i, int typ) {
+flag DrawFillWheelSector(int cx, int cy, real unitx, real unity, real r1,
+                         real r2, real d1, real d2, int i, int typ) {
   KV kvC, kvF;
   int nTrans;
   real rDeg;
@@ -576,8 +576,8 @@ flag DrawFillWheelSector(int cx, int cy, real r1, real r2, real d1, real d2,
 
   // Calculate a seed point for backends that still use DrawFill fallback.
   rDeg = Midpoint(d1, d2);
-  x = cx + POINT0(gi.rScaleX, (r1 + r2) / 2.0, PX(rDeg));
-  y = cy + POINT0(gi.rScaleY, (r1 + r2) / 2.0, PY(rDeg));
+  x = cx + POINT0(unitx, (r1 + r2) / 2.0, PX(rDeg));
+  y = cy + POINT0(unity, (r1 + r2) / 2.0, PY(rDeg));
 
   // Don't do anything if background bitmap visible.
   nTrans = (int)(gs.rBackPct * 256.0 / 100.0);
@@ -611,21 +611,11 @@ flag DrawFillWheelSector(int cx, int cy, real r1, real r2, real d1, real d2,
 
   // Perform geometric filling on screen backends.
   if (!gi.fFile) {
-    // We need to set the color in the backend. Since we have the RGB color kvF,
-    // we'll use DrawColor with a temporary index if needed, or just set it.
-    // For now, let's use gi.kiCur if it matches, or find a close one.
-    // Actually, we can just use GBDrawSector's ability to use the current
-    // color.
     if (kvF != -1) {
-      // Find or set a color index that matches kvF.
-      // In Astrolog, we have 16 standard colors. Wheels use customized ones.
-      // We'll just use the current color if nDecaFill == 1, or just set raw
-      // RGB. For Cairo, we can set the color directly.
-      if (gpBackend && gpBackend->PutColorAlpha)
-        gpBackend->PutColorAlpha(gi.kiCur, (int)(gs.rBackPct * 255.0 / 100.0));
+      if (gpBackend && gpBackend->PutColorAlphaKV)
+        gpBackend->PutColorAlphaKV(kvF, 255);
     }
-    GBDrawSector(cx, cy, (int)(r1 * gi.rScaleX + rRound),
-                 (int)(r2 * gi.rScaleX + rRound), d1, d2);
+    GBDrawSector(cx, cy, unitx, unity, r1, r2, d1, d2);
   }
   DrawFill(x, y, kvF); // Fallback for file/bitmap modes
 
@@ -690,6 +680,20 @@ void DrawWheel(real *xsign, real *xhouse, int cx, int cy, real unitx,
   rs = (rs1 + rs2) / 2.0;
   fSimpleDecan = us.fListDecan && us.nDecanType <= ddChaldea &&
                  !(!us.fExpOff && FSzSet(us.szExpDecan));
+
+  // Draw background fills for signs and houses BEFORE any lines or glyphs.
+  if (gs.nDecaFill > 0) {
+    for (i = 1; i <= cSign; i++) {
+      DrawColor(kSignB(i));
+      DrawFillWheelSector(cx, cy, unitx, unity, rs1, rs2, xsign[i],
+                          xsign[Mod12(i + 1)], i, 0);
+    }
+    for (i = 1; i <= cSign; i++) {
+      DrawColor(kSignB(i));
+      DrawFillWheelSector(cx, cy, unitx, unity, rh1, rh2, xhouse[i],
+                          xhouse[Mod12(i + 1)], i, 1);
+    }
+  }
 
   // Draw small five or one degree increments around the zodiac sign ring.
 
@@ -758,10 +762,14 @@ void DrawWheel(real *xsign, real *xhouse, int cx, int cy, real unitx,
     DrawColor(kSignB(i));
     x = cx + POINT0(unitx, rs, PX(rDeg));
     y = cy + POINT0(unity, rs, PY(rDeg));
-    fOff = DrawFillWheelSector(cx, cy, rs1, rs2, xsign[i], xsign[Mod12(i + 1)],
-                               i, 0);
+    fOff = (gs.rBackPct >= 50.0) &&
+           (RgbR(rgbbmp[gi.kiCur]) * 30 + RgbG(rgbbmp[gi.kiCur]) * 59 +
+                RgbB(rgbbmp[gi.kiCur]) * 11 >=
+            128 * 100);
     if (nTrans >= 128)
       DrawColor(fOff ? gi.kiOff : gi.kiOn);
+    else
+      DrawColor(gi.kiOn);
     DrawSign(i, x, y);
 
     // Draw decan rulers or other sign subdivisions if specified.
@@ -952,10 +960,14 @@ void DrawWheel(real *xsign, real *xhouse, int cx, int cy, real unitx,
     DrawColor(kSignB(i));
     x = cx + POINT0(unitx, rh, PX(rDeg));
     y = cy + POINT0(unity, rh, PY(rDeg));
-    fOff = DrawFillWheelSector(cx, cy, rh1, rh2, xhouse[i],
-                               xhouse[Mod12(i + 1)], i, 1);
+    fOff = (gs.rBackPct >= 50.0) &&
+           (RgbR(rgbbmp[gi.kiCur]) * 30 + RgbG(rgbbmp[gi.kiCur]) * 59 +
+                RgbB(rgbbmp[gi.kiCur]) * 11 >=
+            128 * 100);
     if (nTrans >= 128)
       DrawColor(fOff ? gi.kiOff : gi.kiOn);
+    else
+      DrawColor(gi.kiOn);
     DrawHouse(i, x, y);
   }
 }

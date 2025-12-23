@@ -2948,6 +2948,14 @@ void XChartSector() {
     DrawLine(cx + POINT1(unitx, 0.81, px), cy + POINT1(unity, 0.81, py) * yi,
              cx + POINT2(unitx, 0.95, px), cy + POINT2(unity, 0.95, py) * yi);
   }
+  if (gs.nDecaFill > 0) {
+    for (i = 1; i <= cSector; i++) {
+      DrawColor(pluszone[i] ? kRedB : kDkGreenB);
+      DrawFillWheelSector(cx, cy, unitx, unity, 0.81, 0.95,
+                          (real)(i * 10 + 170), (real)(i * 10 + 180), i, 2);
+    }
+  }
+  DrawColor(gi.kiOn);
   DrawCircle(cx, cy, (int)(unitx * 0.95 + rRound),
              (int)(unity * 0.95 + rRound));
   DrawCircle(cx, cy, (int)(unitx * 0.81 + rRound),
@@ -2958,11 +2966,14 @@ void XChartSector() {
   for (i = 1; i <= cSector; i++) {
     j = pluszone[i];
     DrawColor(j ? kRedB : kDkGreenB);
-    fOff =
-        DrawFillWheelSector(cx, cy, unitx * 0.81, unitx * 0.95,
-                            (real)(i * 10 + 170), (real)(i * 10 + 180), i, 2);
+    fOff = (gs.rBackPct >= 50.0) &&
+           (RgbR(rgbbmp[gi.kiCur]) * 30 + RgbG(rgbbmp[gi.kiCur]) * 59 +
+                RgbB(rgbbmp[gi.kiCur]) * 11 >=
+            128 * 100);
     if (nTrans >= 128)
       DrawColor(fOff ? gi.kiOff : gi.kiOn);
+    else
+      DrawColor(gi.kiOn);
     sprintf(sz, "%d", i);
     DrawSz(sz,
            cx + POINT1(unitx, 0.88, PX((real)(i * 10 + 175))) +

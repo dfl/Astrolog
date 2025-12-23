@@ -1161,25 +1161,27 @@ AstrologWindow::AstrologWindow(int w, int h, const char *title)
   menubar_ = new Fl_Menu_Bar(0, 0, w, 25);
   fi.menubar =
       menubar_; // Set global before createMenus so UpdateMenuCheck works
-  createMenus();
-
   // Create chart widget below menu bar (2D)
   chart_ = new ChartWidget(0, 25, w, h);
+  fi.chart = chart_;
 
 #ifdef OPENGL
   // Create OpenGL 3D widget (initially hidden)
   chart3D_ = new Globe3DWidget(0, 25, w, h);
   chart3D_->hide();
+  fi.chart3D = chart3D_;
 #endif
+
+  createMenus();
 
   end();
   resizable(chart_);
 
   // Store in global state
   fi.window = this;
-  fi.chart = chart_;
+  // fi.chart already set
 #ifdef OPENGL
-  fi.chart3D = chart3D_;
+  // fi.chart3D already set
 #endif
   // fi.menubar already set before createMenus()
   fi.xClient = w;
@@ -1952,7 +1954,8 @@ void AstrologWindow::createMenus() {
   UpdateMenuRadioByValue(FMenuGlyphFont, gs.nFontSig);
   // Initialize wheel fill menu
   UpdateMenuRadioByValue(FMenuWheelFill, gs.nDecaFill);
-  fi.chart->redraw();
+  if (fi.chart)
+    fi.chart->redraw();
 }
 
 void FMenuColoredText(Fl_Widget *w, void *data) {
