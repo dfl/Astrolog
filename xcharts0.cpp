@@ -2571,6 +2571,7 @@ void DrawChartX() {
   case gMoons:
     XChartMoons();
     break;
+#if defined(WIN) || defined(FLTK)
   case gAspect:
     XChartAspect();
     break;
@@ -2578,6 +2579,7 @@ void DrawChartX() {
   case gArabic:
     XChartArabic();
     break;
+#endif
 #endif
   case gExo:
     XChartExo();
