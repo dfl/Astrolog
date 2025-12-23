@@ -244,6 +244,7 @@ void FMenuGraphicsAntialias(Fl_Widget *w, void *data);
 void FMenuDashStyle(Fl_Widget *w, void *data);
 void FMenuModifyChart(Fl_Widget *w, void *data);
 void FMenuPenColor(Fl_Widget *w, void *data);
+void FMenuWheelFill(Fl_Widget *w, void *data);
 void FMenuScaleDecrease(Fl_Widget *w, void *data);
 void FMenuScaleIncrease(Fl_Widget *w, void *data);
 void FMenuScale1(Fl_Widget *w, void *data);
@@ -1704,6 +1705,15 @@ void AstrologWindow::createMenus() {
   menubar_->add(
       MENU_LABEL("&Graphics/Chart Effects/Show &Glyphs on Aspect Lines"), 'k',
       FMenuGraphicsLabelAsp, 0, FL_MENU_TOGGLE);
+  // Wheel Fill submenu
+  menubar_->add(MENU_LABEL("&Graphics/Wheel Fill/&None"), 0, FMenuWheelFill,
+                (void *)0, FL_MENU_RADIO);
+  menubar_->add(MENU_LABEL("&Graphics/Wheel Fill/&Solid Color"), 0,
+                FMenuWheelFill, (void *)1, FL_MENU_RADIO);
+  menubar_->add(MENU_LABEL("&Graphics/Wheel Fill/&Rainbow Gradient"), 0,
+                FMenuWheelFill, (void *)2, FL_MENU_RADIO | FL_MENU_VALUE);
+  menubar_->add(MENU_LABEL("&Graphics/Wheel Fill/Rainbow Gradient &2"), 0,
+                FMenuWheelFill, (void *)3, FL_MENU_RADIO | FL_MENU_DIVIDER);
   // Map Effects submenu
   menubar_->add(MENU_LABEL("&Graphics/Map Effects/Show &Constellations"), 'F',
                 FMenuMapConstel, 0, FL_MENU_TOGGLE);
@@ -1901,8 +1911,11 @@ void AstrologWindow::createMenus() {
 
   // Initialize radio button states
   UpdateMenuRadioByValue(FMenuReduceContrast, gs.nReduceContrast);
+  // Initialize glyph font menu
   // For glyph font, use nFontSig as representative (all are set to same value)
   UpdateMenuRadioByValue(FMenuGlyphFont, gs.nFontSig);
+  // Initialize wheel fill menu
+  UpdateMenuRadioByValue(FMenuWheelFill, gs.nDecaFill);
 }
 
 /*
@@ -2396,6 +2409,14 @@ void FMenuMapBmp(Fl_Widget *w, void *data) {
 void FMenuMapAxis(Fl_Widget *w, void *data) {
   inv(gs.fEcliptic);
   UpdateMenuCheck(FMenuMapAxis, gs.fEcliptic);
+  if (fi.chart)
+    fi.chart->redraw();
+}
+
+// Wheel fill callback
+void FMenuWheelFill(Fl_Widget *w, void *data) {
+  gs.nDecaFill = (int)(intptr_t)data;
+  UpdateMenuRadioByValue(FMenuWheelFill, (intptr_t)data);
   if (fi.chart)
     fi.chart->redraw();
 }
