@@ -2244,10 +2244,10 @@ static void CreateTextWindow() {
   fi.textDisplay = new Fl_Terminal(0, 0, 600, 500);
   fi.textDisplay->textfont(FL_COURIER);
   fi.textDisplay->textsize(12);
+  // Set terminal colors: black background, white text (for non-ANSI mode)
   fi.textDisplay->color(FL_BLACK);
-  // Terminal has its own color management for ANSI, but we can set default
-  // colors
-  fi.textDisplay->printf("\033[37m"); // Set default color to white
+  fi.textDisplay->textfgcolor(FL_WHITE);
+  fi.textDisplay->textbgcolor(FL_BLACK);
   fi.textWindow->resizable(fi.textDisplay);
   fi.textWindow->callback(TextWindowCloseCallback);
   fi.textWindow->end();
@@ -3547,7 +3547,7 @@ void FMenuGraphicsMonochrome(Fl_Widget *w, void *data) {
 
 void FMenuReduceContrast(Fl_Widget *w, void *data) {
   gs.nReduceContrast = (int)(long)data;
-  UpdateMenuRadio(FMenuReduceContrast);
+  UpdateMenuRadioByValue(FMenuReduceContrast, (intptr_t)data);
   InitColorsX();
   if (fi.chart)
     fi.chart->redraw();

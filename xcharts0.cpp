@@ -464,8 +464,12 @@ void DrawSidebar() {
           y < gs.yWin - 1) {
         s = gi.nScale;
         gi.nScale = gi.nScaleTextT;
+        k = gi.nGlyphScale;
+        // Use fixed glyph size regardless of window scale
+        gi.nGlyphScale = 7500 / gs.nScale;
         DrawSign(SFromZ(chouse[i]), gs.xWin - 12 * gi.nScale,
                  y - (yFont / 2 - 1) * gi.nScale);
+        gi.nGlyphScale = k;
         gi.nScale = s;
       }
       DrawZodiac(chouse[i], fFalse);
@@ -490,8 +494,12 @@ void DrawSidebar() {
       // Don't draw planet glyph in PS or Metafile, since can't be resized.
       s = gi.nScale;
       gi.nScale = gi.nScaleTextT;
+      k = gi.nGlyphScale;
+      // Use fixed glyph size regardless of window scale
+      gi.nGlyphScale = 7500 / gs.nScale;
       DrawObject(-i - 1, gs.xWin - 12 * gi.nScale,
                  y - (yFont / 2 - 1) * gi.nScale);
+      gi.nGlyphScale = k;
       gi.nScale = s;
     }
     sprintf(sz, !f1K ? "%c " : "%c", ChRet(ret[i]));
