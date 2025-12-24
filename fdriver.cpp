@@ -2291,8 +2291,9 @@ void RefreshTextWindow() {
   us.fGraphics = fGraphicsSave;
 
   // Load into terminal
-  fi.textDisplay->clear();
-  fi.textDisplay->reset_terminal(); // Reset terminal state and cursor position
+  fi.textDisplay->reset_terminal();
+  fi.textDisplay->clear_history();
+
   // Read file and append to terminal (Fl_Terminal::append parses ANSI)
   FILE *fp = fopen(szTempFile, "r");
   if (fp) {
