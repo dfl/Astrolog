@@ -1946,6 +1946,14 @@ void AstrologWindow::createMenus() {
   UpdateMenuCheck(FMenuHouseSetIndian, us.fIndian);
   UpdateMenuCheck(FMenuHouseSetNavamsa, us.fNavamsa);
   UpdateMenuCheck(FMenuGraphicsSidebar, gs.fDoSidebar);
+  UpdateMenuCheck(FMenuAnimTimedExposure, gs.fJetTrail);
+  UpdateMenuCheck(FMenuIndian, gs.fIndianWheel);
+  UpdateMenuCheck(FMenuMapConstel, gs.fConstel);
+  UpdateMenuCheck(FMenuMapAllStar, gs.fAllStar);
+  UpdateMenuCheck(FMenuMapExo, gs.fAllExo);
+  UpdateMenuCheck(FMenuMapCity, gs.fLabelCity);
+  UpdateMenuCheck(FMenuMapBmp, gi.fBmp);
+  UpdateMenuCheck(FMenuMapAxis, gs.fEcliptic);
 
   // Initialize radio button states
   UpdateMenuRadioByValue(FMenuReduceContrast, gs.nReduceContrast);
@@ -2248,6 +2256,11 @@ static void CreateTextWindow() {
   fi.textDisplay->color(FL_BLACK);
   fi.textDisplay->textfgcolor(FL_WHITE);
   fi.textDisplay->textbgcolor(FL_BLACK);
+  // Hide cursor by making it the same color as background
+  fi.textDisplay->cursorbgcolor(FL_BLACK);
+  fi.textDisplay->cursorfgcolor(FL_BLACK);
+  // Enable ANSI parsing
+  fi.textDisplay->ansi(true);
   fi.textWindow->resizable(fi.textDisplay);
   fi.textWindow->callback(TextWindowCloseCallback);
   fi.textWindow->end();
@@ -2279,6 +2292,7 @@ void RefreshTextWindow() {
 
   // Load into terminal
   fi.textDisplay->clear();
+  fi.textDisplay->reset_terminal(); // Reset terminal state and cursor position
   // Read file and append to terminal (Fl_Terminal::append parses ANSI)
   FILE *fp = fopen(szTempFile, "r");
   if (fp) {
@@ -2301,8 +2315,8 @@ void FMenuShowTextWindow(Fl_Widget *w, void *data) {
     fi.textWindow->hide();
     UpdateMenuCheck(FMenuShowTextWindow, false);
   } else {
-    RefreshTextWindow(); // Generate text
     fi.textWindow->show();
+    RefreshTextWindow(); // Generate text after showing window
     UpdateMenuCheck(FMenuShowTextWindow, true);
   }
 }
@@ -3319,7 +3333,12 @@ void FMenuAnimFactor9(Fl_Widget *w, void *data) {
   gi.nDir = (gi.nDir > 0 ? 1 : -1) * 9;
 }
 
-void FMenuAnimTimedExposure(Fl_Widget *w, void *data) { inv(gs.fJetTrail); }
+void FMenuAnimTimedExposure(Fl_Widget *w, void *data) {
+  inv(gs.fJetTrail);
+  UpdateMenuCheck(FMenuAnimTimedExposure, gs.fJetTrail);
+  if (fi.chart)
+    fi.chart->redraw();
+}
 
 // Helper to update menu checkbox state
 static void UpdateMenuCheck(Fl_Callback *cb, flag f) {
