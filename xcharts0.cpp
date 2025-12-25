@@ -770,14 +770,13 @@ void DrawWheel(real *xsign, real *xhouse, int cx, int cy, real unitx,
     DrawColor(kSignB(i));
     x = cx + POINT0(unitx, rs, PX(rDeg));
     y = cy + POINT0(unity, rs, PY(rDeg));
-    fOff = (gs.rBackPct >= 50.0) &&
-           (RgbR(rgbbmp[gi.kiCur]) * 30 + RgbG(rgbbmp[gi.kiCur]) * 59 +
-                RgbB(rgbbmp[gi.kiCur]) * 11 >=
-            128 * 100);
-    if (nTrans >= 128)
+    if (gs.nDecaFill > 0 && nTrans >= 128) {
+      fOff = (gs.rBackPct >= 50.0) &&
+             (RgbR(rgbbmp[gi.kiCur]) * 30 + RgbG(rgbbmp[gi.kiCur]) * 59 +
+                  RgbB(rgbbmp[gi.kiCur]) * 11 >=
+              128 * 100);
       DrawColor(fOff ? gi.kiOff : gi.kiOn);
-    else
-      DrawColor(gi.kiOn);
+    }
     DrawSign(i, x, y);
 
     // Draw decan rulers or other sign subdivisions if specified.
@@ -968,14 +967,13 @@ void DrawWheel(real *xsign, real *xhouse, int cx, int cy, real unitx,
     DrawColor(kSignB(i));
     x = cx + POINT0(unitx, rh, PX(rDeg));
     y = cy + POINT0(unity, rh, PY(rDeg));
-    fOff = (gs.rBackPct >= 50.0) &&
-           (RgbR(rgbbmp[gi.kiCur]) * 30 + RgbG(rgbbmp[gi.kiCur]) * 59 +
-                RgbB(rgbbmp[gi.kiCur]) * 11 >=
-            128 * 100);
-    if (nTrans >= 128)
+    if (gs.nDecaFill > 0 && nTrans >= 128) {
+      fOff = (gs.rBackPct >= 50.0) &&
+             (RgbR(rgbbmp[gi.kiCur]) * 30 + RgbG(rgbbmp[gi.kiCur]) * 59 +
+                  RgbB(rgbbmp[gi.kiCur]) * 11 >=
+              128 * 100);
       DrawColor(fOff ? gi.kiOff : gi.kiOn);
-    else
-      DrawColor(gi.kiOn);
+    }
     DrawHouse(i, x, y);
   }
 }
