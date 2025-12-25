@@ -2232,6 +2232,28 @@ void FMenuCopyText(Fl_Widget *w, void *data) {
   unlink(szTempFile);
 }
 
+// Update text window colors based on inverse setting
+static void UpdateTextWindowColors() {
+  if (!fi.textDisplay)
+    return;
+  if (gs.fInverse) {
+    // White background, black text
+    fi.textDisplay->color(FL_WHITE);
+    fi.textDisplay->textfgcolor(FL_BLACK);
+    fi.textDisplay->textbgcolor(FL_WHITE);
+    fi.textDisplay->cursorbgcolor(FL_WHITE);
+    fi.textDisplay->cursorfgcolor(FL_WHITE);
+  } else {
+    // Black background, white text
+    fi.textDisplay->color(FL_BLACK);
+    fi.textDisplay->textfgcolor(FL_WHITE);
+    fi.textDisplay->textbgcolor(FL_BLACK);
+    fi.textDisplay->cursorbgcolor(FL_BLACK);
+    fi.textDisplay->cursorfgcolor(FL_BLACK);
+  }
+  fi.textDisplay->redraw();
+}
+
 // Text window close callback - update menu state when window is closed via X
 // button
 static void TextWindowCloseCallback(Fl_Widget *w, void *data) {
@@ -2252,13 +2274,8 @@ static void CreateTextWindow() {
   fi.textDisplay = new Fl_Terminal(0, 0, 600, 500);
   fi.textDisplay->textfont(FL_COURIER);
   fi.textDisplay->textsize(12);
-  // Set terminal colors: black background, white text (for non-ANSI mode)
-  fi.textDisplay->color(FL_BLACK);
-  fi.textDisplay->textfgcolor(FL_WHITE);
-  fi.textDisplay->textbgcolor(FL_BLACK);
-  // Hide cursor by making it the same color as background
-  fi.textDisplay->cursorbgcolor(FL_BLACK);
-  fi.textDisplay->cursorfgcolor(FL_BLACK);
+  // Set terminal colors based on current inverse setting
+  UpdateTextWindowColors();
   // Enable ANSI parsing
   fi.textDisplay->ansi(true);
   fi.textWindow->resizable(fi.textDisplay);
@@ -2284,11 +2301,14 @@ void RefreshTextWindow() {
 #endif
 
   flag fGraphicsSave = us.fGraphics;
+  flag fAnsiColorSave = us.fAnsiColor;
   FCloneSz(szTempFile, &is.szFileScreen);
   us.fGraphics = fFalse;
+  us.fAnsiColor = fTrue;  // Enable ANSI colors for terminal output
   Action();
   FCloneSz(NULL, &is.szFileScreen);
   us.fGraphics = fGraphicsSave;
+  us.fAnsiColor = fAnsiColorSave;
 
   // Load into terminal
   fi.textDisplay->reset_terminal();
@@ -3552,6 +3572,8 @@ void FMenuGraphicsReverse(Fl_Widget *w, void *data) {
   inv(gs.fInverse);
   InitColorPalette(gs.fInverse);
   InitColorsX();
+  UpdateTextWindowColors();
+  RefreshTextWindow();
   UpdateMenuCheck(FMenuGraphicsReverse, gs.fInverse);
   if (fi.chart)
     fi.chart->redraw();
@@ -3569,6 +3591,7 @@ void FMenuReduceContrast(Fl_Widget *w, void *data) {
   gs.nReduceContrast = (int)(long)data;
   UpdateMenuRadioByValue(FMenuReduceContrast, (intptr_t)data);
   InitColorsX();
+  RefreshTextWindow();
   if (fi.chart)
     fi.chart->redraw();
 }

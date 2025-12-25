@@ -1422,15 +1422,30 @@ void AnsiColor(int k) {
   if (is.nHTML <= 0) {
     sprintf(sz, "%c[", chEscape);
     PrintSz(sz);
-    if (k == kDefault)
+    if (k == kDefault) {
+#ifdef GRAPH
+      // In inverse mode, use explicit dark color instead of reset
+      if (gs.fInverse) {
+        PrintSz("38;2;0;0;0");  // Black text for white background
+      } else
+#endif
       PrintCh('0');
-    else if (k == kReverse) {
+    } else if (k == kReverse) {
       PrintCh('7');
 #ifdef GRAPH
     } else {
       // Use 24-bit true color ANSI sequence to respect contrast settings
       // Format: ESC[38;2;R;G;Bm for foreground color
       kv = rgbbmp[k];
+      // When in inverse mode (white background), adjust colors for visibility
+      if (gs.fInverse) {
+        int r = RgbR(kv), g = RgbG(kv), b = RgbB(kv);
+        // Cap all components at 96 for strong contrast on white background
+        if (r > 96) r = 96;
+        if (g > 96) g = 96;
+        if (b > 96) b = 96;
+        kv = Rgb(r, g, b);
+      }
       sprintf(sz, "38;2;%d;%d;%d", RgbR(kv), RgbG(kv), RgbB(kv));
       PrintSz(sz);
 #else
