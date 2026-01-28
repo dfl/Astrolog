@@ -1,0 +1,66 @@
+name: Build
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  build-macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: brew install fltk cairo pkg-config
+
+      - name: Build
+        run: |
+          cmake -B build -DCMAKE_BUILD_TYPE=Release
+          cmake --build build --config Release
+
+      - name: Sign app bundle
+        run: |
+          codesign --force --options runtime --deep -s - "build/Astrolog.app"
+          codesign -dv --verbose=2 "build/Astrolog.app"
+
+      - name: Package
+        run: |
+          # Create zip of app bundle
+          cd build
+          zip -r "../Astrolog-${{ github.ref_name }}-macos.zip" Astrolog.app
+          cd ..
+
+          # Create DMG
+          hdiutil create -volname "Astrolog" -srcfolder "build/Astrolog.app" \
+            -ov -format UDZO "Astrolog-${{ github.ref_name }}-macos.dmg"
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: Astrolog-macos
+          path: |
+            *.zip
+            *.dmg
+
+      - name: Upload to release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            *.zip
+            *.dmg
+          body: |
+            ## macOS Users
+
+            Download either the `.dmg` or `.zip` file.
+
+            After downloading, you may need to allow the app to run:
+            1. **Right-click** the app and select **Open**
+            2. Click **Open** in the dialog
+
+            Or remove the quarantine flag in Terminal:
+            ```
+            xattr -cr /path/to/Astrolog.app
+            ```
