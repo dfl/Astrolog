@@ -8,7 +8,7 @@ on:
 
 jobs:
   build-macos:
-    runs-on: macos-latest
+    runs-on: macos-14
     steps:
       - uses: actions/checkout@v4
 
@@ -16,14 +16,54 @@ jobs:
         run: brew install fltk cairo pkg-config
 
       - name: Build
+        env:
+          MACOSX_DEPLOYMENT_TARGET: "12.0"
         run: |
-          cmake -B build -DCMAKE_BUILD_TYPE=Release
+          cmake -B build -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_OSX_DEPLOYMENT_TARGET=12.0 \
+            -DCMAKE_CXX_FLAGS="-I$(brew --prefix fltk)/include -I$(brew --prefix cairo)/include" \
+            -DCMAKE_EXE_LINKER_FLAGS="-L$(brew --prefix cairo)/lib"
           cmake --build build --config Release
+
+      - name: Bundle dylibs
+        run: |
+          brew install dylibbundler
+          cd build
+          dylibbundler -od -b -x Astrolog.app/Contents/MacOS/Astrolog \
+            -d Astrolog.app/Contents/Frameworks/ \
+            -p @executable_path/../Frameworks/
+          cd ..
 
       - name: Sign app bundle
         run: |
-          codesign --force --options runtime --deep -s - "build/Astrolog.app"
+          # Create entitlements file to disable library validation
+          cat > /tmp/entitlements.plist << 'EOF'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>com.apple.security.cs.disable-library-validation</key>
+            <true/>
+          </dict>
+          </plist>
+          EOF
+
+          # Strip existing signatures from bundled dylibs, then re-sign
+          for dylib in build/Astrolog.app/Contents/Frameworks/*.dylib; do
+            codesign --remove-signature "$dylib" || true
+            codesign --force -s - "$dylib"
+          done
+
+          # Sign the main executable with entitlements
+          codesign --remove-signature "build/Astrolog.app/Contents/MacOS/Astrolog" || true
+          codesign --force --options runtime --entitlements /tmp/entitlements.plist -s - "build/Astrolog.app/Contents/MacOS/Astrolog"
+
+          # Sign the whole bundle
+          codesign --force --options runtime --entitlements /tmp/entitlements.plist -s - "build/Astrolog.app"
+
+          # Verify
           codesign -dv --verbose=2 "build/Astrolog.app"
+          codesign -d --entitlements :- "build/Astrolog.app"
 
       - name: Package
         run: |
@@ -32,8 +72,15 @@ jobs:
           zip -r "../Astrolog-${{ github.ref_name }}-macos.zip" Astrolog.app
           cd ..
 
+          # Create staging directory for DMG contents
+          mkdir -p dmg_contents
+          cp -R build/Astrolog.app dmg_contents/
+
+          # Add Applications alias for drag-and-drop install
+          ln -s /Applications "dmg_contents/Applications"
+
           # Create DMG
-          hdiutil create -volname "Astrolog" -srcfolder "build/Astrolog.app" \
+          hdiutil create -volname "Astrolog" -srcfolder "dmg_contents" \
             -ov -format UDZO "Astrolog-${{ github.ref_name }}-macos.dmg"
 
       - name: Upload artifacts
@@ -54,13 +101,14 @@ jobs:
           body: |
             ## macOS Users
 
-            Download either the `.dmg` or `.zip` file.
+            **Installation:**
+            1. Download the `.dmg` file
+            2. Open the DMG
+            3. Drag **Astrolog.app** to the **Applications** folder
+            4. Go to Applications, **right-click** Astrolog and select **Open**
+            5. Click **Open** in the security dialog
 
-            After downloading, you may need to allow the app to run:
-            1. **Right-click** the app and select **Open**
-            2. Click **Open** in the dialog
-
-            Or remove the quarantine flag in Terminal:
+            **Alternative** (Terminal):
             ```
-            xattr -cr /path/to/Astrolog.app
+            xattr -rd com.apple.quarantine /Applications/Astrolog.app
             ```
