@@ -3490,11 +3490,12 @@ int main() {
 #ifdef SWITCHES
   is.szProgName = argv[0];
 #endif
+  FProcessSwitchFile(DEFAULT_INFOFILE, NULL);
 #ifdef FLTK
   // FLTK builds default to graphics mode (like Windows GUI)
+  // This must come AFTER reading astrolog.as which may contain _X (text mode)
   us.fGraphics = fTrue;
 #endif
-  FProcessSwitchFile(DEFAULT_INFOFILE, NULL);
   ciTran = ciHexa = ciFive = ciFour = ciThre = ciTwin = ciMain = ciCore;
 #ifdef BETA
   sprintf(

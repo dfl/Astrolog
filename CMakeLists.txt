@@ -10,6 +10,8 @@ option(USE_X11 "Build with X11 GUI (Unix only)" OFF)
 option(USE_WIN "Build with Win32 GUI (Windows only)" OFF)
 option(USE_CAIRO "Build with Cairo for vector rendering (SVG/PDF export)" ON)
 option(USE_OPENGL "Build with OpenGL for 3D chart rendering" OFF)
+option(FLTK_STATIC "Link FLTK statically (recommended for distribution)" ON)
+option(BUNDLE_LIBS "Bundle dynamic libraries into app (macOS only)" ON)
 
 # Make GUI options mutually exclusive
 if(USE_FLTK AND (USE_X11 OR USE_WIN))
@@ -95,16 +97,61 @@ endif()
 
 # FLTK Backend
 if(USE_FLTK)
-  find_package(FLTK QUIET)
-  if(NOT FLTK_FOUND)
-    # Try pkg-config as fallback
-    find_package(PkgConfig)
-    if(PkgConfig_FOUND)
-      pkg_check_modules(FLTK fltk)
+  if(FLTK_STATIC AND APPLE)
+    # Static FLTK linking for macOS distribution
+    # Find FLTK installation path
+    find_program(FLTK_CONFIG fltk-config)
+    if(FLTK_CONFIG)
+      execute_process(COMMAND ${FLTK_CONFIG} --prefix
+        OUTPUT_VARIABLE FLTK_PREFIX
+        OUTPUT_STRIP_TRAILING_WHITESPACE)
+      set(FLTK_LIB_DIR "${FLTK_PREFIX}/lib")
+      set(FLTK_INCLUDE_DIR "${FLTK_PREFIX}/include")
+    else()
+      # Fallback to common Homebrew paths
+      if(EXISTS "/opt/homebrew/opt/fltk")
+        set(FLTK_PREFIX "/opt/homebrew/opt/fltk")
+      elseif(EXISTS "/usr/local/opt/fltk")
+        set(FLTK_PREFIX "/usr/local/opt/fltk")
+      else()
+        message(FATAL_ERROR "FLTK not found. Install with: brew install fltk")
+      endif()
+      set(FLTK_LIB_DIR "${FLTK_PREFIX}/lib")
+      set(FLTK_INCLUDE_DIR "${FLTK_PREFIX}/include")
+    endif()
+
+    # Find static libraries
+    find_library(FLTK_STATIC_LIB libfltk.a PATHS ${FLTK_LIB_DIR} NO_DEFAULT_PATH)
+    find_library(FLTK_IMAGES_STATIC_LIB libfltk_images.a PATHS ${FLTK_LIB_DIR} NO_DEFAULT_PATH)
+    find_library(FLTK_FORMS_STATIC_LIB libfltk_forms.a PATHS ${FLTK_LIB_DIR} NO_DEFAULT_PATH)
+    find_library(FLTK_GL_STATIC_LIB libfltk_gl.a PATHS ${FLTK_LIB_DIR} NO_DEFAULT_PATH)
+
+    if(NOT FLTK_STATIC_LIB)
+      message(FATAL_ERROR "Static FLTK library not found at ${FLTK_LIB_DIR}/libfltk.a")
+    endif()
+
+    set(FLTK_STATIC_LIBS
+      ${FLTK_IMAGES_STATIC_LIB}
+      ${FLTK_FORMS_STATIC_LIB}
+      ${FLTK_GL_STATIC_LIB}
+      ${FLTK_STATIC_LIB}
+    )
+    set(FLTK_INCLUDE_DIRS ${FLTK_INCLUDE_DIR})
+    set(FLTK_FOUND TRUE)
+    message(STATUS "Using static FLTK from ${FLTK_PREFIX}")
+  else()
+    # Dynamic FLTK linking
+    find_package(FLTK QUIET)
+    if(NOT FLTK_FOUND)
+      # Try pkg-config as fallback
+      find_package(PkgConfig)
+      if(PkgConfig_FOUND)
+        pkg_check_modules(FLTK fltk)
+      endif()
     endif()
   endif()
 
-  if(NOT FLTK_FOUND AND NOT FLTK_LIBRARIES)
+  if(NOT FLTK_FOUND AND NOT FLTK_LIBRARIES AND NOT FLTK_STATIC_LIBS)
     message(FATAL_ERROR "FLTK not found. Install FLTK development libraries:\n"
       "  macOS: brew install fltk\n"
       "  Ubuntu/Debian: sudo apt install libfltk1.3-dev\n"
@@ -193,15 +240,26 @@ if(APPLE AND USE_FLTK)
     MACOSX_PACKAGE_LOCATION "Resources/ephe"
   )
 
-  # Bundle Astrolog data files (exoplanet catalog, etc.)
+  # Bundle Astrolog data files (exoplanet catalog, world map, etc.)
   set(ASTROLOG_DATA_FILES
     "${CMAKE_CURRENT_SOURCE_DIR}/astexo.csv"
+    "${CMAKE_CURRENT_SOURCE_DIR}/earth.bmp"
   )
   set_source_files_properties(${ASTROLOG_DATA_FILES} PROPERTIES
     MACOSX_PACKAGE_LOCATION "Resources"
   )
 
-  target_sources(astrolog PRIVATE ${APP_ICON_MACOS} ${ASTROLOGY_FONTS} ${EPHE_FILES} ${EPHE_DATA_FILES} ${ASTROLOG_DATA_FILES})
+  # Bundle Astrolog config files (in MacOS dir alongside executable)
+  set(ASTROLOG_CONFIG_FILES
+    "${CMAKE_CURRENT_SOURCE_DIR}/astrolog.as"
+    "${CMAKE_CURRENT_SOURCE_DIR}/atlas.as"
+    "${CMAKE_CURRENT_SOURCE_DIR}/timezone.as"
+  )
+  set_source_files_properties(${ASTROLOG_CONFIG_FILES} PROPERTIES
+    MACOSX_PACKAGE_LOCATION "MacOS"
+  )
+
+  target_sources(astrolog PRIVATE ${APP_ICON_MACOS} ${ASTROLOGY_FONTS} ${EPHE_FILES} ${EPHE_DATA_FILES} ${ASTROLOG_DATA_FILES} ${ASTROLOG_CONFIG_FILES})
   set_target_properties(astrolog PROPERTIES
     MACOSX_BUNDLE TRUE
     MACOSX_BUNDLE_BUNDLE_NAME "Astrolog"
@@ -222,17 +280,41 @@ target_include_directories(astrolog PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 
 # Link libraries based on backend
 if(USE_FLTK)
-  if(FLTK_FOUND)
-    target_include_directories(astrolog PRIVATE ${FLTK_INCLUDE_DIRS})
+  target_include_directories(astrolog PRIVATE ${FLTK_INCLUDE_DIRS})
+
+  if(FLTK_STATIC AND APPLE AND FLTK_STATIC_LIBS)
+    # Static FLTK linking - must add all required frameworks
+    target_link_libraries(astrolog ${FLTK_STATIC_LIBS})
+    target_link_libraries(astrolog
+      "-framework Cocoa"
+      "-framework Carbon"
+      "-framework ApplicationServices"
+      "-framework CoreText"
+      "-framework CoreFoundation"
+      "-framework CoreGraphics"
+      "-framework IOKit"
+    )
+    # FLTK images library needs these
+    find_library(JPEG_LIB jpeg PATHS /opt/homebrew/lib /usr/local/lib)
+    find_library(PNG_LIB png PATHS /opt/homebrew/lib /usr/local/lib)
+    if(JPEG_LIB)
+      target_link_libraries(astrolog ${JPEG_LIB})
+    endif()
+    if(PNG_LIB)
+      target_link_libraries(astrolog ${PNG_LIB})
+    endif()
+    target_link_libraries(astrolog z)
+  elseif(FLTK_FOUND)
     target_link_libraries(astrolog ${FLTK_LIBRARIES})
+    if(APPLE)
+      target_link_libraries(astrolog "-framework CoreText" "-framework CoreFoundation")
+    endif()
   else()
     # Using pkg-config results
-    target_include_directories(astrolog PRIVATE ${FLTK_INCLUDE_DIRS})
     target_link_libraries(astrolog ${FLTK_LDFLAGS})
-  endif()
-  if(APPLE)
-    # CoreText for loading bundled fonts
-    target_link_libraries(astrolog "-framework CoreText" "-framework CoreFoundation")
+    if(APPLE)
+      target_link_libraries(astrolog "-framework CoreText" "-framework CoreFoundation")
+    endif()
   endif()
 endif()
 
@@ -283,6 +365,46 @@ else()
   install(TARGETS astrolog RUNTIME DESTINATION bin)
 endif()
 
+# Bundle dynamic libraries for distribution (macOS)
+if(APPLE AND USE_FLTK AND BUNDLE_LIBS AND USE_CAIRO AND CAIRO_FOUND)
+  # Find the Cairo library path for bundling
+  find_library(CAIRO_LIBRARY_PATH cairo PATHS ${CAIRO_LIBRARY_DIRS})
+
+  if(CAIRO_LIBRARY_PATH)
+    # Create install script that bundles libraries
+    # BundleUtilities must be included at install time, not configure time
+    install(CODE "
+      include(BundleUtilities)
+      set(BU_CHMOD_BUNDLE_ITEMS ON)
+
+      # Get absolute path to bundle
+      get_filename_component(bundle_path \"\${CMAKE_INSTALL_PREFIX}/Astrolog.app\" ABSOLUTE)
+
+      # Fix up the bundle - copies dependencies and fixes paths
+      fixup_bundle(\"\${bundle_path}\" \"\" \"\")
+
+      message(STATUS \"Bundle libraries fixed up successfully\")
+
+      # Re-sign the app after modifying dylibs (required for macOS security)
+      # This uses ad-hoc signing; for distribution, use a proper Developer ID
+      message(STATUS \"Re-signing the application bundle...\")
+      execute_process(
+        COMMAND codesign --force --deep --sign - \"\${bundle_path}\"
+        RESULT_VARIABLE codesign_result
+        OUTPUT_VARIABLE codesign_output
+        ERROR_VARIABLE codesign_error
+      )
+      if(codesign_result EQUAL 0)
+        message(STATUS \"Application signed successfully (ad-hoc)\")
+      else()
+        message(WARNING \"Code signing failed: \${codesign_error}\")
+      endif()
+    " COMPONENT Runtime)
+
+    message(STATUS "Cairo will be bundled with the application")
+  endif()
+endif()
+
 # Print configuration summary
 message(STATUS "")
 message(STATUS "Astrolog ${PROJECT_VERSION} Configuration Summary")
@@ -290,8 +412,16 @@ message(STATUS "====================================")
 message(STATUS "C++ Compiler: ${CMAKE_CXX_COMPILER}")
 message(STATUS "Build Type: ${CMAKE_BUILD_TYPE}")
 message(STATUS "FLTK Backend: ${USE_FLTK}")
+if(FLTK_STATIC AND APPLE)
+  message(STATUS "FLTK Linking: Static")
+else()
+  message(STATUS "FLTK Linking: Dynamic")
+endif()
 message(STATUS "X11 Backend: ${USE_X11}")
 message(STATUS "Win32 Backend: ${USE_WIN}")
 message(STATUS "Cairo Support: ${CAIRO_FOUND}")
+if(BUNDLE_LIBS AND CAIRO_FOUND)
+  message(STATUS "Cairo Bundling: Enabled")
+endif()
 message(STATUS "OpenGL Support: ${OpenGL_FOUND}")
 message(STATUS "")

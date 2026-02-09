@@ -27,6 +27,10 @@
 #include <FL/fl_ask.H>
 #include <unistd.h> // For unlink()
 
+#ifdef __APPLE__
+#include <CoreFoundation/CoreFoundation.h>
+#endif
+
 #ifdef CAIRO
 #include <cairo/cairo-pdf.h>
 #include <cairo/cairo-svg.h>
@@ -2784,14 +2788,71 @@ void FMenuFileOpenChart2(Fl_Widget *w, void *data) {
 }
 
 void FMenuFileSaveSettings(Fl_Widget *w, void *data) {
-  Fl_File_Chooser chooser(".", "Chart Files (*.as)", Fl_File_Chooser::CREATE,
-                          "Save Program Settings");
+  char szDir[cchSzMax], szDefault[cchSzMax];
+  char *pch;
+
+  // Get the Astrolog install directory (where astrolog.as should be saved)
+  // Use the executable's directory, which is where FileOpen first looks
+  szDir[0] = '\0';
+
+#ifdef __APPLE__
+  // On macOS app bundle, get the executable's directory (Contents/MacOS/)
+  CFBundleRef mainBundle = CFBundleGetMainBundle();
+  if (mainBundle != NULL) {
+    CFURLRef execURL = CFBundleCopyExecutableURL(mainBundle);
+    if (execURL != NULL) {
+      char szExe[cchSzMax];
+      if (CFURLGetFileSystemRepresentation(execURL, true,
+          (UInt8*)szExe, cchSzMax)) {
+        // Strip the executable name to get directory
+        strncpy(szDir, szExe, cchSzMax - 1);
+        szDir[cchSzMax - 1] = '\0';
+        for (pch = szDir; *pch; pch++)
+          ;
+        while (pch > szDir && *pch != chDirSep)
+          pch--;
+        if (*pch == chDirSep)
+          pch[1] = '\0';
+        else
+          szDir[0] = '\0';
+      }
+      CFRelease(execURL);
+    }
+  }
+#endif
+
+  // If no bundle path, use is.szProgName (the executable path)
+  if (szDir[0] == '\0' && is.szProgName != NULL) {
+    strncpy(szDir, is.szProgName, cchSzMax - 1);
+    szDir[cchSzMax - 1] = '\0';
+    // Strip the executable name to get directory
+    for (pch = szDir; *pch; pch++)
+      ;
+    while (pch > szDir && *pch != chDirSep)
+      pch--;
+    if (*pch == chDirSep)
+      pch[1] = '\0';
+    else
+      szDir[0] = '\0';
+  }
+
+  // Fall back to current directory
+  if (szDir[0] == '\0') {
+    strcpy(szDir, ".");
+  }
+
+  // Construct the default full path
+  sprintf(szDefault, "%s%c%s", szDir, chDirSep, DEFAULT_INFOFILE);
+
+  Fl_File_Chooser chooser(szDefault, "Astrolog Files (*.as)",
+                          Fl_File_Chooser::CREATE, "Save Program Settings");
   chooser.show();
   while (chooser.shown())
     Fl::wait();
 
   if (chooser.value()) {
-    // Write settings to file using FOutputSettings
+    // Set the output file path and write settings
+    FCloneSz(chooser.value(), &is.szFileOut);
     FOutputSettings();
   }
 }
