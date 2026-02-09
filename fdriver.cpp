@@ -1709,11 +1709,7 @@ void AstrologWindow::createMenus() {
   menubar_->add(MENU_LABEL("&Graphics/Character Scale/&Decrease"), '<',
                 FMenuScaleDecrease);
   menubar_->add(MENU_LABEL("&Graphics/Character Scale/&Increase"), '>',
-                FMenuScaleIncrease, 0, FL_MENU_DIVIDER);
-  menubar_->add(MENU_LABEL("&Graphics/Character Scale/Decrease &Text"), 0,
-                FMenuTextDecrease);
-  menubar_->add(MENU_LABEL("&Graphics/Character Scale/Increase Te&xt"), 0,
-                FMenuTextIncrease);
+                FMenuScaleIncrease);
   // Chart Effects submenu
   menubar_->add(MENU_LABEL("&Graphics/Chart Effects/Show &Border"), 'b',
                 FMenuGraphicsBorder, 0, FL_MENU_TOGGLE);
@@ -3835,36 +3831,16 @@ void FMenuScale4(Fl_Widget *w, void *data) {
 }
 
 void FMenuScaleDecrease(Fl_Widget *w, void *data) {
-  // In map modes (AstroGraph/WorldMap), scaling keys should affect text size
-  // since the map scale itself is fixed to the window size.
-  // Use map-specific scalar to avoid affecting global UI text.
-  if (gi.nMode == gAstroGraph || gi.nMode == gWorldMap || gi.nMode == gGlobe ||
-      gi.nMode == gPolar) {
-    FltkAdjustMapGlyphScale(-50);
-    if (fi.chart)
-      fi.chart->redraw();
-    return;
-  }
-
   if (nCharScaleManual > 100) {
-    nCharScaleManual -= 50;
+    nCharScaleManual -= 25;
     if (fi.chart)
       fi.chart->redraw();
   }
 }
 
 void FMenuScaleIncrease(Fl_Widget *w, void *data) {
-  // In map modes, scaling keys should affect text size.
-  if (gi.nMode == gAstroGraph || gi.nMode == gWorldMap || gi.nMode == gGlobe ||
-      gi.nMode == gPolar) {
-    FltkAdjustMapGlyphScale(50);
-    if (fi.chart)
-      fi.chart->redraw();
-    return;
-  }
-
   if (nCharScaleManual < 400) {
-    nCharScaleManual += 50;
+    nCharScaleManual += 25;
     if (fi.chart)
       fi.chart->redraw();
   }
@@ -3872,14 +3848,14 @@ void FMenuScaleIncrease(Fl_Widget *w, void *data) {
 
 void FMenuTextDecrease(Fl_Widget *w, void *data) {
   if (gs.nScaleText > 50)
-    gs.nScaleText -= 50;
+    gs.nScaleText -= 10;
   if (fi.chart)
     fi.chart->redraw();
 }
 
 void FMenuTextIncrease(Fl_Widget *w, void *data) {
   if (gs.nScaleText < 400)
-    gs.nScaleText += 50;
+    gs.nScaleText += 10;
   if (fi.chart)
     fi.chart->redraw();
 }
