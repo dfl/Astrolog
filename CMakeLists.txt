@@ -249,6 +249,18 @@ if(APPLE AND USE_FLTK)
     MACOSX_PACKAGE_LOCATION "Resources"
   )
 
+  # Bundle documentation files (for Help / More Documentation menu)
+  set(ASTROLOG_DOC_FILES
+    "${CMAKE_CURRENT_SOURCE_DIR}/astrolog.htm"
+    "${CMAKE_CURRENT_SOURCE_DIR}/changes.htm"
+    "${CMAKE_CURRENT_SOURCE_DIR}/license.htm"
+    "${CMAKE_CURRENT_SOURCE_DIR}/astrolog.url"
+    "${CMAKE_CURRENT_SOURCE_DIR}/astrlog2.url"
+  )
+  set_source_files_properties(${ASTROLOG_DOC_FILES} PROPERTIES
+    MACOSX_PACKAGE_LOCATION "Resources"
+  )
+
   # Bundle Astrolog config files (in MacOS dir alongside executable)
   set(ASTROLOG_CONFIG_FILES
     "${CMAKE_CURRENT_SOURCE_DIR}/astrolog.as"
@@ -259,7 +271,7 @@ if(APPLE AND USE_FLTK)
     MACOSX_PACKAGE_LOCATION "MacOS"
   )
 
-  target_sources(astrolog PRIVATE ${APP_ICON_MACOS} ${ASTROLOGY_FONTS} ${EPHE_FILES} ${EPHE_DATA_FILES} ${ASTROLOG_DATA_FILES} ${ASTROLOG_CONFIG_FILES})
+  target_sources(astrolog PRIVATE ${APP_ICON_MACOS} ${ASTROLOGY_FONTS} ${EPHE_FILES} ${EPHE_DATA_FILES} ${ASTROLOG_DATA_FILES} ${ASTROLOG_DOC_FILES} ${ASTROLOG_CONFIG_FILES})
   set_target_properties(astrolog PROPERTIES
     MACOSX_BUNDLE TRUE
     MACOSX_BUNDLE_BUNDLE_NAME "Astrolog"
