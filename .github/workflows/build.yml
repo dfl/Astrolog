@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  build-macos:
+  build-macos-arm64:
     runs-on: macos-14
     steps:
       - uses: actions/checkout@v4
@@ -34,7 +34,99 @@ jobs:
             -p @executable_path/../Frameworks/
           cd ..
 
-      - name: Sign app bundle
+      - name: Upload build
+        uses: actions/upload-artifact@v4
+        with:
+          name: Astrolog-arm64
+          path: build/Astrolog.app
+
+  build-macos-x86_64:
+    runs-on: macos-13
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: brew install fltk cairo pkg-config
+
+      - name: Build
+        env:
+          MACOSX_DEPLOYMENT_TARGET: "12.0"
+        run: |
+          cmake -B build -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_OSX_DEPLOYMENT_TARGET=12.0 \
+            -DCMAKE_CXX_FLAGS="-I$(brew --prefix fltk)/include -I$(brew --prefix cairo)/include" \
+            -DCMAKE_EXE_LINKER_FLAGS="-L$(brew --prefix cairo)/lib"
+          cmake --build build --config Release
+
+      - name: Bundle dylibs
+        run: |
+          brew install dylibbundler
+          cd build
+          dylibbundler -od -b -x Astrolog.app/Contents/MacOS/Astrolog \
+            -d Astrolog.app/Contents/Frameworks/ \
+            -p @executable_path/../Frameworks/
+          cd ..
+
+      - name: Upload build
+        uses: actions/upload-artifact@v4
+        with:
+          name: Astrolog-x86_64
+          path: build/Astrolog.app
+
+  package-macos-universal:
+    runs-on: macos-14
+    needs: [build-macos-arm64, build-macos-x86_64]
+    steps:
+      - name: Download arm64 build
+        uses: actions/download-artifact@v4
+        with:
+          name: Astrolog-arm64
+          path: arm64/Astrolog.app
+
+      - name: Download x86_64 build
+        uses: actions/download-artifact@v4
+        with:
+          name: Astrolog-x86_64
+          path: x86_64/Astrolog.app
+
+      - name: Create universal binary
+        run: |
+          # Start with the arm64 app as the base (resources are identical)
+          mkdir -p universal
+          cp -R arm64/Astrolog.app universal/Astrolog.app
+
+          # Merge main executable into universal binary
+          lipo -create \
+            arm64/Astrolog.app/Contents/MacOS/Astrolog \
+            x86_64/Astrolog.app/Contents/MacOS/Astrolog \
+            -output universal/Astrolog.app/Contents/MacOS/Astrolog
+
+          # Merge all framework dylibs into universal binaries
+          if [ -d "arm64/Astrolog.app/Contents/Frameworks" ]; then
+            for dylib in arm64/Astrolog.app/Contents/Frameworks/*.dylib; do
+              name=$(basename "$dylib")
+              x86_dylib="x86_64/Astrolog.app/Contents/Frameworks/$name"
+              if [ -f "$x86_dylib" ]; then
+                lipo -create "$dylib" "$x86_dylib" \
+                  -output "universal/Astrolog.app/Contents/Frameworks/$name"
+              else
+                echo "Warning: $name exists in arm64 but not x86_64"
+              fi
+            done
+          fi
+
+          # Verify universal binaries
+          echo "=== Main executable ==="
+          lipo -info universal/Astrolog.app/Contents/MacOS/Astrolog
+          file universal/Astrolog.app/Contents/MacOS/Astrolog
+          if [ -d "universal/Astrolog.app/Contents/Frameworks" ]; then
+            echo "=== Frameworks ==="
+            for dylib in universal/Astrolog.app/Contents/Frameworks/*.dylib; do
+              lipo -info "$dylib"
+            done
+          fi
+
+      - name: Sign universal app
         run: |
           # Create entitlements file to disable library validation
           cat > /tmp/entitlements.plist << 'EOF'
@@ -48,33 +140,35 @@ jobs:
           </plist>
           EOF
 
-          # Strip existing signatures from bundled dylibs, then re-sign
-          for dylib in build/Astrolog.app/Contents/Frameworks/*.dylib; do
-            codesign --remove-signature "$dylib" || true
-            codesign --force -s - "$dylib"
-          done
+          # Strip and re-sign bundled dylibs
+          if [ -d "universal/Astrolog.app/Contents/Frameworks" ]; then
+            for dylib in universal/Astrolog.app/Contents/Frameworks/*.dylib; do
+              codesign --remove-signature "$dylib" || true
+              codesign --force -s - "$dylib"
+            done
+          fi
 
           # Sign the main executable with entitlements
-          codesign --remove-signature "build/Astrolog.app/Contents/MacOS/Astrolog" || true
-          codesign --force --options runtime --entitlements /tmp/entitlements.plist -s - "build/Astrolog.app/Contents/MacOS/Astrolog"
+          codesign --remove-signature "universal/Astrolog.app/Contents/MacOS/Astrolog" || true
+          codesign --force --options runtime --entitlements /tmp/entitlements.plist -s - "universal/Astrolog.app/Contents/MacOS/Astrolog"
 
           # Sign the whole bundle
-          codesign --force --options runtime --entitlements /tmp/entitlements.plist -s - "build/Astrolog.app"
+          codesign --force --options runtime --entitlements /tmp/entitlements.plist -s - "universal/Astrolog.app"
 
           # Verify
-          codesign -dv --verbose=2 "build/Astrolog.app"
-          codesign -d --entitlements :- "build/Astrolog.app"
+          codesign -dv --verbose=2 "universal/Astrolog.app"
+          codesign -d --entitlements :- "universal/Astrolog.app"
 
       - name: Package
         run: |
           # Create zip of app bundle
-          cd build
+          cd universal
           zip -r "../Astrolog-${{ github.ref_name }}-macos.zip" Astrolog.app
           cd ..
 
           # Create staging directory for DMG contents
           mkdir -p dmg_contents
-          cp -R build/Astrolog.app dmg_contents/
+          cp -R universal/Astrolog.app dmg_contents/
 
           # Add Applications alias for drag-and-drop install
           ln -s /Applications "dmg_contents/Applications"
@@ -99,7 +193,7 @@ jobs:
             *.zip
             *.dmg
           body: |
-            ## macOS Users
+            ## macOS (Universal - Apple Silicon & Intel)
 
             **Installation:**
             1. Download the `.dmg` file
