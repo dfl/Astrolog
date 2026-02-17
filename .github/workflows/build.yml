@@ -34,10 +34,11 @@ jobs:
           cd ..
 
       - name: Upload build
-        uses: actions/upload-artifact@v4
+        run: tar czf /tmp/Astrolog-arm64.tar.gz -C build Astrolog.app
+      - uses: actions/upload-artifact@v4
         with:
           name: Astrolog-arm64
-          path: build/Astrolog.app
+          path: /tmp/Astrolog-arm64.tar.gz
 
   build-macos-x86_64:
     runs-on: macos-15
@@ -85,10 +86,11 @@ jobs:
           cd ..
 
       - name: Upload build
-        uses: actions/upload-artifact@v4
+        run: tar czf /tmp/Astrolog-x86_64.tar.gz -C build Astrolog.app
+      - uses: actions/upload-artifact@v4
         with:
           name: Astrolog-x86_64
-          path: build/Astrolog.app
+          path: /tmp/Astrolog-x86_64.tar.gz
 
   package-macos-universal:
     runs-on: macos-14
@@ -98,13 +100,17 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: Astrolog-arm64
-          path: arm64/Astrolog.app
 
       - name: Download x86_64 build
         uses: actions/download-artifact@v4
         with:
           name: Astrolog-x86_64
-          path: x86_64/Astrolog.app
+
+      - name: Extract builds
+        run: |
+          mkdir -p arm64 x86_64
+          tar xzf Astrolog-arm64.tar.gz -C arm64
+          tar xzf Astrolog-x86_64.tar.gz -C x86_64
 
       - name: Create universal binary
         run: |
