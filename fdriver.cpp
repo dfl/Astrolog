@@ -47,7 +47,7 @@ static int fUseCairo = fTrue;
 #endif
 
 // Manual character scale multiplier (100=1x, 200=2x, 300=3x, 400=4x)
-static int nCharScaleManual = 100;
+int nCharScaleManual = 100;
 
 // Auto-square window on resize (for chart types that need it)
 static flag fAutoSquare = fFalse;
@@ -355,6 +355,12 @@ void ChartWidget::draw() {
   // Set the chart size to match the widget
   gs.xWin = w();
   gs.yWin = h();
+
+  // Recalculate text scale from user setting (needed for sidebar text sizing)
+  gi.nScaleT = 1;  // Screen rendering scale factor (1 for screen, >1 for PS/WMF)
+  gi.nScaleText = gs.nScaleText / 50;
+  gi.nScaleTextT2 = gi.nScaleText * gi.nScaleT;
+  gi.nScaleTextT = gi.nScaleTextT2 >> 1;
 
   // Auto-scale for map charts (World Map, AstroGraph) to fill window smoothly
   // These charts use a 360x180 degree coordinate system
@@ -1709,7 +1715,11 @@ void AstrologWindow::createMenus() {
   menubar_->add(MENU_LABEL("&Graphics/Character Scale/&Decrease"), '<',
                 FMenuScaleDecrease);
   menubar_->add(MENU_LABEL("&Graphics/Character Scale/&Increase"), '>',
-                FMenuScaleIncrease);
+                FMenuScaleIncrease, 0, FL_MENU_DIVIDER);
+  menubar_->add(MENU_LABEL("&Graphics/Character Scale/Decrease &Text"), 0,
+                FMenuTextDecrease);
+  menubar_->add(MENU_LABEL("&Graphics/Character Scale/Increase Te&xt"), 0,
+                FMenuTextIncrease);
   // Chart Effects submenu
   menubar_->add(MENU_LABEL("&Graphics/Chart Effects/Show &Border"), 'b',
                 FMenuGraphicsBorder, 0, FL_MENU_TOGGLE);
@@ -2265,15 +2275,36 @@ static void TextWindowCloseCallback(Fl_Widget *w, void *data) {
   }
 }
 
+// Custom window class that scales terminal font on resize
+class TextOutputWindow : public Fl_Window {
+  int baseHeight_;
+public:
+  TextOutputWindow(int w, int h, const char *title)
+      : Fl_Window(w, h, title), baseHeight_(h) {}
+
+  void resize(int x, int y, int w, int h) FL_OVERRIDE {
+    Fl_Window::resize(x, y, w, h);
+    if (fi.textDisplay) {
+      int newSize = fi.nTextWinSize * h / baseHeight_;
+      if (newSize < 8) newSize = 8;
+      fi.textDisplay->textsize(newSize);
+    }
+  }
+};
+
 // Create the text output window
 static void CreateTextWindow() {
   if (fi.textWindow)
     return; // Already exists
 
-  fi.textWindow = new Fl_Window(600, 500, "Chart Text Output");
+  // Initialize text window font size if not set
+  if (fi.nTextWinSize == 0)
+    fi.nTextWinSize = 12;
+
+  fi.textWindow = new TextOutputWindow(600, 500, "Chart Text Output");
   fi.textDisplay = new Fl_Terminal(0, 0, 600, 500);
   fi.textDisplay->textfont(FL_COURIER);
-  fi.textDisplay->textsize(12);
+  fi.textDisplay->textsize(fi.nTextWinSize);
   // Set terminal colors based on current inverse setting
   UpdateTextWindowColors();
   // Enable ANSI parsing
@@ -3847,15 +3878,27 @@ void FMenuScaleIncrease(Fl_Widget *w, void *data) {
 }
 
 void FMenuTextDecrease(Fl_Widget *w, void *data) {
-  if (gs.nScaleText > 50)
-    gs.nScaleText -= 10;
+  if (gs.nScaleText > 100)
+    gs.nScaleText -= 50;
+  // Also decrease text window font size
+  if (fi.nTextWinSize > 8) {
+    fi.nTextWinSize -= 2;
+    if (fi.textDisplay)
+      fi.textDisplay->textsize(fi.nTextWinSize);
+  }
   if (fi.chart)
     fi.chart->redraw();
 }
 
 void FMenuTextIncrease(Fl_Widget *w, void *data) {
   if (gs.nScaleText < 400)
-    gs.nScaleText += 10;
+    gs.nScaleText += 50;
+  // Also increase text window font size
+  if (fi.nTextWinSize < 36) {
+    fi.nTextWinSize += 2;
+    if (fi.textDisplay)
+      fi.textDisplay->textsize(fi.nTextWinSize);
+  }
   if (fi.chart)
     fi.chart->redraw();
 }

@@ -428,33 +428,44 @@ static Fl_Check_Button *s_cbColor = NULL;
 static Fl_Check_Button *s_cbInverse = NULL;
 static Fl_Check_Button *s_cbThick = NULL;
 
+extern int nCharScaleManual;
+
 static void cb_GraphicsOK(Fl_Widget *w, void *data)
 {
   char sz[64];
   int n;
+  flag fResize = fFalse;
 
   if (s_inWidth) {
     n = atoi(s_inWidth->value());
-    if (n >= BITMAPX1 && n <= BITMAPX)
+    if (n >= BITMAPX1 && n <= BITMAPX && n != gs.xWin) {
       gs.xWin = n;
+      fResize = fTrue;
+    }
   }
   if (s_inHeight) {
     n = atoi(s_inHeight->value());
-    if (n >= BITMAPY1 && n <= BITMAPY)
+    if (n >= BITMAPY1 && n <= BITMAPY && n != gs.yWin) {
       gs.yWin = n;
+      fResize = fTrue;
+    }
+  }
+  if (fResize && fi.window) {
+    int menuH = fi.menubar ? fi.menubar->h() : 0;
+    fi.window->size(gs.xWin, gs.yWin + menuH);
   }
   if (s_inScale) {
     n = atoi(s_inScale->value());
-    if (n >= 100 && n <= MAXSCALE) {
-      gs.nScale = n;
-      gi.nScale = n / 100;
-    }
+    if (n >= 100 && n <= MAXSCALE)
+      nCharScaleManual = n;
   }
   if (s_inScaleText) {
     n = atoi(s_inScaleText->value());
     if (n >= 100 && n <= MAXSCALE) {
       gs.nScaleText = n;
       gi.nScaleText = n / 50;
+      gi.nScaleTextT2 = gi.nScaleText * gi.nScaleT;
+      gi.nScaleTextT = gi.nScaleTextT2 >> 1;
     }
   }
   if (s_cbColor)
@@ -507,10 +518,10 @@ void FShowDlgGraphics()
   s_inHeight->value(sz);
   y += 30;
 
-  // Scale
+  // Scale (character scale multiplier)
   new Fl_Box(10, y, lw, 25, "Scale (%):");
   s_inScale = new Fl_Int_Input(10 + lw, y, 80, 25);
-  sprintf(sz, "%d", gs.nScale);
+  sprintf(sz, "%d", nCharScaleManual);
   s_inScale->value(sz);
   y += 30;
 

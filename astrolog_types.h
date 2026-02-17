@@ -877,6 +877,7 @@ typedef struct _FltkInfo {
   class Fl_Menu_Bar *menubar;     // Menu bar
   class Fl_Window *textWindow;    // Text output window
   class Fl_Terminal *textDisplay; // Terminal display widget (ANSI support)
+  int nTextWinSize;               // Text window font size (default 12)
   int xClient;                    // Client area width
   int yClient;                    // Client area height
   int fDoResize;                  // Resize pending (flag)
