@@ -261,14 +261,14 @@ if(APPLE AND USE_FLTK)
     MACOSX_PACKAGE_LOCATION "Resources"
   )
 
-  # Bundle Astrolog config files (in MacOS dir alongside executable)
+  # Bundle Astrolog config files in Resources (not MacOS, which breaks codesigning)
   set(ASTROLOG_CONFIG_FILES
     "${CMAKE_CURRENT_SOURCE_DIR}/astrolog.as"
     "${CMAKE_CURRENT_SOURCE_DIR}/atlas.as"
     "${CMAKE_CURRENT_SOURCE_DIR}/timezone.as"
   )
   set_source_files_properties(${ASTROLOG_CONFIG_FILES} PROPERTIES
-    MACOSX_PACKAGE_LOCATION "MacOS"
+    MACOSX_PACKAGE_LOCATION "Resources"
   )
 
   target_sources(astrolog PRIVATE ${APP_ICON_MACOS} ${ASTROLOGY_FONTS} ${EPHE_FILES} ${EPHE_DATA_FILES} ${ASTROLOG_DATA_FILES} ${ASTROLOG_DOC_FILES} ${ASTROLOG_CONFIG_FILES})
