@@ -12,8 +12,17 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Cache Homebrew packages
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/Library/Caches/Homebrew
+            /opt/homebrew/Cellar
+            /opt/homebrew/opt
+          key: brew-arm64-fltk-cairo-${{ runner.os }}-${{ runner.arch }}
+
       - name: Install dependencies
-        run: brew install fltk cairo pkg-config
+        run: brew install fltk cairo pkg-config dylibbundler
 
       - name: Build
         env:
@@ -27,7 +36,6 @@ jobs:
 
       - name: Bundle dylibs
         run: |
-          brew install dylibbundler
           cd build
           dylibbundler -od -b -x Astrolog.app/Contents/MacOS/Astrolog \
             -d Astrolog.app/Contents/Frameworks/ \
@@ -45,9 +53,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Cache x86_64 Homebrew
+        uses: actions/cache@v4
+        id: cache-x86-brew
+        with:
+          path: /usr/local
+          key: brew-x86_64-fltk-cairo-${{ runner.os }}-v1
+
       - name: Install x86_64 dependencies
         run: |
-          # Install x86_64 Homebrew and dependencies
           arch -x86_64 /bin/bash -c '
             eval "$(/usr/local/bin/brew shellenv 2>/dev/null || true)"
             if ! command -v /usr/local/bin/brew &>/dev/null; then
