@@ -41,22 +41,34 @@ jobs:
           path: build/Astrolog.app
 
   build-macos-x86_64:
-    runs-on: macos-13
+    runs-on: macos-15
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install dependencies
-        run: brew install fltk cairo pkg-config
+      - name: Install x86_64 dependencies
+        run: |
+          # Install x86_64 Homebrew and dependencies
+          arch -x86_64 /bin/bash -c '
+            eval "$(/usr/local/bin/brew shellenv 2>/dev/null || true)"
+            if ! command -v /usr/local/bin/brew &>/dev/null; then
+              /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+            fi
+            /usr/local/bin/brew install fltk cairo pkg-config
+          '
 
       - name: Build
         env:
           MACOSX_DEPLOYMENT_TARGET: "12.0"
         run: |
-          cmake -B build -DCMAKE_BUILD_TYPE=Release \
-            -DCMAKE_OSX_DEPLOYMENT_TARGET=12.0 \
-            -DCMAKE_CXX_FLAGS="-I$(brew --prefix fltk)/include -I$(brew --prefix cairo)/include" \
-            -DCMAKE_EXE_LINKER_FLAGS="-L$(brew --prefix cairo)/lib"
-          cmake --build build --config Release
+          arch -x86_64 /bin/bash -c '
+            eval "$(/usr/local/bin/brew shellenv)"
+            cmake -B build -DCMAKE_BUILD_TYPE=Release \
+              -DCMAKE_OSX_ARCHITECTURES=x86_64 \
+              -DCMAKE_OSX_DEPLOYMENT_TARGET=12.0 \
+              -DCMAKE_CXX_FLAGS="-I$(/usr/local/bin/brew --prefix fltk)/include -I$(/usr/local/bin/brew --prefix cairo)/include" \
+              -DCMAKE_EXE_LINKER_FLAGS="-L$(/usr/local/bin/brew --prefix cairo)/lib"
+            cmake --build build --config Release
+          '
 
       - name: Bundle dylibs
         run: |
