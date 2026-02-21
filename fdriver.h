@@ -51,8 +51,10 @@ public:
   int handleKey(int key);
 
 private:
+  void showChartPopup();  // Show Chart submenu as context menu
   int mousex_, mousey_;   // Current mouse position
   int buttonx_, buttony_; // Button press position
+  flag fMoved_;           // Whether mouse moved during right-click drag
 };
 
 // AstrologWindow - Main application window

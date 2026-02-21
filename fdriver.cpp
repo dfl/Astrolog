@@ -347,9 +347,30 @@ void FMenuOpenWorldMap(Fl_Widget *w, void *data);
 
 ChartWidget::ChartWidget(int x, int y, int w, int h)
     : Fl_Widget(x, y, w, h), mousex_(-1), mousey_(-1), buttonx_(-1),
-      buttony_(-1) {}
+      buttony_(-1), fMoved_(fFalse) {}
 
 ChartWidget::~ChartWidget() {}
+
+// Show the "Chart" submenu as a right-click context menu.
+void ChartWidget::showChartPopup() {
+  const Fl_Menu_Item *menu = fi.menubar->menu();
+  if (menu == NULL)
+    return;
+  // Iterate using size() to skip past NULL submenu terminators in the flat
+  // menu array (a simple text!=NULL loop stops at the first submenu end).
+  int n = fi.menubar->size();
+  for (int i = 0; i < n; i++) {
+    if (menu[i].text && (menu[i].flags & FL_SUBMENU) &&
+        (strcmp(menu[i].text, "C&hart") == 0 ||
+         strcmp(menu[i].text, "Chart") == 0)) {
+      const Fl_Menu_Item *picked =
+          menu[i + 1].popup(Fl::event_x(), Fl::event_y());
+      if (picked && picked->callback())
+        picked->do_callback(fi.menubar);
+      return;
+    }
+  }
+}
 
 void ChartWidget::draw() {
   // Clear the entire widget area with background color first
@@ -588,7 +609,10 @@ int ChartWidget::handle(int event) {
       }
       return 1;
     } else if (Fl::event_button() == FL_RIGHT_MOUSE) {
-      // Right click - could show context menu
+      // Right click - context menu (matching Windows WM_RBUTTONDOWN)
+      fMoved_ = fFalse;
+      if (us.fGraphics && !FSupportsRotation(gi.nMode))
+        showChartPopup();  // Non-rotatable modes show popup on button down
       return 1;
     } else if (Fl::event_button() == FL_MIDDLE_MOUSE) {
       // Middle click - show coordinates on map
@@ -606,6 +630,7 @@ int ChartWidget::handle(int event) {
 
   case FL_DRAG:
     // Both left and right mouse drag can rotate globe/map views
+    fMoved_ = fTrue;
     if (us.fGraphics && FSupportsRotation(gi.nMode) &&
         !(Fl::event_state() & (FL_SHIFT | FL_ALT))) {
       if (gi.nMode == gMidpoint && !gs.fEquator) {
@@ -658,6 +683,11 @@ int ChartWidget::handle(int event) {
     return 1;
 
   case FL_RELEASE:
+    // Right-click release on rotatable modes: show popup if mouse didn't move
+    // (matching Windows WM_RBUTTONUP + wi.fMoved pattern)
+    if (Fl::event_button() == FL_RIGHT_MOUSE && !fMoved_ && us.fGraphics &&
+        FSupportsRotation(gi.nMode))
+      showChartPopup();
     return 1;
 
   case FL_MOUSEWHEEL:
