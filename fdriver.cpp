@@ -2599,98 +2599,56 @@ void FMenuIndianE(Fl_Widget *w, void *data) {
     fi.chart->redraw();
 }
 
-// Help list callbacks - these switch to text mode
-void FMenuHelpSign(Fl_Widget *w, void *data) {
-  gi.nMode = gSign;
-  us.fGraphics = fFalse;
-  fi.fDoCast = fTrue;
-  if (fi.chart)
-    fi.chart->redraw();
+// Show a help listing in the text window. Sets the appropriate text output
+// flag (matching the Windows backend's switch in wdriver.cpp), ensures the
+// text window is visible, and refreshes it.
+static void ShowHelpList(int nMode) {
+  // Clear text output flags (same range the Windows backend clears)
+  us.fSign = us.fObject = us.fAspect = us.fConstel = us.fOrbitData =
+    us.fRay = us.fMeaning = us.fSwitch = us.fSwitchRare = us.fKeyGraph =
+    us.fCredit = fFalse;
+
+  // Set the flag corresponding to this mode
+  switch (nMode) {
+    case gSign:      us.fSign       = fTrue; break;
+    case gObject:    us.fObject     = fTrue; break;
+    case gHelpAsp:   us.fAspect     = fTrue; break;
+    case gConstel:   us.fConstel    = fTrue; break;
+    case gPlanet:    us.fOrbitData  = fTrue; break;
+    case gRay:       us.fRay        = fTrue; break;
+    case gMeaning:   us.fMeaning    = fTrue; break;
+    case gSwitch:    us.fSwitch     = fTrue; break;
+    case gObscure:   us.fSwitchRare = fTrue; break;
+    case gKeystroke: us.fKeyGraph   = fTrue; break;
+    case gCredit:    us.fCredit     = fTrue; break;
+  }
+
+  // Ensure the text window is open and refresh it
+  if (!fi.textWindow)
+    CreateTextWindow();
+  if (!fi.textWindow->shown()) {
+    fi.textWindow->show();
+    UpdateMenuCheck(FMenuShowTextWindow, true);
+  }
+  RefreshTextWindow();
 }
 
-void FMenuHelpObject(Fl_Widget *w, void *data) {
-  gi.nMode = gObject;
-  us.fGraphics = fFalse;
-  fi.fDoCast = fTrue;
-  if (fi.chart)
-    fi.chart->redraw();
-}
-
-void FMenuHelpAspect(Fl_Widget *w, void *data) {
-  gi.nMode = gHelpAsp;
-  us.fGraphics = fFalse;
-  fi.fDoCast = fTrue;
-  if (fi.chart)
-    fi.chart->redraw();
-}
-
+// Help list callbacks - show text output in the text window
+void FMenuHelpSign(Fl_Widget *w, void *data) { ShowHelpList(gSign); }
+void FMenuHelpObject(Fl_Widget *w, void *data) { ShowHelpList(gObject); }
+void FMenuHelpAspect(Fl_Widget *w, void *data) { ShowHelpList(gHelpAsp); }
 #ifdef CONSTEL
-void FMenuHelpConstel(Fl_Widget *w, void *data) {
-  gi.nMode = gConstel;
-  us.fGraphics = fFalse;
-  fi.fDoCast = fTrue;
-  if (fi.chart)
-    fi.chart->redraw();
-}
+void FMenuHelpConstel(Fl_Widget *w, void *data) { ShowHelpList(gConstel); }
 #endif
-
-void FMenuHelpPlanet(Fl_Widget *w, void *data) {
-  gi.nMode = gPlanet;
-  us.fGraphics = fFalse;
-  fi.fDoCast = fTrue;
-  if (fi.chart)
-    fi.chart->redraw();
-}
-
-void FMenuHelpRay(Fl_Widget *w, void *data) {
-  gi.nMode = gRay;
-  us.fGraphics = fFalse;
-  fi.fDoCast = fTrue;
-  if (fi.chart)
-    fi.chart->redraw();
-}
-
+void FMenuHelpPlanet(Fl_Widget *w, void *data) { ShowHelpList(gPlanet); }
+void FMenuHelpRay(Fl_Widget *w, void *data) { ShowHelpList(gRay); }
 #ifdef INTERPRET
-void FMenuHelpMeaning(Fl_Widget *w, void *data) {
-  gi.nMode = gMeaning;
-  us.fGraphics = fFalse;
-  fi.fDoCast = fTrue;
-  if (fi.chart)
-    fi.chart->redraw();
-}
+void FMenuHelpMeaning(Fl_Widget *w, void *data) { ShowHelpList(gMeaning); }
 #endif
-
-void FMenuHelpSwitch(Fl_Widget *w, void *data) {
-  gi.nMode = gSwitch;
-  us.fGraphics = fFalse;
-  fi.fDoCast = fTrue;
-  if (fi.chart)
-    fi.chart->redraw();
-}
-
-void FMenuHelpObscure(Fl_Widget *w, void *data) {
-  gi.nMode = gObscure;
-  us.fGraphics = fFalse;
-  fi.fDoCast = fTrue;
-  if (fi.chart)
-    fi.chart->redraw();
-}
-
-void FMenuHelpKeystroke(Fl_Widget *w, void *data) {
-  gi.nMode = gKeystroke;
-  us.fGraphics = fFalse;
-  fi.fDoCast = fTrue;
-  if (fi.chart)
-    fi.chart->redraw();
-}
-
-void FMenuHelpCredit(Fl_Widget *w, void *data) {
-  gi.nMode = gCredit;
-  us.fGraphics = fFalse;
-  fi.fDoCast = fTrue;
-  if (fi.chart)
-    fi.chart->redraw();
-}
+void FMenuHelpSwitch(Fl_Widget *w, void *data) { ShowHelpList(gSwitch); }
+void FMenuHelpObscure(Fl_Widget *w, void *data) { ShowHelpList(gObscure); }
+void FMenuHelpKeystroke(Fl_Widget *w, void *data) { ShowHelpList(gKeystroke); }
+void FMenuHelpCredit(Fl_Widget *w, void *data) { ShowHelpList(gCredit); }
 
 void FMenuCommand(Fl_Widget *w, void *data) {
   char szCommand[cchSzMax] = "";
