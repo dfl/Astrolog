@@ -99,6 +99,7 @@ static void UpdateMenuCheck(Fl_Callback *cb, flag f);
 static void UpdateMenuRadio(Fl_Callback *cb);
 static void UpdateMenuRadioByValue(Fl_Callback *cb, intptr_t value);
 static flag HandleAltMenuShortcut(int key);
+static void ResolveResourcePath(const char *szFile, char *szPath, int cch);
 
 // On macOS, strip '&' mnemonic characters from menu labels since Alt+key
 // shortcuts don't work. On Windows/Linux, keep them for keyboard navigation.
@@ -3053,13 +3054,16 @@ void FMenuObjectSettings2(Fl_Widget *w, void *data) { FShowDlgObject2(); }
 void FMenuStarRestrict(Fl_Widget *w, void *data) { FShowDlgStar(); }
 
 void FMenuDocHelpfile(Fl_Widget *w, void *data) {
+  char szPath[cchSzMax], szCmd[cchSzMax];
+  ResolveResourcePath("astrolog.htm", szPath, cchSzMax);
 #ifdef __APPLE__
-  system("open astrolog.htm");
+  sprintf(szCmd, "open \"%s\"", szPath);
 #elif defined(__linux__)
-  system("xdg-open astrolog.htm");
+  sprintf(szCmd, "xdg-open \"%s\"", szPath);
 #elif defined(_WIN32)
-  system("start astrolog.htm");
+  sprintf(szCmd, "start \"%s\"", szPath);
 #endif
+  system(szCmd);
 }
 
 void FMenuHelpWebsite(Fl_Widget *w, void *data) {
@@ -3102,15 +3106,57 @@ void FMenuHelpLicense(Fl_Widget *w, void *data) {
 #endif
 }
 
+// Resolve a filename to a full path in the app bundle's Resources directory
+// (macOS) or the executable's directory (Linux), falling back to the filename
+// as-is if neither is available.
+static void ResolveResourcePath(const char *szFile, char *szPath, int cch) {
+#ifdef __APPLE__
+  CFBundleRef mainBundle = CFBundleGetMainBundle();
+  if (mainBundle != NULL) {
+    CFURLRef resourcesURL = CFBundleCopyResourcesDirectoryURL(mainBundle);
+    if (resourcesURL != NULL) {
+      char szBundle[cchSzMax];
+      if (CFURLGetFileSystemRepresentation(resourcesURL, true,
+          (UInt8*)szBundle, cchSzMax)) {
+        snprintf(szPath, cch, "%s/%s", szBundle, szFile);
+        CFRelease(resourcesURL);
+        return;
+      }
+      CFRelease(resourcesURL);
+    }
+  }
+#endif
+  // Fall back: try executable's directory
+  if (is.szProgName != NULL) {
+    char szDir[cchSzMax];
+    char *pch;
+    strncpy(szDir, is.szProgName, cchSzMax - 1);
+    szDir[cchSzMax - 1] = '\0';
+    for (pch = szDir; *pch; pch++)
+      ;
+    while (pch > szDir && *pch != chDirSep)
+      pch--;
+    if (*pch == chDirSep) {
+      pch[1] = '\0';
+      snprintf(szPath, cch, "%s%s", szDir, szFile);
+      return;
+    }
+  }
+  // Last resort: use filename as-is
+  strncpy(szPath, szFile, cch - 1);
+  szPath[cch - 1] = '\0';
+}
+
 // Helper function to open a file with the default text editor
 static void OpenFileInEditor(const char *szFile) {
-  char szCmd[cchSzMax];
+  char szPath[cchSzMax], szCmd[cchSzMax];
+  ResolveResourcePath(szFile, szPath, cchSzMax);
 #ifdef __APPLE__
-  sprintf(szCmd, "open -t \"%s\"", szFile);
+  sprintf(szCmd, "open -t \"%s\"", szPath);
 #elif defined(__linux__)
-  sprintf(szCmd, "xdg-open \"%s\"", szFile);
+  sprintf(szCmd, "xdg-open \"%s\"", szPath);
 #elif defined(_WIN32)
-  sprintf(szCmd, "notepad \"%s\"", szFile);
+  sprintf(szCmd, "notepad \"%s\"", szPath);
 #endif
   system(szCmd);
 }
