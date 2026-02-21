@@ -303,7 +303,9 @@ void FMenuObjectSettings2(Fl_Widget *w, void *data);
 void FMenuStarRestrict(Fl_Widget *w, void *data);
 
 // Forward declarations for help menu callbacks
+void FMenuDocHelpfile(Fl_Widget *w, void *data);
 void FMenuHelpWebsite(Fl_Widget *w, void *data);
+void FMenuHelpWebsite2(Fl_Widget *w, void *data);
 void FMenuHelpChanges(Fl_Widget *w, void *data);
 void FMenuHelpLicense(Fl_Widget *w, void *data);
 void FMenuDocDefault(Fl_Widget *w, void *data);
@@ -330,6 +332,7 @@ void FMenuMacro(Fl_Widget *w, void *data);
 void FMenuSaveChartList(Fl_Widget *w, void *data);
 void FMenuSaveAAF(Fl_Widget *w, void *data);
 void FMenuSaveQuick(Fl_Widget *w, void *data);
+void FMenuOpenDir(Fl_Widget *w, void *data);
 
 // Open Bitmap submenu callbacks
 void FMenuOpenBackground(Fl_Widget *w, void *data);
@@ -1390,10 +1393,12 @@ void AstrologWindow::createMenus() {
   // FL_COMMAND maps to Cmd on macOS, Ctrl on Windows/Linux
   menubar_->add(MENU_LABEL("&File/&Open Chart..."), FL_COMMAND + 'o',
                 FMenuFileOpen);
-  menubar_->add(MENU_LABEL("&File/Open Chart #&2..."), 0, FMenuFileOpenChart2);
-  menubar_->add(MENU_LABEL("&File/&Save Chart..."), FL_COMMAND + 's',
+  menubar_->add(MENU_LABEL("&File/Open Chart #&2..."), 0, FMenuFileOpenChart2, 0,
+                FL_MENU_DIVIDER);
+  menubar_->add(MENU_LABEL("&File/&Save Chart Info..."), FL_COMMAND + 's',
                 FMenuFileSave);
-  menubar_->add(MENU_LABEL("&File/Save &As..."), 0, FMenuFileSaveAs);
+  menubar_->add(MENU_LABEL("&File/Save Chart &Positions..."), 0,
+                FMenuFileSaveAs, 0, FL_MENU_DIVIDER);
   menubar_->add(MENU_LABEL("&File/Save Program Settin&gs..."), 0,
                 FMenuFileSaveSettings);
   menubar_->add(MENU_LABEL("&File/Other Formats/Save Chart &List..."), 0,
@@ -1402,13 +1407,16 @@ void AstrologWindow::createMenus() {
                 FMenuSaveAAF);
   menubar_->add(MENU_LABEL("&File/Other Formats/Save Chart &Quick*Chart..."), 0,
                 FMenuSaveQuick);
-#ifdef CAIRO
-  menubar_->add(MENU_LABEL("&File/Export/&SVG..."), 0, FMenuExportSVG);
-  menubar_->add(MENU_LABEL("&File/Export/&PDF..."), 0, FMenuExportPDF);
-#endif
-  menubar_->add(MENU_LABEL("&File/Export/&Bitmap..."), 0, FMenuExportBitmap);
-  menubar_->add(MENU_LABEL("&File/Export/Chart &Text Output..."), 0,
+  menubar_->add(MENU_LABEL("&File/Other Formats/Open Charts in &Folder..."), 0,
+                FMenuOpenDir);
+  menubar_->add(MENU_LABEL("&File/Export Chart &Text Output..."), 0,
                 FMenuExportText);
+  menubar_->add(MENU_LABEL("&File/Export Chart &Bitmap..."), 0,
+                FMenuExportBitmap);
+#ifdef CAIRO
+  menubar_->add(MENU_LABEL("&File/Export &SVG..."), 0, FMenuExportSVG);
+  menubar_->add(MENU_LABEL("&File/Export &PDF..."), 0, FMenuExportPDF);
+#endif
   menubar_->add(MENU_LABEL("&File/Open Bitmap/Open Chart &Background..."), 0,
                 FMenuOpenBackground);
   menubar_->add(MENU_LABEL("&File/Open Bitmap/Open &World Map..."), 0,
@@ -1454,46 +1462,6 @@ void AstrologWindow::createMenus() {
                   (void *)(long)(i + 36));
   }
 
-  // Info menu
-  menubar_->add(MENU_LABEL("&Info/Set &Chart Info..."), FL_COMMAND + 'i',
-                FMenuInfoChart);
-  menubar_->add(MENU_LABEL("&Info/Chart for &Now"), 'n', FMenuChartNow);
-  menubar_->add(MENU_LABEL("&Info/Set Chart #&2 Info..."), 0, FMenuInfoChart2);
-  menubar_->add(MENU_LABEL("&Info/Charts #&3 Through #6..."), 0, FMenuInfoAll);
-  menubar_->add(MENU_LABEL("&Info/&Default Chart Info..."), 0,
-                FMenuDefaultInfo);
-  menubar_->add(MENU_LABEL("&Info/Swap Chart #1 and #&2"), 'x', FMenuSwapCharts,
-                0, FL_MENU_DIVIDER);
-  menubar_->add(MENU_LABEL("&Info/Chart List/Chart &List..."), 0, FMenuListDlg);
-  menubar_->add(MENU_LABEL("&Info/Chart List/&Previous Chart"),
-                FL_SHIFT + FL_Up, FMenuListPrev);
-  menubar_->add(MENU_LABEL("&Info/Chart List/&Next Chart"), FL_SHIFT + FL_Down,
-                FMenuListNext);
-  menubar_->add(MENU_LABEL("&Info/Chart List/&First Chart"), FL_COMMAND + FL_Up,
-                FMenuListFirst);
-  menubar_->add(MENU_LABEL("&Info/Chart List/&Last Chart"),
-                FL_COMMAND + FL_Down, FMenuListLast, 0, FL_MENU_DIVIDER);
-  menubar_->add(MENU_LABEL("&Info/Relationship/No &Relationship Chart"), 'c',
-                FMenuRelNo);
-  menubar_->add(MENU_LABEL("&Info/Relationship/Com&parison Chart"), 0,
-                FMenuRelNo);
-  menubar_->add(MENU_LABEL("&Info/Relationship/&Synastry Chart"), 0,
-                FMenuRelSynastry);
-  menubar_->add(MENU_LABEL("&Info/Relationship/&Composite Chart"), 0,
-                FMenuRelComposite);
-  menubar_->add(MENU_LABEL("&Info/Relationship/Time Space &Midpoint Chart"), 0,
-                FMenuRelMidpoint, 0, FL_MENU_DIVIDER);
-  menubar_->add(MENU_LABEL("&Info/Relationship/Date &Difference Chart"), 'D',
-                FMenuRelDate);
-#ifdef BIORHYTHM
-  menubar_->add(MENU_LABEL("&Info/Relationship/&Biorhythm Chart"), 'Y',
-                FMenuRelBiorhythm);
-#endif
-  menubar_->add(MENU_LABEL("&Info/Relationship/&Transit and Natal"), 0,
-                FMenuRelTransit);
-  menubar_->add(MENU_LABEL("&Info/Relationship/&Progressed and Natal"), 0,
-                FMenuRelProgressed);
-
   // View menu - display settings only (matching Windows)
   menubar_->add(MENU_LABEL("&View/Show &Graphics"), 'v', FMenuGraphicsToggle, 0,
                 FL_MENU_TOGGLE);
@@ -1517,6 +1485,46 @@ void AstrologWindow::createMenus() {
                 FL_MENU_TOGGLE);
   menubar_->add(MENU_LABEL("&View/&Applying Aspects"), 0, FMenuApplying, 0,
                 FL_MENU_TOGGLE);
+
+  // Info menu
+  menubar_->add(MENU_LABEL("&Info/Set &Chart Info..."), FL_COMMAND + 'i',
+                FMenuInfoChart);
+  menubar_->add(MENU_LABEL("&Info/Chart for &Now"), 'n', FMenuChartNow);
+  menubar_->add(MENU_LABEL("&Info/Set Chart #&2 Info..."), 0, FMenuInfoChart2);
+  menubar_->add(MENU_LABEL("&Info/Charts #&3 Through #6..."), 0, FMenuInfoAll);
+  menubar_->add(MENU_LABEL("&Info/&Default Chart Info..."), 0,
+                FMenuDefaultInfo);
+  menubar_->add(MENU_LABEL("&Info/Swap Chart #1 and #&2"), 'x', FMenuSwapCharts,
+                0, FL_MENU_DIVIDER);
+  menubar_->add(MENU_LABEL("&Info/Chart List/Chart &List..."), 0, FMenuListDlg);
+  menubar_->add(MENU_LABEL("&Info/Chart List/&Previous Chart"),
+                FL_SHIFT + FL_Up, FMenuListPrev);
+  menubar_->add(MENU_LABEL("&Info/Chart List/&Next Chart"), FL_SHIFT + FL_Down,
+                FMenuListNext);
+  menubar_->add(MENU_LABEL("&Info/Chart List/&First Chart"), FL_COMMAND + FL_Up,
+                FMenuListFirst);
+  menubar_->add(MENU_LABEL("&Info/Chart List/&Last Chart"),
+                FL_COMMAND + FL_Down, FMenuListLast, 0, FL_MENU_DIVIDER);
+  menubar_->add(MENU_LABEL("&Info/No &Relationship Chart"), 'c',
+                FMenuRelNo);
+  menubar_->add(MENU_LABEL("&Info/Com&parison Chart"), 0,
+                FMenuRelNo);
+  menubar_->add(MENU_LABEL("&Info/&Synastry Chart"), 0,
+                FMenuRelSynastry);
+  menubar_->add(MENU_LABEL("&Info/&Composite Chart"), 0,
+                FMenuRelComposite);
+  menubar_->add(MENU_LABEL("&Info/Time Space &Midpoint Chart"), 0,
+                FMenuRelMidpoint, 0, FL_MENU_DIVIDER);
+  menubar_->add(MENU_LABEL("&Info/Date &Difference Chart"), 'D',
+                FMenuRelDate);
+#ifdef BIORHYTHM
+  menubar_->add(MENU_LABEL("&Info/&Biorhythm Chart"), 'Y',
+                FMenuRelBiorhythm);
+#endif
+  menubar_->add(MENU_LABEL("&Info/&Transit and Natal"), 0,
+                FMenuRelTransit);
+  menubar_->add(MENU_LABEL("&Info/&Progressed and Natal"), 0,
+                FMenuRelProgressed);
 
   // Chart menu - chart types and dialogs (matching Windows)
   menubar_->add(MENU_LABEL("C&hart/Standard Radi&x"), 'V', FMenuViewList);
@@ -1547,131 +1555,131 @@ void AstrologWindow::createMenus() {
   menubar_->add(MENU_LABEL("C&hart/Chart &Type..."), 0, FMenuChartType);
 
   // Settings menu
-  menubar_->add(MENU_LABEL("Se&ttings/&Sidereal Zodiac"), 's', FMenuSidereal, 0,
+  menubar_->add(MENU_LABEL("&Setting/&Sidereal Zodiac"), 's', FMenuSidereal, 0,
                 FL_MENU_TOGGLE);
-  menubar_->add(MENU_LABEL("Se&ttings/&Heliocentric"), 'h', FMenuHeliocentric,
+  menubar_->add(MENU_LABEL("&Setting/&Heliocentric"), 'h', FMenuHeliocentric,
                 0, FL_MENU_TOGGLE | FL_MENU_DIVIDER);
   // House System submenu
-  menubar_->add(MENU_LABEL("Se&ttings/House System/&Placidus"),
+  menubar_->add(MENU_LABEL("&Setting/House System/&Placidus"),
                 FL_COMMAND + 'p', FMenuHouseSystem, (void *)hsPlacidus);
-  menubar_->add(MENU_LABEL("Se&ttings/House System/&Koch"), FL_COMMAND + 'k',
+  menubar_->add(MENU_LABEL("&Setting/House System/&Koch"), FL_COMMAND + 'k',
                 FMenuHouseSystem, (void *)hsKoch);
-  menubar_->add(MENU_LABEL("Se&ttings/House System/&Campanus"), 0,
+  menubar_->add(MENU_LABEL("&Setting/House System/&Campanus"), 0,
                 FMenuHouseSystem, (void *)hsCampanus);
-  menubar_->add(MENU_LABEL("Se&ttings/House System/&Regiomontanus"),
+  menubar_->add(MENU_LABEL("&Setting/House System/&Regiomontanus"),
                 FL_COMMAND + 'r', FMenuHouseSystem, (void *)hsRegiomontanus);
-  menubar_->add(MENU_LABEL("Se&ttings/House System/&Topocentric"),
+  menubar_->add(MENU_LABEL("&Setting/House System/&Topocentric"),
                 FL_COMMAND + 't', FMenuHouseSystem, (void *)hsTopocentric);
-  menubar_->add(MENU_LABEL("Se&ttings/House System/Alca&bitius"), 0,
+  menubar_->add(MENU_LABEL("&Setting/House System/Alca&bitius"), 0,
                 FMenuHouseSystem, (void *)hsAlcabitius);
-  menubar_->add(MENU_LABEL("Se&ttings/House System/Kr&usinski"), 0,
+  menubar_->add(MENU_LABEL("&Setting/House System/Kr&usinski"), 0,
                 FMenuHouseSystem, (void *)hsKrusinski);
-  menubar_->add(MENU_LABEL("Se&ttings/House System/A&.P.C."), 0,
+  menubar_->add(MENU_LABEL("&Setting/House System/A&.P.C."), 0,
                 FMenuHouseSystem, (void *)hsAPC, FL_MENU_DIVIDER);
-  menubar_->add(MENU_LABEL("Se&ttings/House System/Porph&yry"),
+  menubar_->add(MENU_LABEL("&Setting/House System/Porph&yry"),
                 FL_COMMAND + 'y', FMenuHouseSystem, (void *)hsPorphyry);
-  menubar_->add(MENU_LABEL("Se&ttings/House System/Pullen (S.Rati&o)"),
+  menubar_->add(MENU_LABEL("&Setting/House System/Pullen (S.Rati&o)"),
                 FL_COMMAND + 'o', FMenuHouseSystem, (void *)hsSineRatio);
-  menubar_->add(MENU_LABEL("Se&ttings/House System/Pullen (S.&Delta)"),
+  menubar_->add(MENU_LABEL("&Setting/House System/Pullen (S.&Delta)"),
                 FL_COMMAND + 'd', FMenuHouseSystem, (void *)hsSineDelta,
                 FL_MENU_DIVIDER);
-  menubar_->add(MENU_LABEL("Se&ttings/House System/&Meridian"),
+  menubar_->add(MENU_LABEL("&Setting/House System/&Meridian"),
                 FL_COMMAND + 'm', FMenuHouseSystem, (void *)hsMeridian);
-  menubar_->add(MENU_LABEL("Se&ttings/House System/Morinu&s"), FL_COMMAND + 'u',
+  menubar_->add(MENU_LABEL("&Setting/House System/Morinu&s"), FL_COMMAND + 'u',
                 FMenuHouseSystem, (void *)hsMorinus);
-  menubar_->add(MENU_LABEL("Se&ttings/House System/Hori&zon"), FL_COMMAND + 'h',
+  menubar_->add(MENU_LABEL("&Setting/House System/Hori&zon"), FL_COMMAND + 'h',
                 FMenuHouseSystem, (void *)hsHorizon);
-  menubar_->add(MENU_LABEL("Se&ttings/House System/Carter& P.Equat."),
+  menubar_->add(MENU_LABEL("&Setting/House System/Carter& P.Equat."),
                 FL_COMMAND + 'g', FMenuHouseSystem, (void *)hsCarter);
-  menubar_->add(MENU_LABEL("Se&ttings/House System/Suns&hine"),
+  menubar_->add(MENU_LABEL("&Setting/House System/Suns&hine"),
                 FL_COMMAND + 'j', FMenuHouseSystem, (void *)hsSunshine);
-  menubar_->add(MENU_LABEL("Se&ttings/House System/Sr&ipati"), 0,
+  menubar_->add(MENU_LABEL("&Setting/House System/Sr&ipati"), 0,
                 FMenuHouseSystem, (void *)hsSripati, FL_MENU_DIVIDER);
-  menubar_->add(MENU_LABEL("Se&ttings/House System/&Equal"), FL_COMMAND + 'e',
+  menubar_->add(MENU_LABEL("&Setting/House System/&Equal"), FL_COMMAND + 'e',
                 FMenuHouseSystem, (void *)hsEqual);
-  menubar_->add(MENU_LABEL("Se&ttings/House System/E&qual (MC)"),
+  menubar_->add(MENU_LABEL("&Setting/House System/E&qual (MC)"),
                 FL_COMMAND + 'q', FMenuHouseSystem, (void *)hsEqualMC);
-  menubar_->add(MENU_LABEL("Se&ttings/House System/&Whole"), FL_COMMAND + 'w',
+  menubar_->add(MENU_LABEL("&Setting/House System/&Whole"), FL_COMMAND + 'w',
                 FMenuHouseSystem, (void *)hsWhole);
-  menubar_->add(MENU_LABEL("Se&ttings/House System/&Vedic"), FL_COMMAND + 'v',
+  menubar_->add(MENU_LABEL("&Setting/House System/&Vedic"), FL_COMMAND + 'v',
                 FMenuHouseSystem, (void *)hsVedic);
-  menubar_->add(MENU_LABEL("Se&ttings/House System/&Null"), FL_COMMAND + 'n',
+  menubar_->add(MENU_LABEL("&Setting/House System/&Null"), FL_COMMAND + 'n',
                 FMenuHouseSystem, (void *)hsNull, FL_MENU_DIVIDER);
-  menubar_->add(MENU_LABEL("Se&ttings/House Settings/&Solar Chart"), 0,
+  menubar_->add(MENU_LABEL("&Setting/House Settings/&Solar Chart"), 0,
                 FMenuHouseSolar, 0, FL_MENU_TOGGLE);
-  menubar_->add(MENU_LABEL("Se&ttings/House Settings/&3D Houses"), 'a',
+  menubar_->add(MENU_LABEL("&Setting/House Settings/&3D Houses"), 'a',
                 FMenuHouse3D, 0, FL_MENU_TOGGLE | FL_MENU_DIVIDER);
-  menubar_->add(MENU_LABEL("Se&ttings/House Settings/Show &Decans"), 'g',
+  menubar_->add(MENU_LABEL("&Setting/House Settings/Show &Decans"), 'g',
                 FMenuHouseDecan, 0, FL_MENU_TOGGLE);
-  menubar_->add(MENU_LABEL("Se&ttings/House Settings/Show D&wads"), 0,
+  menubar_->add(MENU_LABEL("&Setting/House Settings/Show D&wads"), 0,
                 FMenuHouseSetDwad, 0, FL_MENU_TOGGLE);
-  menubar_->add(MENU_LABEL("Se&ttings/House Settings/&Flip Signs with Houses"),
+  menubar_->add(MENU_LABEL("&Setting/House Settings/&Flip Signs with Houses"),
                 'f', FMenuHouseFlip, 0, FL_MENU_TOGGLE);
-  menubar_->add(MENU_LABEL("Se&ttings/House Settings/&Geodetic Houses"), 0,
+  menubar_->add(MENU_LABEL("&Setting/House Settings/&Geodetic Houses"), 0,
                 FMenuHouseSetGeodetic, 0, FL_MENU_TOGGLE | FL_MENU_DIVIDER);
-  menubar_->add(MENU_LABEL("Se&ttings/House Settings/&Indian Wheel Order"), 'z',
+  menubar_->add(MENU_LABEL("&Setting/House Settings/&Indian Wheel Order"), 'z',
                 FMenuHouseSetIndian, 0, FL_MENU_TOGGLE);
-  menubar_->add(MENU_LABEL("Se&ttings/House Settings/Show &Navamsas"), 0,
+  menubar_->add(MENU_LABEL("&Setting/House Settings/Show &Navamsas"), 0,
                 FMenuHouseSetNavamsa, 0, FL_MENU_TOGGLE);
-  menubar_->add(MENU_LABEL("Se&ttings/&Calculation Settings..."), 0,
+  menubar_->add(MENU_LABEL("&Setting/&Calculation Settings..."), 0,
                 FMenuCalcSettings);
-  menubar_->add(MENU_LABEL("Se&ttings/&Display Settings..."), 0,
+  menubar_->add(MENU_LABEL("&Setting/&Display Settings..."), 0,
                 FMenuDisplaySettings);
-  menubar_->add(MENU_LABEL("Se&ttings/&Graphics Settings..."), 0,
+  menubar_->add(MENU_LABEL("&Setting/&Graphics Settings..."), 0,
                 FMenuGraphicsSettings);
-  menubar_->add(MENU_LABEL("Se&ttings/&Aspect Settings..."), 0,
+  menubar_->add(MENU_LABEL("&Setting/&Aspect Settings..."), 0,
                 FMenuAspectSettings);
-  menubar_->add(MENU_LABEL("Se&ttings/&Object Restrictions..."), 0,
+  menubar_->add(MENU_LABEL("&Setting/&Object Restrictions..."), 0,
                 FMenuRestrict);
-  menubar_->add(MENU_LABEL("Se&ttings/&Transit Restrictions..."), 0,
+  menubar_->add(MENU_LABEL("&Setting/&Transit Restrictions..."), 0,
                 FMenuRestrictTransit);
-  menubar_->add(MENU_LABEL("Se&ttings/Star Restric&tions..."), 0,
+  menubar_->add(MENU_LABEL("&Setting/Star Restric&tions..."), 0,
                 FMenuStarRestrict);
-  menubar_->add(MENU_LABEL("Se&ttings/Object Sett&ings..."), 0,
+  menubar_->add(MENU_LABEL("&Setting/Object Sett&ings..."), 0,
                 FMenuObjectSettings);
-  menubar_->add(MENU_LABEL("Se&ttings/&More Object Settings..."), 0,
+  menubar_->add(MENU_LABEL("&Setting/&More Object Settings..."), 0,
                 FMenuObjectSettings2);
-  menubar_->add(MENU_LABEL("Se&ttings/Co&lor Settings..."), 0,
+  menubar_->add(MENU_LABEL("&Setting/Co&lor Settings..."), 0,
                 FMenuColorSettings, 0, FL_MENU_DIVIDER);
   // Glyph Fonts submenu
-  menubar_->add(MENU_LABEL("Se&ttings/Glyph &Fonts/Astrono&micon"), 0,
+  menubar_->add(MENU_LABEL("&Setting/Glyph &Fonts/Astrono&micon"), 0,
                 FMenuGlyphFont, (void *)5, FL_MENU_RADIO | FL_MENU_VALUE);
-  menubar_->add(MENU_LABEL("Se&ttings/Glyph &Fonts/&Astro"), 0, FMenuGlyphFont,
+  menubar_->add(MENU_LABEL("&Setting/Glyph &Fonts/&Astro"), 0, FMenuGlyphFont,
                 (void *)2, FL_MENU_RADIO);
-  menubar_->add(MENU_LABEL("Se&ttings/Glyph &Fonts/&Enigma"), 0, FMenuGlyphFont,
+  menubar_->add(MENU_LABEL("&Setting/Glyph &Fonts/&Enigma"), 0, FMenuGlyphFont,
                 (void *)3, FL_MENU_RADIO);
-  menubar_->add(MENU_LABEL("Se&ttings/Glyph &Fonts/&Hamburg"), 0,
+  menubar_->add(MENU_LABEL("&Setting/Glyph &Fonts/&Hamburg"), 0,
                 FMenuGlyphFont, (void *)4, FL_MENU_RADIO);
-  menubar_->add(MENU_LABEL("Se&ttings/Glyph &Fonts/&Built-in"), 0,
+  menubar_->add(MENU_LABEL("&Setting/Glyph &Fonts/&Built-in"), 0,
                 FMenuGlyphFont, (void *)0, FL_MENU_RADIO | FL_MENU_DIVIDER);
-  menubar_->add(MENU_LABEL("Se&ttings/Include &Minors"), 'R',
+  menubar_->add(MENU_LABEL("&Setting/Include &Minors"), 'R',
                 FMenuIncludeMinors, 0, FL_MENU_TOGGLE);
-  menubar_->add(MENU_LABEL("Se&ttings/Include &Cusps"), 'C', FMenuIncludeCusps,
+  menubar_->add(MENU_LABEL("&Setting/Include &Cusps"), 'C', FMenuIncludeCusps,
                 0, FL_MENU_TOGGLE);
-  menubar_->add(MENU_LABEL("Se&ttings/Include &Uranians"), 'u',
+  menubar_->add(MENU_LABEL("&Setting/Include &Uranians"), 'u',
                 FMenuIncludeUranians, 0, FL_MENU_TOGGLE);
-  menubar_->add(MENU_LABEL("Se&ttings/Include &Dwarfs"), 'y',
+  menubar_->add(MENU_LABEL("&Setting/Include &Dwarfs"), 'y',
                 FMenuIncludeDwarfs, 0, FL_MENU_TOGGLE);
-  menubar_->add(MENU_LABEL("Se&ttings/Include Fixed &Stars"), 'U',
+  menubar_->add(MENU_LABEL("&Setting/Include Fixed &Stars"), 'U',
                 FMenuIncludeStars, 0, FL_MENU_TOGGLE);
-  menubar_->add(MENU_LABEL("Se&ttings/Planetary Moons/&Moons Chart"), 'M',
+  menubar_->add(MENU_LABEL("&Setting/Planetary Moons/&Moons Chart"), 'M',
                 FMenuViewMoons);
-  menubar_->add(MENU_LABEL("Se&ttings/Planetary Moons/&Exoplanets Chart"), 0,
+  menubar_->add(MENU_LABEL("&Setting/Planetary Moons/&Exoplanets Chart"), 0,
                 FMenuViewExo, 0, FL_MENU_DIVIDER);
   menubar_->add(
-      MENU_LABEL("Se&ttings/Planetary Moons/Moon &Object Settings..."), 0,
+      MENU_LABEL("&Setting/Planetary Moons/Moon &Object Settings..."), 0,
       FMenuMoonObjSettings);
-  menubar_->add(MENU_LABEL("Se&ttings/Planetary Moons/Moon &Restrictions..."),
+  menubar_->add(MENU_LABEL("&Setting/Planetary Moons/Moon &Restrictions..."),
                 0, FMenuMoonRestrict);
   menubar_->add(
-      MENU_LABEL("Se&ttings/Planetary Moons/Object &Customization..."), 0,
+      MENU_LABEL("&Setting/Planetary Moons/Object &Customization..."), 0,
       FMenuObjCustom);
-  menubar_->add(MENU_LABEL("Se&ttings/Planetary Moons/Star Custo&mization..."),
+  menubar_->add(MENU_LABEL("&Setting/Planetary Moons/Star Custo&mization..."),
                 0, FMenuStarCustom, 0, FL_MENU_DIVIDER);
-  menubar_->add(MENU_LABEL("Se&ttings/Planetary Moons/Include Moo&ns"), '`',
+  menubar_->add(MENU_LABEL("&Setting/Planetary Moons/Include Moo&ns"), '`',
                 FMenuIncludeMoons, 0, FL_MENU_TOGGLE);
   menubar_->add(
-      MENU_LABEL("Se&ttings/Planetary Moons/Include &Body Centers (COB)"), '~',
+      MENU_LABEL("&Setting/Planetary Moons/Include &Body Centers (COB)"), '~',
       FMenuIncludeCOB, 0, FL_MENU_TOGGLE);
 
   // Graphics menu - 3D modes first (matching Windows)
@@ -1881,24 +1889,30 @@ void AstrologWindow::createMenus() {
                 FMenuAnimSettings);
 
   // Help menu
-  menubar_->add(MENU_LABEL("&Help/&About Astrolog..."), 0, FMenuHelpAbout);
-  menubar_->add(MENU_LABEL("&Help/Open &Website"), 0, FMenuHelpWebsite);
-  menubar_->add(MENU_LABEL("&Help/Open &Changes Log"), 0, FMenuHelpChanges);
-  menubar_->add(MENU_LABEL("&Help/Show &License"), 0, FMenuHelpLicense, 0,
-                FL_MENU_DIVIDER);
-  menubar_->add(MENU_LABEL("&Help/Open Data Files/Open &Default Settings"), 0,
+  menubar_->add(MENU_LABEL("&Help/Open &Documentation"), 0, FMenuDocHelpfile);
+  menubar_->add(MENU_LABEL("&Help/&More Documentation/&Open Documentation"), 0,
+                FMenuDocHelpfile, 0, FL_MENU_DIVIDER);
+  menubar_->add(MENU_LABEL("&Help/&More Documentation/Open &Changes"), 0,
+                FMenuHelpChanges);
+  menubar_->add(MENU_LABEL("&Help/&More Documentation/Open &License"), 0,
+                FMenuHelpLicense, 0, FL_MENU_DIVIDER);
+  menubar_->add(MENU_LABEL("&Help/&More Documentation/Open &Website"), 0,
+                FMenuHelpWebsite);
+  menubar_->add(MENU_LABEL("&Help/&More Documentation/Open Website &Mirror"), 0,
+                FMenuHelpWebsite2);
+  menubar_->add(MENU_LABEL("&Help/Open Data &Files/Open &Default Settings"), 0,
                 FMenuDocDefault);
 #ifdef ATLAS
-  menubar_->add(MENU_LABEL("&Help/Open Data Files/Open &Atlas"), 0,
+  menubar_->add(MENU_LABEL("&Help/Open Data &Files/Open &Atlas"), 0,
                 FMenuDocAtlas);
-  menubar_->add(MENU_LABEL("&Help/Open Data Files/Open &Time Zone Changes"), 0,
+  menubar_->add(MENU_LABEL("&Help/Open Data &Files/Open &Time Zone Changes"), 0,
                 FMenuDocTimezone);
 #endif
-  menubar_->add(MENU_LABEL("&Help/Open Data Files/Open &Star List"), 0,
+  menubar_->add(MENU_LABEL("&Help/Open Data &Files/Open &Star List"), 0,
                 FMenuDocStar);
-  menubar_->add(MENU_LABEL("&Help/Open Data Files/Open &Orbital Elements"), 0,
+  menubar_->add(MENU_LABEL("&Help/Open Data &Files/Open &Orbital Elements"), 0,
                 FMenuDocOrbit);
-  menubar_->add(MENU_LABEL("&Help/Open Data Files/Open &Exoplanet List"), 0,
+  menubar_->add(MENU_LABEL("&Help/Open Data &Files/Open &Exoplanet List"), 0,
                 FMenuDocExo, 0, FL_MENU_DIVIDER);
   menubar_->add(MENU_LABEL("&Help/List Si&gns"), 0, FMenuHelpSign);
   menubar_->add(MENU_LABEL("&Help/List &Objects"), 0, FMenuHelpObject);
@@ -1916,7 +1930,9 @@ void AstrologWindow::createMenus() {
   menubar_->add(MENU_LABEL("&Help/List O&bscure Switches"), 0,
                 FMenuHelpObscure);
   menubar_->add(MENU_LABEL("&Help/List &Keystrokes"), '?', FMenuHelpKeystroke);
-  menubar_->add(MENU_LABEL("&Help/List Cr&edits"), 0, FMenuHelpCredit);
+  menubar_->add(MENU_LABEL("&Help/List Cr&edits"), 0, FMenuHelpCredit, 0,
+                FL_MENU_DIVIDER);
+  menubar_->add(MENU_LABEL("&Help/&About Astrolog..."), 0, FMenuHelpAbout);
 
   // Initialize menu checkbox states based on current settings
   flag fMinors = fFalse;
@@ -2979,6 +2995,20 @@ void FMenuSaveQuick(Fl_Widget *w, void *data) {
   }
 }
 
+void FMenuOpenDir(Fl_Widget *w, void *data) {
+  Fl_File_Chooser chooser(".", "*", Fl_File_Chooser::DIRECTORY,
+                          "Open Charts in Folder");
+  chooser.show();
+  while (chooser.shown())
+    Fl::wait();
+
+  if (chooser.value()) {
+    char szCmd[cchSzMax];
+    sprintf(szCmd, "-i \"%s\"", chooser.value());
+    FProcessCommandLine(szCmd);
+  }
+}
+
 void FMenuOpenBackground(Fl_Widget *w, void *data) {
   Fl_File_Chooser chooser(".", "Bitmap Files (*.bmp)\tAll Files (*)",
                           Fl_File_Chooser::SINGLE, "Open Chart Background");
@@ -3022,6 +3052,16 @@ void FMenuObjectSettings2(Fl_Widget *w, void *data) { FShowDlgObject2(); }
 
 void FMenuStarRestrict(Fl_Widget *w, void *data) { FShowDlgStar(); }
 
+void FMenuDocHelpfile(Fl_Widget *w, void *data) {
+#ifdef __APPLE__
+  system("open astrolog.htm");
+#elif defined(__linux__)
+  system("xdg-open astrolog.htm");
+#elif defined(_WIN32)
+  system("start astrolog.htm");
+#endif
+}
+
 void FMenuHelpWebsite(Fl_Widget *w, void *data) {
 #ifdef __APPLE__
   system("open http://www.astrolog.org/astrolog.htm");
@@ -3029,6 +3069,16 @@ void FMenuHelpWebsite(Fl_Widget *w, void *data) {
   system("xdg-open http://www.astrolog.org/astrolog.htm");
 #elif defined(_WIN32)
   system("start http://www.astrolog.org/astrolog.htm");
+#endif
+}
+
+void FMenuHelpWebsite2(Fl_Widget *w, void *data) {
+#ifdef __APPLE__
+  system("open http://www.magitech.com/astrolog/astrolog.htm");
+#elif defined(__linux__)
+  system("xdg-open http://www.magitech.com/astrolog/astrolog.htm");
+#elif defined(_WIN32)
+  system("start http://www.magitech.com/astrolog/astrolog.htm");
 #endif
 }
 
@@ -3043,14 +3093,13 @@ void FMenuHelpChanges(Fl_Widget *w, void *data) {
 }
 
 void FMenuHelpLicense(Fl_Widget *w, void *data) {
-  // Show the license in a message box
-  fl_message(
-      "Astrolog (Version 7.80)\n\n"
-      "Copyright (C) 1991-2025 by Walter D. Pullen\n"
-      "(Astara@msn.com, http://www.astrolog.org/astrolog.htm)\n\n"
-      "Permission is granted to freely use, modify, and distribute\n"
-      "these routines provided these credits and notices remain\n"
-      "unmodified with any altered or distributed versions of the program.");
+#ifdef __APPLE__
+  system("open http://www.gnu.org/licenses/gpl-2.0.html");
+#elif defined(__linux__)
+  system("xdg-open http://www.gnu.org/licenses/gpl-2.0.html");
+#elif defined(_WIN32)
+  system("start http://www.gnu.org/licenses/gpl-2.0.html");
+#endif
 }
 
 // Helper function to open a file with the default text editor
