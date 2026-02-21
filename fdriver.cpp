@@ -640,8 +640,11 @@ int ChartWidget::handle(int event) {
         ClampRotation();
         ClampTilt();
 
-        if (gi.nMode == gTelescope)
+        if (gi.nMode == gMidpoint || gi.nMode == gTelescope) {
+          if (gi.nMode == gMidpoint && gs.objTrack >= 0)
+            gs.rRot = planet[gs.objTrack];
           gs.objTrack = -1;
+        }
       }
       mousex_ = mx;
       mousey_ = my;
