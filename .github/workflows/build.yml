@@ -215,17 +215,3 @@ jobs:
           files: |
             *.zip
             *.dmg
-          body: |
-            ## macOS (Universal - Apple Silicon & Intel)
-
-            **Installation:**
-            1. Download the `.dmg` file
-            2. Open the DMG
-            3. Drag **Astrolog.app** to the **Applications** folder
-            4. Go to Applications, **right-click** Astrolog and select **Open**
-            5. Click **Open** in the security dialog
-
-            **Alternative** (Terminal):
-            ```
-            xattr -rd com.apple.quarantine /Applications/Astrolog.app
-            ```
