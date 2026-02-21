@@ -94,22 +94,17 @@ static void UpdateInfoFields(CI &ci)
     s_inZon->value(sz);
   }
 
-  if (s_inLon) {
-    sprintf(sz, "%s", SzLocation(ci.lon, 0.0));
-    // Extract just the longitude part
-    char *p = strchr(sz, ',');
-    if (p) *p = '\0';
-    s_inLon->value(sz);
-  }
-
-  if (s_inLat) {
-    sprintf(sz, "%s", SzLocation(0.0, ci.lat));
-    // Extract just the latitude part
-    char *p = strchr(sz, ',');
-    if (p) p++;
-    else p = sz;
-    while (*p == ' ') p++;
-    s_inLat->value(p);
+  if (s_inLon || s_inLat) {
+    int nSav = us.fAnsiChar;
+    us.fAnsiChar = fFalse;
+    sprintf(sz, "%s", SzLocation(ci.lon, ci.lat));
+    us.fAnsiChar = nSav;
+    int i = 7 + VSeconds(0, 3, 7);
+    sz[i] = chNull;
+    if (s_inLon)
+      s_inLon->value(sz);
+    if (s_inLat)
+      s_inLat->value(&sz[i+1]);
   }
 }
 

@@ -255,23 +255,25 @@ void FormatZon(char *sz, int cchMax, real zon)
 
 void FormatLon(char *sz, int cchMax, real lon)
 {
-  snprintf(sz, cchMax, "%s", SzLocation(lon, 0.0));
-  // Trim after the longitude part
-  char *pch = strchr(sz, ',');
-  if (pch != NULL)
-    *pch = '\0';
+  char szFull[cchSzDef];
+  int nSav = us.fAnsiChar, i;
+  us.fAnsiChar = fFalse;
+  snprintf(szFull, sizeof(szFull), "%s", SzLocation(lon, 0.0));
+  us.fAnsiChar = nSav;
+  i = 7 + VSeconds(0, 3, 7);
+  szFull[i] = chNull;
+  snprintf(sz, cchMax, "%s", szFull);
 }
 
 void FormatLat(char *sz, int cchMax, real lat)
 {
   char szFull[cchSzDef];
+  int nSav = us.fAnsiChar, i;
+  us.fAnsiChar = fFalse;
   snprintf(szFull, sizeof(szFull), "%s", SzLocation(0.0, lat));
-  // Extract just the latitude part after the comma
-  char *pch = strchr(szFull, ',');
-  if (pch != NULL)
-    snprintf(sz, cchMax, "%s", pch + 2);  // Skip ", "
-  else
-    snprintf(sz, cchMax, "%.2f", lat);
+  us.fAnsiChar = nSav;
+  i = 7 + VSeconds(0, 3, 7);
+  snprintf(sz, cchMax, "%s", &szFull[i+1]);
 }
 
 void FormatCI(CI *pci, CIS *pcis)
