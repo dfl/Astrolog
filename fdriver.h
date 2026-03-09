@@ -104,6 +104,7 @@ extern void FMenuViewCairo(Fl_Widget *w, void *data);
 #endif
 extern void FMenuExportBitmap(Fl_Widget *w, void *data);
 extern void FMenuFileExit(Fl_Widget *w, void *data);
+extern void FMenuFilePrint(Fl_Widget *w, void *data);
 extern void FMenuEditCopy(Fl_Widget *w, void *data);
 extern void FMenuCommand(Fl_Widget *w, void *data);
 extern void FMenuInfoChart(Fl_Widget *w, void *data);
@@ -119,6 +120,14 @@ extern void RefreshTextWindow(void);
 
 // Convert Astrolog color index to FLTK color
 extern Fl_Color FltkColorFromKI(int ki);
+
+// Atlas list browser globals for atlas.cpp FLTK support
+#ifdef ATLAS
+#include <FL/Fl_Hold_Browser.H>
+extern Fl_Hold_Browser *pfbAtlas;
+extern int rgAtlasData[];
+extern int cAtlasData;
+#endif
 
 // Dialog function declarations (fdialog.cpp)
 // Note: Using int instead of flag since header is included before typedef

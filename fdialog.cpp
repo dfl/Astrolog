@@ -37,6 +37,13 @@
 ******************************************************************************
 */
 
+// Atlas list browser globals for atlas.cpp FLTK support
+#ifdef ATLAS
+Fl_Hold_Browser *pfbAtlas = NULL;
+int rgAtlasData[ilistMax];
+int cAtlasData = 0;
+#endif
+
 // Dialog data storage for callbacks
 static CI s_ciEdit;
 static int s_nDlgChart = 1;
@@ -51,6 +58,9 @@ static Fl_Choice *s_chDst = NULL;
 static Fl_Input *s_inZon = NULL;
 static Fl_Float_Input *s_inLon = NULL;
 static Fl_Float_Input *s_inLat = NULL;
+#ifdef ATLAS
+static Fl_Hold_Browser *s_brAtlas = NULL;
+#endif
 
 // Update dialog fields from CI struct
 static void UpdateInfoFields(CI &ci)
@@ -83,8 +93,8 @@ static void UpdateInfoFields(CI &ci)
       s_chDst->value(0);  // No
     else if (ci.dst == 1.0)
       s_chDst->value(1);  // Yes
-    else if (ci.dst == dstAuto)
-      s_chDst->value(2);  // Autodetect
+    else if (ci.dst == dstAuto && s_chDst->size() > 3)
+      s_chDst->value(2);  // Autodetect (only if choice has 3+ items)
     else
       s_chDst->value(0);
   }
@@ -219,6 +229,125 @@ static void cb_InfoCancel(Fl_Widget *w, void *data)
     s_dlgInfo->hide();
 }
 
+// Atlas Lookup callbacks
+#ifdef ATLAS
+static void cb_AtlasLookup(Fl_Widget *w, void *data)
+{
+  if (!s_brAtlas || !s_inLoc) return;
+  s_brAtlas->clear();
+  cAtlasData = 0;
+  int ilist = ilistMax;
+  pfbAtlas = s_brAtlas;
+  if (!DisplayAtlasLookup(s_inLoc->value(), (size_t)s_brAtlas, &ilist))
+    PrintWarning("Couldn't get atlas data!");
+  pfbAtlas = NULL;
+}
+
+static void cb_AtlasNearby(Fl_Widget *w, void *data)
+{
+  if (!s_brAtlas || !s_inLon || !s_inLat) return;
+  char sz[cchSzMax];
+  s_brAtlas->clear();
+  cAtlasData = 0;
+  int ilist = ilistMax;
+  strncpy(sz, s_inLon->value(), sizeof(sz)-1); sz[sizeof(sz)-1] = '\0';
+  real lon = RParseSz(sz, pmLon);
+  strncpy(sz, s_inLat->value(), sizeof(sz)-1); sz[sizeof(sz)-1] = '\0';
+  real lat = RParseSz(sz, pmLat);
+  pfbAtlas = s_brAtlas;
+  if (!DisplayAtlasNearby(lon, lat, (size_t)s_brAtlas, &ilist, fFalse))
+    PrintWarning("Couldn't get atlas data!");
+  pfbAtlas = NULL;
+}
+
+static void cb_AtlasChanges(Fl_Widget *w, void *data)
+{
+  if (!s_brAtlas || !s_inLoc) return;
+  int i;
+  if (!DisplayAtlasLookup(s_inLoc->value(), 0, &i)) {
+    PrintWarning("Please have a valid city in the 'Location' field first.");
+    return;
+  }
+  s_brAtlas->clear();
+  cAtlasData = 0;
+  CI ci = ciMain;
+  if (s_inYea) {
+    char sz[cchSzMax];
+    strncpy(sz, s_inYea->value(), sizeof(sz)-1); sz[sizeof(sz)-1] = '\0';
+    ci.yea = NParseSz(sz, pmYea);
+  }
+  pfbAtlas = s_brAtlas;
+  if (!DisplayTimezoneChanges(is.rgae[i].izn, (size_t)s_brAtlas, &ci))
+    PrintWarning("Couldn't get time zone data!");
+  pfbAtlas = NULL;
+}
+
+static void cb_AtlasApply(Fl_Widget *w, void *data)
+{
+  if (!s_brAtlas) return;
+  char sz[cchSzMax];
+  int i = -1, j;
+
+  // Get selected item from browser
+  j = s_brAtlas->value();
+  if (j > 0 && j <= cAtlasData)
+    i = rgAtlasData[j - 1];
+
+  // If no valid selection, try lookup from Location field
+  if (i < 0) {
+    if (!s_inLoc || !DisplayAtlasLookup(s_inLoc->value(), 0, &i)) {
+      PrintWarning("Please have a valid city selected in 'Atlas Lookups', "
+        "or a valid city already in the 'Location' field.");
+      return;
+    }
+  }
+
+  // Apply city name to Location field
+  if (s_inLoc)
+    s_inLoc->value(SzCity(i));
+
+  // Determine timezone/DST for the date
+  CI ci = ciMain;
+  if (s_chMon) ci.mon = s_chMon->value() + 1;
+  if (s_inDay) {
+    strncpy(sz, s_inDay->value(), sizeof(sz)-1); sz[sizeof(sz)-1] = '\0';
+    ci.day = NParseSz(sz, pmDay);
+  }
+  if (s_inYea) {
+    strncpy(sz, s_inYea->value(), sizeof(sz)-1); sz[sizeof(sz)-1] = '\0';
+    ci.yea = NParseSz(sz, pmYea);
+  }
+  if (s_inTim) {
+    strncpy(sz, s_inTim->value(), sizeof(sz)-1); sz[sizeof(sz)-1] = '\0';
+    ci.tim = RParseSz(sz, pmTim);
+  }
+  if (!DisplayTimezoneChanges(is.rgae[i].izn, 0, &ci))
+    PrintWarning("Couldn't get time zone data!");
+
+  // Apply DST, zone, longitude, latitude
+  if (s_chDst) {
+    if (ci.dst == 0.0)
+      s_chDst->value(0);
+    else
+      s_chDst->value(1);
+  }
+  if (s_inZon) {
+    sprintf(sz, "%s", SzZone(ci.zon));
+    s_inZon->value(sz);
+  }
+  int nSav = us.fAnsiChar;
+  us.fAnsiChar = fFalse;
+  sprintf(sz, "%s", SzLocation(is.rgae[i].lon, is.rgae[i].lat));
+  us.fAnsiChar = nSav;
+  int k = 7 + VSeconds(0, 3, 7);
+  sz[k] = '\0';
+  if (s_inLon)
+    s_inLon->value(sz);
+  if (s_inLat)
+    s_inLat->value(&sz[k+1]);
+}
+#endif
+
 // Show the Chart Info dialog
 void FShowDlgInfo(int nChart)
 {
@@ -231,7 +360,7 @@ void FShowDlgInfo(int nChart)
     s_ciEdit = is.rgci[-nChart];
 
   // Create dialog window
-  int w = 480, h = 340;
+  int w = 480, h = 540;
   char szTitle[64];
   if (nChart == 1)
     sprintf(szTitle, "Set Chart Info");
@@ -271,12 +400,11 @@ void FShowDlgInfo(int nChart)
   s_inTim = new Fl_Input(365, y, 100, 25);
   y += gap;
 
-  // Zone row
+  // Zone row - DST only has No/Yes for Chart Info (not Autodetect)
   new Fl_Box(10, y, 50, 25, "DST:");
   s_chDst = new Fl_Choice(60, y, 90, 25);
   s_chDst->add("No");
   s_chDst->add("Yes");
-  s_chDst->add("Autodetect");
 
   new Fl_Box(160, y, 35, 25, "Zone:");
   s_inZon = new Fl_Input(200, y, 80, 25);
@@ -294,9 +422,34 @@ void FShowDlgInfo(int nChart)
   Fl_Button *btnNow = new Fl_Button(10, y, 80, 25, "Now");
   btnNow->callback(cb_InfoNow);
 
-  Fl_Button *btnSet = new Fl_Button(100, y, 80, 25, "Saved");
-  btnSet->callback(cb_InfoSet);
-  y += gap + 20;
+  Fl_Button *btnRecall = new Fl_Button(100, y, 80, 25, "Recall");
+  btnRecall->callback(cb_InfoSet);
+  y += gap + 10;
+
+#ifdef ATLAS
+  // Atlas Lookups area
+  Fl_Box *atlasLabel = new Fl_Box(10, y, 150, 20, "Atlas Lookups:");
+  atlasLabel->align(FL_ALIGN_LEFT | FL_ALIGN_INSIDE);
+  y += 22;
+
+  // Atlas buttons row
+  Fl_Button *btnCity = new Fl_Button(10, y, 105, 25, "Lookup City");
+  btnCity->callback(cb_AtlasLookup);
+
+  Fl_Button *btnNearby = new Fl_Button(125, y, 105, 25, "Nearby Cities");
+  btnNearby->callback(cb_AtlasNearby);
+
+  Fl_Button *btnChanges = new Fl_Button(240, y, 105, 25, "Time Changes");
+  btnChanges->callback(cb_AtlasChanges);
+
+  Fl_Button *btnApply = new Fl_Button(355, y, 105, 25, "Apply Info");
+  btnApply->callback(cb_AtlasApply);
+  y += 30;
+
+  // Atlas results browser
+  s_brAtlas = new Fl_Hold_Browser(10, y, w - 20, h - y - 45);
+  s_brAtlas->textsize(12);
+#endif
 
   // OK/Cancel buttons
   Fl_Return_Button *btnOK = new Fl_Return_Button(w - 180, h - 40, 80, 30, "OK");
@@ -311,9 +464,6 @@ void FShowDlgInfo(int nChart)
   // Initialize fields with current values
   UpdateInfoFields(s_ciEdit);
 
-  // Default DST to Autodetect for user convenience
-  s_chDst->value(2);
-
   s_dlgInfo->show();
 
   // Wait for dialog to close
@@ -326,6 +476,9 @@ void FShowDlgInfo(int nChart)
   s_inDay = s_inYea = NULL;
   s_inLon = s_inLat = NULL;
   s_chMon = s_chDst = NULL;
+#ifdef ATLAS
+  s_brAtlas = NULL;
+#endif
 }
 
 /*
@@ -1893,6 +2046,103 @@ static Fl_Input *s_inDefLon = NULL;
 static Fl_Input *s_inDefLat = NULL;
 static Fl_Input *s_inDefNam = NULL;
 static Fl_Input *s_inDefLoc = NULL;
+#ifdef ATLAS
+static Fl_Hold_Browser *s_brDefAtlas = NULL;
+#endif
+
+#ifdef ATLAS
+// Atlas callbacks for Default Info dialog
+static void cb_DefAtlasLookup(Fl_Widget *w, void *data)
+{
+  if (!s_brDefAtlas || !s_inDefLoc) return;
+  s_brDefAtlas->clear();
+  cAtlasData = 0;
+  int ilist = ilistMax;
+  pfbAtlas = s_brDefAtlas;
+  if (!DisplayAtlasLookup(s_inDefLoc->value(), (size_t)s_brDefAtlas, &ilist))
+    PrintWarning("Couldn't get atlas data!");
+  pfbAtlas = NULL;
+}
+
+static void cb_DefAtlasNearby(Fl_Widget *w, void *data)
+{
+  if (!s_brDefAtlas || !s_inDefLon || !s_inDefLat) return;
+  char sz[cchSzMax];
+  s_brDefAtlas->clear();
+  cAtlasData = 0;
+  int ilist = ilistMax;
+  strncpy(sz, s_inDefLon->value(), sizeof(sz)-1); sz[sizeof(sz)-1] = '\0';
+  real lon = RParseSz(sz, pmLon);
+  strncpy(sz, s_inDefLat->value(), sizeof(sz)-1); sz[sizeof(sz)-1] = '\0';
+  real lat = RParseSz(sz, pmLat);
+  pfbAtlas = s_brDefAtlas;
+  if (!DisplayAtlasNearby(lon, lat, (size_t)s_brDefAtlas, &ilist, fFalse))
+    PrintWarning("Couldn't get atlas data!");
+  pfbAtlas = NULL;
+}
+
+static void cb_DefAtlasChanges(Fl_Widget *w, void *data)
+{
+  if (!s_brDefAtlas || !s_inDefLoc) return;
+  int i;
+  if (!DisplayAtlasLookup(s_inDefLoc->value(), 0, &i)) {
+    PrintWarning("Please have a valid city in the 'Location' field first.");
+    return;
+  }
+  s_brDefAtlas->clear();
+  cAtlasData = 0;
+  CI ci = ciMain;
+  pfbAtlas = s_brDefAtlas;
+  if (!DisplayTimezoneChanges(is.rgae[i].izn, (size_t)s_brDefAtlas, &ci))
+    PrintWarning("Couldn't get time zone data!");
+  pfbAtlas = NULL;
+}
+
+static void cb_DefAtlasApply(Fl_Widget *w, void *data)
+{
+  if (!s_brDefAtlas) return;
+  char sz[cchSzMax];
+  int i = -1, j;
+
+  j = s_brDefAtlas->value();
+  if (j > 0 && j <= cAtlasData)
+    i = rgAtlasData[j - 1];
+
+  if (i < 0) {
+    if (!s_inDefLoc || !DisplayAtlasLookup(s_inDefLoc->value(), 0, &i)) {
+      PrintWarning("Please have a valid city selected in 'Atlas Lookups', "
+        "or a valid city already in the 'Location' field.");
+      return;
+    }
+  }
+
+  if (s_inDefLoc)
+    s_inDefLoc->value(SzCity(i));
+
+  CI ci = ciMain;
+  if (!DisplayTimezoneChanges(is.rgae[i].izn, 0, &ci))
+    PrintWarning("Couldn't get time zone data!");
+
+  if (s_inDefDst) {
+    sprintf(sz, "%s", SzZone(ci.dst));
+    s_inDefDst->value(sz);
+  }
+  if (s_inDefZon) {
+    sprintf(sz, "%s", SzZone(ci.zon));
+    s_inDefZon->value(sz);
+  }
+  int nSav = us.fAnsiChar;
+  us.fAnsiChar = fFalse;
+  sprintf(sz, "%s", SzLocation(is.rgae[i].lon, is.rgae[i].lat));
+  us.fAnsiChar = nSav;
+  char *p = strchr(sz, ' ');
+  if (p) *p = '\0';
+  if (s_inDefLon)
+    s_inDefLon->value(sz);
+  if (s_inDefLat && p)
+    s_inDefLat->value(p + 1);
+}
+#endif
 
 static void cb_DefaultInfoOK(Fl_Widget *w, void *data)
 {
@@ -1950,7 +2200,7 @@ static void cb_DefaultInfoCancel(Fl_Widget *w, void *data)
 
 void FShowDlgDefaultInfo()
 {
-  int w = 400, h = 280;
+  int w = 480, h = 500;
   char sz[cchSzDef];
 
   s_dlgDefaultInfo = new Fl_Window(w, h, "Default Chart Info");
@@ -1976,7 +2226,6 @@ void FShowDlgDefaultInfo()
   new Fl_Box(10, y, lw, 25, "Longitude:");
   s_inDefLon = new Fl_Input(115, y, 160, 25);
   sprintf(sz, "%s", SzLocation(ciDefa.lon, ciDefa.lat));
-  // Extract just longitude from location string
   char *p = strchr(sz, ' ');
   if (p) *p = '\0';
   s_inDefLon->value(sz);
@@ -1992,14 +2241,38 @@ void FShowDlgDefaultInfo()
 
   // Name row
   new Fl_Box(10, y, lw, 25, "Name:");
-  s_inDefNam = new Fl_Input(115, y, 270, 25);
+  s_inDefNam = new Fl_Input(115, y, w - lw - 30, 25);
   s_inDefNam->value(ciDefa.nam ? ciDefa.nam : "");
   y += 35;
 
   // Location row
   new Fl_Box(10, y, lw, 25, "Location:");
-  s_inDefLoc = new Fl_Input(115, y, 270, 25);
+  s_inDefLoc = new Fl_Input(115, y, w - lw - 30, 25);
   s_inDefLoc->value(ciDefa.loc ? ciDefa.loc : "");
+  y += 40;
+
+#ifdef ATLAS
+  // Atlas Lookups area
+  Fl_Box *atlasLabel = new Fl_Box(10, y, 150, 20, "Atlas Lookups:");
+  atlasLabel->align(FL_ALIGN_LEFT | FL_ALIGN_INSIDE);
+  y += 22;
+
+  Fl_Button *btnCity = new Fl_Button(10, y, 105, 25, "Lookup City");
+  btnCity->callback(cb_DefAtlasLookup);
+
+  Fl_Button *btnNearby = new Fl_Button(125, y, 105, 25, "Nearby Cities");
+  btnNearby->callback(cb_DefAtlasNearby);
+
+  Fl_Button *btnChanges = new Fl_Button(240, y, 105, 25, "Time Changes");
+  btnChanges->callback(cb_DefAtlasChanges);
+
+  Fl_Button *btnApply = new Fl_Button(355, y, 105, 25, "Apply Info");
+  btnApply->callback(cb_DefAtlasApply);
+  y += 30;
+
+  s_brDefAtlas = new Fl_Hold_Browser(10, y, w - 20, h - y - 45);
+  s_brDefAtlas->textsize(12);
+#endif
 
   // OK/Cancel buttons
   Fl_Return_Button *btnOK = new Fl_Return_Button(w - 180, h - 40, 80, 30, "OK");
@@ -2023,6 +2296,9 @@ void FShowDlgDefaultInfo()
   s_inDefLat = NULL;
   s_inDefNam = NULL;
   s_inDefLoc = NULL;
+#ifdef ATLAS
+  s_brDefAtlas = NULL;
+#endif
 }
 
 /*
@@ -2037,26 +2313,53 @@ static Fl_Window *s_dlgObject = NULL;
 static Fl_Float_Input *s_inObjOrb[oCore+1];
 static Fl_Float_Input *s_inObjAdd[oCore+1];
 static Fl_Float_Input *s_inObjInf[oCore+1];
+static Fl_Input *s_inObjColor[oCore+1];
 
 static void cb_ObjectOK(Fl_Widget *w, void *data)
 {
-  char sz[64];
+  char sz[cchSzMax];
   real r;
+  int k;
 
+  // Validate first
   for (int i = 0; i <= oCore; i++) {
     if (s_inObjOrb[i]) {
       r = atof(s_inObjOrb[i]->value());
-      if (r >= -rDegMax && r <= rDegMax)
-        rObjOrb[i] = r;
+      if (r < -rDegMax || r > rDegMax) {
+        fl_alert("Invalid max orb for %s", szObjName[i]);
+        return;
+      }
     }
     if (s_inObjAdd[i]) {
       r = atof(s_inObjAdd[i]->value());
-      if (r >= -rDegMax && r <= rDegMax)
-        rObjAdd[i] = r;
+      if (r < -rDegMax || r > rDegMax) {
+        fl_alert("Invalid orb addition for %s", szObjName[i]);
+        return;
+      }
     }
-    if (s_inObjInf[i]) {
-      r = atof(s_inObjInf[i]->value());
-      rObjInf[i] = r;
+    if (s_inObjColor[i]) {
+      strncpy(sz, s_inObjColor[i]->value(), sizeof(sz)-1);
+      sz[sizeof(sz)-1] = '\0';
+      k = NParseSz(sz, pmColor);
+      if (!FValidColor2(k)) {
+        fl_alert("Invalid color for %s", szObjName[i]);
+        return;
+      }
+    }
+  }
+
+  // Apply
+  for (int i = 0; i <= oCore; i++) {
+    if (s_inObjOrb[i])
+      rObjOrb[i] = atof(s_inObjOrb[i]->value());
+    if (s_inObjAdd[i])
+      rObjAdd[i] = atof(s_inObjAdd[i]->value());
+    if (s_inObjInf[i])
+      rObjInf[i] = atof(s_inObjInf[i]->value());
+    if (s_inObjColor[i]) {
+      strncpy(sz, s_inObjColor[i]->value(), sizeof(sz)-1);
+      sz[sizeof(sz)-1] = '\0';
+      kObjU[i] = NParseSz(sz, pmColor);
     }
   }
 
@@ -2076,7 +2379,7 @@ static void cb_ObjectCancel(Fl_Widget *w, void *data)
 
 void FShowDlgObject()
 {
-  int w = 450, h = 400;
+  int w = 530, h = 400;
   char sz[64];
 
   s_dlgObject = new Fl_Window(w, h, "Object Settings");
@@ -2084,9 +2387,10 @@ void FShowDlgObject()
 
   // Header row
   new Fl_Box(10, 10, 100, 20, "Object");
-  new Fl_Box(115, 10, 80, 20, "Max Orb");
-  new Fl_Box(200, 10, 80, 20, "Orb Add");
-  new Fl_Box(285, 10, 80, 20, "Influence");
+  new Fl_Box(115, 10, 70, 20, "Max Orb");
+  new Fl_Box(190, 10, 70, 20, "Orb Add");
+  new Fl_Box(265, 10, 70, 20, "Influence");
+  new Fl_Box(340, 10, 70, 20, "Color");
 
   // Scrollable area for objects
   Fl_Scroll *scroll = new Fl_Scroll(5, 35, w - 10, h - 85);
@@ -2096,17 +2400,21 @@ void FShowDlgObject()
   for (int i = 0; i <= oCore; i++) {
     new Fl_Box(5, y, 100, 25, szObjName[i]);
 
-    s_inObjOrb[i] = new Fl_Float_Input(110, y, 75, 25);
+    s_inObjOrb[i] = new Fl_Float_Input(110, y, 65, 25);
     sprintf(sz, "%.2f", rObjOrb[i]);
     s_inObjOrb[i]->value(sz);
 
-    s_inObjAdd[i] = new Fl_Float_Input(195, y, 75, 25);
+    s_inObjAdd[i] = new Fl_Float_Input(185, y, 65, 25);
     sprintf(sz, "%.1f", rObjAdd[i]);
     s_inObjAdd[i]->value(sz);
 
-    s_inObjInf[i] = new Fl_Float_Input(280, y, 75, 25);
+    s_inObjInf[i] = new Fl_Float_Input(260, y, 65, 25);
     sprintf(sz, "%.2f", rObjInf[i]);
     s_inObjInf[i]->value(sz);
+
+    s_inObjColor[i] = new Fl_Input(335, y, 65, 25);
+    sprintf(sz, "%d", kObjU[i]);
+    s_inObjColor[i]->value(sz);
 
     y += 28;
   }
@@ -2133,6 +2441,7 @@ void FShowDlgObject()
     s_inObjOrb[i] = NULL;
     s_inObjAdd[i] = NULL;
     s_inObjInf[i] = NULL;
+    s_inObjColor[i] = NULL;
   }
 }
 
@@ -2149,6 +2458,7 @@ static Fl_Window *s_dlgObject2 = NULL;
 static Fl_Float_Input *s_inObj2Orb[cObjExt];
 static Fl_Float_Input *s_inObj2Add[cObjExt];
 static Fl_Float_Input *s_inObj2Inf[cObjExt];
+static Fl_Input *s_inObj2Color[cObjExt];
 
 // Map index to actual object index
 static int NObj2Index(int idx)
@@ -2161,6 +2471,38 @@ static int NObj2Index(int idx)
 
 static void cb_Object2OK(Fl_Widget *w, void *data)
 {
+  char sz[cchSzMax];
+  int k;
+
+  // Validate first
+  for (int idx = 0; idx < cObjExt; idx++) {
+    int i = NObj2Index(idx);
+    if (s_inObj2Orb[idx]) {
+      real r = atof(s_inObj2Orb[idx]->value());
+      if (r < -rDegMax || r > rDegMax) {
+        fl_alert("Invalid max orb for %s", szObjName[i]);
+        return;
+      }
+    }
+    if (s_inObj2Add[idx]) {
+      real r = atof(s_inObj2Add[idx]->value());
+      if (r < -rDegMax || r > rDegMax) {
+        fl_alert("Invalid orb addition for %s", szObjName[i]);
+        return;
+      }
+    }
+    if (s_inObj2Color[idx]) {
+      strncpy(sz, s_inObj2Color[idx]->value(), sizeof(sz)-1);
+      sz[sizeof(sz)-1] = '\0';
+      k = NParseSz(sz, pmColor);
+      if (!(i < starLo ? FValidColor2(k) : FValidColorS(k))) {
+        fl_alert("Invalid color for %s", szObjName[i]);
+        return;
+      }
+    }
+  }
+
+  // Apply
   for (int idx = 0; idx < cObjExt; idx++) {
     int i = NObj2Index(idx);
     if (s_inObj2Orb[idx])
@@ -2169,6 +2511,11 @@ static void cb_Object2OK(Fl_Widget *w, void *data)
       rObjAdd[i] = atof(s_inObj2Add[idx]->value());
     if (s_inObj2Inf[idx])
       rObjInf[i] = atof(s_inObj2Inf[idx]->value());
+    if (s_inObj2Color[idx]) {
+      strncpy(sz, s_inObj2Color[idx]->value(), sizeof(sz)-1);
+      sz[sizeof(sz)-1] = '\0';
+      kObjU[i] = NParseSz(sz, pmColor);
+    }
   }
 
   fi.fDoCast = fTrue;
@@ -2195,9 +2542,10 @@ void FShowDlgObject2()
 
   // Header row
   new Fl_Box(10, 10, 120, 20, "Object");
-  new Fl_Box(140, 10, 80, 20, "Max Orb");
-  new Fl_Box(230, 10, 80, 20, "Orb Add");
-  new Fl_Box(320, 10, 80, 20, "Influence");
+  new Fl_Box(140, 10, 65, 20, "Max Orb");
+  new Fl_Box(210, 10, 65, 20, "Orb Add");
+  new Fl_Box(280, 10, 65, 20, "Influence");
+  new Fl_Box(350, 10, 65, 20, "Color");
 
   // Scrollable area for objects
   Fl_Scroll *scroll = new Fl_Scroll(5, 35, w - 10, h - 85);
@@ -2209,17 +2557,21 @@ void FShowDlgObject2()
 
     new Fl_Box(5, y, 120, 25, szObjName[i]);
 
-    s_inObj2Orb[idx] = new Fl_Float_Input(135, y, 75, 25);
+    s_inObj2Orb[idx] = new Fl_Float_Input(135, y, 60, 25);
     sprintf(sz, "%.2f", rObjOrb[i]);
     s_inObj2Orb[idx]->value(sz);
 
-    s_inObj2Add[idx] = new Fl_Float_Input(220, y, 75, 25);
+    s_inObj2Add[idx] = new Fl_Float_Input(205, y, 60, 25);
     sprintf(sz, "%.1f", rObjAdd[i]);
     s_inObj2Add[idx]->value(sz);
 
-    s_inObj2Inf[idx] = new Fl_Float_Input(305, y, 75, 25);
+    s_inObj2Inf[idx] = new Fl_Float_Input(275, y, 60, 25);
     sprintf(sz, "%.2f", rObjInf[i]);
     s_inObj2Inf[idx]->value(sz);
+
+    s_inObj2Color[idx] = new Fl_Input(345, y, 60, 25);
+    sprintf(sz, "%d", kObjU[i]);
+    s_inObj2Color[idx]->value(sz);
 
     y += 28;
   }
@@ -2246,6 +2598,7 @@ void FShowDlgObject2()
     s_inObj2Orb[idx] = NULL;
     s_inObj2Add[idx] = NULL;
     s_inObj2Inf[idx] = NULL;
+    s_inObj2Color[idx] = NULL;
   }
 }
 
@@ -2891,12 +3244,44 @@ static Fl_Window *s_dlgMoonObj = NULL;
 static Fl_Float_Input *s_inMoonOrb[cMoons2];
 static Fl_Float_Input *s_inMoonAdd[cMoons2];
 static Fl_Float_Input *s_inMoonInf[cMoons2];
+static Fl_Input *s_inMoonColor[cMoons2];
 static Fl_Check_Button *s_cbMoonMove = NULL;
 static Fl_Check_Button *s_cbMoonChartSep = NULL;
 static Fl_Check_Button *s_cbMoonWheel = NULL;
 
 static void cb_MoonObjOK(Fl_Widget *w, void *data)
 {
+  char sz[cchSzMax];
+  int k;
+
+  // Validate first, then apply
+  for (int i = 0; i < cMoons2; i++) {
+    int obj = moonsLo + i;
+    if (s_inMoonOrb[i]) {
+      real r = atof(s_inMoonOrb[i]->value());
+      if (r < -rDegMax || r > rDegMax) {
+        fl_alert("Invalid max orb for %s", szObjName[obj]);
+        return;
+      }
+    }
+    if (s_inMoonAdd[i]) {
+      real r = atof(s_inMoonAdd[i]->value());
+      if (r < -rDegMax || r > rDegMax) {
+        fl_alert("Invalid orb addition for %s", szObjName[obj]);
+        return;
+      }
+    }
+    if (s_inMoonColor[i]) {
+      strncpy(sz, s_inMoonColor[i]->value(), sizeof(sz)-1);
+      sz[sizeof(sz)-1] = '\0';
+      k = NParseSz(sz, pmColor);
+      if (!FValidColorM(k)) {
+        fl_alert("Invalid color for %s", szObjName[obj]);
+        return;
+      }
+    }
+  }
+
   for (int i = 0; i < cMoons2; i++) {
     int obj = moonsLo + i;
     if (s_inMoonOrb[i])
@@ -2905,6 +3290,11 @@ static void cb_MoonObjOK(Fl_Widget *w, void *data)
       rObjAdd[obj] = atof(s_inMoonAdd[i]->value());
     if (s_inMoonInf[i])
       rObjInf[obj] = atof(s_inMoonInf[i]->value());
+    if (s_inMoonColor[i]) {
+      strncpy(sz, s_inMoonColor[i]->value(), sizeof(sz)-1);
+      sz[sizeof(sz)-1] = '\0';
+      kObjU[obj] = NParseSz(sz, pmColor);
+    }
   }
 
   us.fMoonMove = s_cbMoonMove ? s_cbMoonMove->value() : us.fMoonMove;
@@ -2927,7 +3317,7 @@ static void cb_MoonObjCancel(Fl_Widget *w, void *data)
 
 void FShowDlgMoonObj()
 {
-  int w = 480, h = 450;
+  int w = 560, h = 450;
   char sz[64];
 
   s_dlgMoonObj = new Fl_Window(w, h, "Moon Object Settings");
@@ -2935,9 +3325,10 @@ void FShowDlgMoonObj()
 
   // Header row
   new Fl_Box(10, 10, 120, 20, "Moon/COB");
-  new Fl_Box(135, 10, 80, 20, "Max Orb");
-  new Fl_Box(220, 10, 80, 20, "Orb Add");
-  new Fl_Box(305, 10, 80, 20, "Influence");
+  new Fl_Box(135, 10, 75, 20, "Max Orb");
+  new Fl_Box(215, 10, 75, 20, "Orb Add");
+  new Fl_Box(295, 10, 75, 20, "Influence");
+  new Fl_Box(375, 10, 75, 20, "Color");
 
   // Scrollable area for moons
   Fl_Scroll *scroll = new Fl_Scroll(5, 35, w - 10, h - 135);
@@ -2948,17 +3339,21 @@ void FShowDlgMoonObj()
     int obj = moonsLo + i;
     new Fl_Box(5, y, 120, 25, szObjName[obj]);
 
-    s_inMoonOrb[i] = new Fl_Float_Input(130, y, 75, 25);
+    s_inMoonOrb[i] = new Fl_Float_Input(130, y, 70, 25);
     sprintf(sz, "%.2f", rObjOrb[obj]);
     s_inMoonOrb[i]->value(sz);
 
-    s_inMoonAdd[i] = new Fl_Float_Input(215, y, 75, 25);
+    s_inMoonAdd[i] = new Fl_Float_Input(210, y, 70, 25);
     sprintf(sz, "%.1f", rObjAdd[obj]);
     s_inMoonAdd[i]->value(sz);
 
-    s_inMoonInf[i] = new Fl_Float_Input(300, y, 75, 25);
+    s_inMoonInf[i] = new Fl_Float_Input(290, y, 70, 25);
     sprintf(sz, "%.2f", rObjInf[obj]);
     s_inMoonInf[i]->value(sz);
+
+    s_inMoonColor[i] = new Fl_Input(370, y, 70, 25);
+    sprintf(sz, "%d", kObjU[obj]);
+    s_inMoonColor[i]->value(sz);
 
     y += 28;
   }
@@ -2996,6 +3391,7 @@ void FShowDlgMoonObj()
     s_inMoonOrb[i] = NULL;
     s_inMoonAdd[i] = NULL;
     s_inMoonInf[i] = NULL;
+    s_inMoonColor[i] = NULL;
   }
   s_cbMoonMove = NULL;
   s_cbMoonChartSep = NULL;

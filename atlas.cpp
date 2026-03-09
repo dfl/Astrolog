@@ -52,6 +52,9 @@
 */
 
 #include "astrolog.h"
+#ifdef FLTK
+#include "fdriver.h"
+#endif
 
 
 #ifdef ATLAS
@@ -1483,6 +1486,9 @@ flag DisplayAtlasLookup(CONST char *szIn, size_t lDialog, int *piae)
 #ifdef WIN
   HWND hdlg = (HWND)lDialog;
 #endif
+#ifdef FLTK
+  Fl_Hold_Browser *pfb = (Fl_Hold_Browser *)lDialog;
+#endif
 
   if (!FEnsureAtlas())
     return fFalse;
@@ -1630,6 +1636,14 @@ flag DisplayAtlasLookup(CONST char *szIn, size_t lDialog, int *piae)
       continue;
     }
 #endif
+#ifdef FLTK
+    if (pfb != NULL) {
+      pfb->add(sz);
+      if (cAtlasData < ilistMax)
+        rgAtlasData[cAtlasData++] = rgiae[i];
+      continue;
+    }
+#endif
     PrintSz(sz);
     PrintL();
   }
@@ -1639,6 +1653,13 @@ flag DisplayAtlasLookup(CONST char *szIn, size_t lDialog, int *piae)
 #ifdef WIN
     if (hdlg != NULL) {
       SetListN(dlIn, "(No matches found)", -1, j);
+    } else
+#endif
+#ifdef FLTK
+    if (pfb != NULL) {
+      pfb->add("(No matches found)");
+      if (cAtlasData < ilistMax)
+        rgAtlasData[cAtlasData++] = -1;
     } else
 #endif
       PrintSz("No matches found.");
@@ -1664,6 +1685,9 @@ flag DisplayAtlasNearby(real lon, real lat, size_t lDialog, int *piae,
   real rDist, zon;
 #ifdef WIN
   HWND hdlg = (HWND)lDialog;
+#endif
+#ifdef FLTK
+  Fl_Hold_Browser *pfb = (Fl_Hold_Browser *)lDialog;
 #endif
 
   if (!FEnsureAtlas())
@@ -1736,6 +1760,14 @@ flag DisplayAtlasNearby(real lon, real lat, size_t lDialog, int *piae,
 #ifdef WIN
     if (hdlg != NULL) {
       SetListN(dlIn, sz, rgiae[i], j);
+      continue;
+    }
+#endif
+#ifdef FLTK
+    if (pfb != NULL) {
+      pfb->add(sz);
+      if (cAtlasData < ilistMax)
+        rgAtlasData[cAtlasData++] = rgiae[i];
       continue;
     }
 #endif
@@ -1857,6 +1889,9 @@ flag DisplayTimezoneChanges(int iznIn, size_t lDialog, CI *ci)
 #ifdef WIN
   HWND hdlg = (HWND)lDialog;
 #endif
+#ifdef FLTK
+  Fl_Hold_Browser *pfb = (Fl_Hold_Browser *)lDialog;
+#endif
 
   if (!FEnsureTimezoneChanges())
     return fFalse;
@@ -1889,6 +1924,14 @@ flag DisplayTimezoneChanges(int iznIn, size_t lDialog, CI *ci)
   else {
     sprintf(sz, "Time changes within zone: %s", rgszzn[izn]);
     SetListN(dlIn, sz, -1, k);
+  }
+#endif
+#ifdef FLTK
+  if (pfb != NULL && (lDialog != 0 || ci != NULL)) {
+    sprintf(sz, "Time changes within zone: %s", rgszzn[izn]);
+    pfb->add(sz);
+    if (cAtlasData < ilistMax)
+      rgAtlasData[cAtlasData++] = -1;
   }
 #endif
   izce = rgizcChange[izcn];
@@ -1950,6 +1993,15 @@ flag DisplayTimezoneChanges(int iznIn, size_t lDialog, CI *ci)
     if (lDialog != 0) {
       sprintf(sz1, "%.3s %s", szDay[DayOfWeek(mon, day, yea)], sz);
       SetListN(dlIn, sz1, -1, k);
+      goto LSkip;
+    }
+#endif
+#ifdef FLTK
+    if (pfb != NULL) {
+      sprintf(sz1, "%.3s %s", szDay[DayOfWeek(mon, day, yea)], sz);
+      pfb->add(sz1);
+      if (cAtlasData < ilistMax)
+        rgAtlasData[cAtlasData++] = -1;
       goto LSkip;
     }
 #endif
@@ -2081,6 +2133,15 @@ LSkip:
         if (lDialog != 0) {
           sprintf(sz, "%.3s %s", szDay[DayOfWeek(mon, day, yea)], sz1);
           SetListN(dlIn, sz, -1, k);
+          continue;
+        }
+#endif
+#ifdef FLTK
+        if (pfb != NULL) {
+          sprintf(sz, "%.3s %s", szDay[DayOfWeek(mon, day, yea)], sz1);
+          pfb->add(sz);
+          if (cAtlasData < ilistMax)
+            rgAtlasData[cAtlasData++] = -1;
           continue;
         }
 #endif
