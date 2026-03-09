@@ -52,6 +52,9 @@
 */
 
 #include "astrolog.h"
+#ifdef FLTK
+#include <FL/fl_ask.H>
+#endif
 
 /*
 ******************************************************************************
@@ -1218,7 +1221,7 @@ void PrintSzFormat(CONST char *sz, flag fPopup) {
 #endif
   }
   *pch2 = chNull;
-#ifdef WIN
+#if defined(WIN) || defined(FLTK)
   if (fPopup)
     PrintNotice(szFormat);
   else
@@ -1242,17 +1245,19 @@ void PrintProgress(CONST char *sz) {
 // displayer below, except print in a different color.
 
 void PrintNotice(CONST char *sz) {
-#ifndef WIN
-  AnsiColor(kYellowA);
-  fprintf(stderr, "%s\n", sz);
-  AnsiColor(kDefault);
-#else
+#ifdef WIN
   char szT[cchSzDef];
 
   if (wi.fNoPopup)
     return;
   sprintf(szT, "%s Notice", szAppName);
   MessageBox(wi.hwndMain, sz, szT, MB_ICONINFORMATION);
+#elif defined(FLTK)
+  fl_message("%s", sz);
+#else
+  AnsiColor(kYellowA);
+  fprintf(stderr, "%s\n", sz);
+  AnsiColor(kDefault);
 #endif
 }
 
@@ -1260,17 +1265,19 @@ void PrintNotice(CONST char *sz) {
 // in which normal execution is resumed after printing the string.
 
 void PrintWarning(CONST char *sz) {
-#ifndef WIN
-  AnsiColor(kRedA);
-  fprintf(stderr, "%s\n", sz);
-  AnsiColor(kDefault);
-#else
+#ifdef WIN
   char szT[cchSzDef];
 
   if (wi.fNoPopup)
     return;
   sprintf(szT, "%s Warning", szAppName);
   MessageBox(wi.hwndMain, sz, szT, MB_ICONSTOP);
+#elif defined(FLTK)
+  fl_alert("%s", sz);
+#else
+  AnsiColor(kRedA);
+  fprintf(stderr, "%s\n", sz);
+  AnsiColor(kDefault);
 #endif
 }
 
