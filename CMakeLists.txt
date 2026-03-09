@@ -505,6 +505,9 @@ add_astrolog_test(test_calendar   tests/test_calendar.cpp)
 add_astrolog_test(test_coordinate_transforms tests/test_coordinate_transforms.cpp)
 add_astrolog_test(test_atlas      tests/test_atlas.cpp)
 add_astrolog_test(test_house_systems tests/test_house_systems.cpp)
+add_astrolog_test(test_dialog_helpers tests/test_dialog_helpers.cpp)
+add_astrolog_test(test_chart_casting tests/test_chart_casting.cpp)
+add_astrolog_test(test_event_helpers tests/test_event_helpers.cpp)
 
 # Print configuration summary
 message(STATUS "")
