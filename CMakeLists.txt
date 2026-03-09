@@ -500,6 +500,11 @@ add_astrolog_test(test_validation tests/test_validation.cpp)
 add_astrolog_test(test_formatting tests/test_formatting.cpp)
 add_astrolog_test(test_roundtrip  tests/test_roundtrip.cpp)
 add_astrolog_test(test_utils      tests/test_utils.cpp)
+add_astrolog_test(test_parsing    tests/test_parsing.cpp)
+add_astrolog_test(test_calendar   tests/test_calendar.cpp)
+add_astrolog_test(test_coordinate_transforms tests/test_coordinate_transforms.cpp)
+add_astrolog_test(test_atlas      tests/test_atlas.cpp)
+add_astrolog_test(test_house_systems tests/test_house_systems.cpp)
 
 # Print configuration summary
 message(STATUS "")
