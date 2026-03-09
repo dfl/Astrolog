@@ -32,9 +32,9 @@
 #endif
 
 #ifdef CAIRO
-#include <cairo/cairo-pdf.h>
-#include <cairo/cairo-svg.h>
-#include <cairo/cairo.h>
+#include <cairo-pdf.h>
+#include <cairo-svg.h>
+#include <cairo.h>
 
 #endif
 
@@ -2898,46 +2898,46 @@ void FMenuFilePrint(Fl_Widget *w, void *data) {
     return;
   }
 
+#if defined(__APPLE__) && defined(CAIRO)
+  // On macOS with Cairo: render chart to PDF, then use native print panel.
+  // This gives vector quality output and the native "Save as PDF" option.
+  extern flag FPrintChartNative(void);
+  if (!FPrintChartNative())
+    PrintWarning("The printing was not completed successfully.");
+#else
+  // Fallback: use FLTK's built-in printer support (screen-quality bitmap).
   Fl_Printer printer;
 
-  // Show native print dialog
-  if (printer.start_job(1) != 0) {
-    return; // User cancelled or error
-  }
+  if (printer.start_job(1) != 0)
+    return;
 
   if (printer.start_page() != 0) {
     printer.end_job();
     return;
   }
 
-  // Get printable area
   int pw, ph;
   printer.printable_rect(&pw, &ph);
 
-  // Get current chart size
   int chartW = fi.chart->w();
   int chartH = fi.chart->h();
 
-  // Calculate scale to fit on page while maintaining aspect ratio
   double scaleX = (double)pw / chartW;
   double scaleY = (double)ph / chartH;
   double scale = (scaleX < scaleY) ? scaleX : scaleY;
 
-  // Center the chart on the page
   int scaledW = (int)(chartW * scale);
   int scaledH = (int)(chartH * scale);
   int offsetX = (pw - scaledW) / 2;
   int offsetY = (ph - scaledH) / 2;
 
-  // Set origin and scale for printing
   printer.origin(offsetX, offsetY);
   printer.scale((float)scale, (float)scale);
-
-  // Print the chart widget
   printer.print_widget(fi.chart, 0, 0);
 
   printer.end_page();
   printer.end_job();
+#endif
 }
 
 void FMenuSaveChartList(Fl_Widget *w, void *data) {

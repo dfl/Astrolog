@@ -74,7 +74,7 @@ extern void FltkAdjustMapGlyphScale(int delta);
 extern void FltkInitMapGlyphScale(void);
 
 #ifdef CAIRO
-#include <cairo/cairo.h>
+#include <cairo.h>
 // Cairo backend - supports SVG, PDF, and screen rendering via image surface
 extern void InitBackendCairo(cairo_surface_t *surface);
 extern void EndBackendCairo(void);

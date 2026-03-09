@@ -535,7 +535,7 @@ void InitBackendFltk(void) {
 */
 
 #ifdef CAIRO
-#include <cairo/cairo.h>
+#include <cairo.h>
 static cairo_t *gi_cr = NULL;
 static cairo_surface_t *gi_surface = NULL;
 static GB *gpBackendPrev = NULL;

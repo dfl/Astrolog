@@ -1,5 +1,9 @@
 cmake_minimum_required(VERSION 3.16)
-project(astrolog VERSION 7.80 LANGUAGES CXX)
+if(APPLE)
+  project(astrolog VERSION 7.80 LANGUAGES CXX OBJCXX)
+else()
+  project(astrolog VERSION 7.80 LANGUAGES CXX)
+endif()
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -160,6 +164,9 @@ if(USE_FLTK)
   endif()
 
   list(APPEND SOURCES fdriver.cpp fdialog.cpp)
+  if(APPLE)
+    list(APPEND SOURCES fprint.mm)
+  endif()
   list(APPEND COMPILE_DEFS FLTK)
   message(STATUS "Building with FLTK GUI backend")
 endif()
@@ -305,6 +312,7 @@ if(USE_FLTK)
       "-framework CoreFoundation"
       "-framework CoreGraphics"
       "-framework IOKit"
+      "-framework Quartz"
     )
     # FLTK images library needs these
     find_library(JPEG_LIB jpeg PATHS /opt/homebrew/lib /usr/local/lib)
@@ -448,7 +456,7 @@ function(add_astrolog_test name source)
       target_link_libraries(${name} ${FLTK_STATIC_LIBS}
         "-framework Cocoa" "-framework Carbon" "-framework ApplicationServices"
         "-framework CoreText" "-framework CoreFoundation" "-framework CoreGraphics"
-        "-framework IOKit")
+        "-framework IOKit" "-framework Quartz")
       if(JPEG_LIB)
         target_link_libraries(${name} ${JPEG_LIB})
       endif()
@@ -472,6 +480,7 @@ function(add_astrolog_test name source)
     target_link_libraries(${name} ${X11_LIBRARIES})
   endif()
   if(USE_CAIRO AND CAIRO_FOUND)
+    target_include_directories(${name} PRIVATE ${CAIRO_INCLUDE_DIRS})
     target_link_libraries(${name} ${CAIRO_LIBRARIES})
   endif()
   if(USE_OPENGL AND USE_FLTK AND OpenGL_FOUND)
