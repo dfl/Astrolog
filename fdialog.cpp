@@ -51,13 +51,13 @@ static Fl_Window *s_dlgInfo = NULL;
 static Fl_Input *s_inName = NULL;
 static Fl_Input *s_inLoc = NULL;
 static Fl_Choice *s_chMon = NULL;
-static Fl_Int_Input *s_inDay = NULL;
-static Fl_Int_Input *s_inYea = NULL;
+static Fl_Input *s_inDay = NULL;
+static Fl_Input *s_inYea = NULL;
 static Fl_Input *s_inTim = NULL;
 static Fl_Choice *s_chDst = NULL;
 static Fl_Input *s_inZon = NULL;
-static Fl_Float_Input *s_inLon = NULL;
-static Fl_Float_Input *s_inLat = NULL;
+static Fl_Input *s_inLon = NULL;
+static Fl_Input *s_inLat = NULL;
 #ifdef ATLAS
 static Fl_Hold_Browser *s_brAtlas = NULL;
 #endif
@@ -391,10 +391,10 @@ void FShowDlgInfo(int nChart)
     s_chMon->add(szMonth[i]);
 
   new Fl_Box(160, y, 30, 25, "Day:");
-  s_inDay = new Fl_Int_Input(190, y, 35, 25);
+  s_inDay = new Fl_Input(190, y, 35, 25);
 
   new Fl_Box(235, y, 35, 25, "Year:");
-  s_inYea = new Fl_Int_Input(270, y, 50, 25);
+  s_inYea = new Fl_Input(270, y, 50, 25);
 
   new Fl_Box(330, y, 35, 25, "Time:");
   s_inTim = new Fl_Input(365, y, 100, 25);
@@ -412,10 +412,10 @@ void FShowDlgInfo(int nChart)
 
   // Location row
   new Fl_Box(10, y, 70, 25, "Longitude:");
-  s_inLon = new Fl_Float_Input(80, y, 110, 25);
+  s_inLon = new Fl_Input(80, y, 110, 25);
 
   new Fl_Box(200, y, 60, 25, "Latitude:");
-  s_inLat = new Fl_Float_Input(260, y, 110, 25);
+  s_inLat = new Fl_Input(260, y, 110, 25);
   y += gap + 10;
 
   // Helper buttons row
